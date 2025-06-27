@@ -1,0 +1,1866 @@
+{
+  "users": [
+    {
+      "id": "1",
+      "username": "admin",
+      "password": "admin123",
+      "role": "admin",
+      "name": "System Administrator",
+      "email": "admin@inventory.com"
+    },
+    {
+      "id": "2",
+      "username": "manager",
+      "password": "manager123",
+      "role": "manager",
+      "name": "John Manager",
+      "email": "manager@inventory.com"
+    },
+    {
+      "id": "3",
+      "username": "staff",
+      "password": "staff123",
+      "role": "staff",
+      "name": "Jane Staff",
+      "email": "staff@inventory.com"
+    },
+    {
+      "id": "4",
+      "username": "user4",
+      "password": "pass4",
+      "role": "staff",
+      "name": "User Four",
+      "email": "user4@inventory.com"
+    },
+    {
+      "id": "5",
+      "username": "user5",
+      "password": "pass5",
+      "role": "manager",
+      "name": "User Five",
+      "email": "user5@inventory.com"
+    },
+    {
+      "id": "6",
+      "username": "user6",
+      "password": "pass6",
+      "role": "admin",
+      "name": "User Six",
+      "email": "user6@inventory.com"
+    },
+    {
+      "id": "7",
+      "username": "user7",
+      "password": "pass7",
+      "role": "staff",
+      "name": "User Seven",
+      "email": "user7@inventory.com"
+    },
+    {
+      "id": "8",
+      "username": "user8",
+      "password": "pass8",
+      "role": "manager",
+      "name": "User Eight",
+      "email": "user8@inventory.com"
+    },
+    {
+      "id": "9",
+      "username": "user9",
+      "password": "pass9",
+      "role": "admin",
+      "name": "User Nine",
+      "email": "user9@inventory.com"
+    },
+    {
+      "id": "10",
+      "username": "user10",
+      "password": "pass10",
+      "role": "staff",
+      "name": "User Ten",
+      "email": "user10@inventory.com"
+    },
+    {
+      "id": "11",
+      "username": "user11",
+      "password": "pass11",
+      "role": "manager",
+      "name": "User Eleven",
+      "email": "user11@inventory.com"
+    },
+    {
+      "id": "12",
+      "username": "user12",
+      "password": "pass12",
+      "role": "admin",
+      "name": "User Twelve",
+      "email": "user12@inventory.com"
+    },
+    {
+      "id": "13",
+      "username": "user13",
+      "password": "pass13",
+      "role": "staff",
+      "name": "User Thirteen",
+      "email": "user13@inventory.com"
+    },
+    {
+      "id": "14",
+      "username": "user14",
+      "password": "pass14",
+      "role": "manager",
+      "name": "User Fourteen",
+      "email": "user14@inventory.com"
+    },
+    {
+      "id": "15",
+      "username": "user15",
+      "password": "pass15",
+      "role": "admin",
+      "name": "User Fifteen",
+      "email": "user15@inventory.com"
+    },
+    {
+      "id": "16",
+      "username": "user16",
+      "password": "pass16",
+      "role": "staff",
+      "name": "User Sixteen",
+      "email": "user16@inventory.com"
+    },
+    {
+      "id": "17",
+      "username": "user17",
+      "password": "pass17",
+      "role": "manager",
+      "name": "User Seventeen",
+      "email": "user17@inventory.com"
+    },
+    {
+      "id": "18",
+      "username": "user18",
+      "password": "pass18",
+      "role": "admin",
+      "name": "User Eighteen",
+      "email": "user18@inventory.com"
+    },
+    {
+      "id": "19",
+      "username": "user19",
+      "password": "pass19",
+      "role": "staff",
+      "name": "User Nineteen",
+      "email": "user19@inventory.com"
+    },
+    {
+      "id": "20",
+      "username": "user20",
+      "password": "pass20",
+      "role": "manager",
+      "name": "User Twenty",
+      "email": "user20@inventory.com"
+    }
+  ],
+  "products": [
+    {
+      "id": "2",
+      "name": "iPhone 15 Pro",
+      "sku": "APPLE-IP15P-001",
+      "purchaseRate": 999,
+      "salesRate": 1199,
+      "currentStock": 8,
+      "category": "Electronics",
+      "supplier": "Apple Inc.",
+      "createdAt": "2024-01-20T00:00:00Z"
+    },
+    {
+      "id": "3",
+      "name": "Office Chair Premium",
+      "sku": "FURN-CHAIR-001",
+      "purchaseRate": 150,
+      "salesRate": 220,
+      "currentStock": 50,
+      "category": "Furniture",
+      "supplier": "Office Solutions Ltd.",
+      "createdAt": "2024-02-01T00:00:00Z"
+    },
+    {
+      "id": "4",
+      "name": "Monitor LG UltraWide",
+      "sku": "LG-UW-001",
+      "purchaseRate": 300,
+      "salesRate": 400,
+      "currentStock": 40,
+      "category": "Electronics",
+      "supplier": "LG Electronics",
+      "createdAt": "2024-02-05T00:00:00Z"
+    },
+    {
+      "id": "5",
+      "name": "Desk Standing",
+      "sku": "FURN-DESK-001",
+      "purchaseRate": 200,
+      "salesRate": 300,
+      "currentStock": 30,
+      "category": "Furniture",
+      "supplier": "Office Solutions Ltd.",
+      "createdAt": "2024-02-10T00:00:00Z"
+    },
+    {
+      "id": "6",
+      "name": "Keyboard Logitech",
+      "sku": "LOGI-KB-001",
+      "purchaseRate": 50,
+      "salesRate": 80,
+      "currentStock": 100,
+      "category": "Electronics",
+      "supplier": "Logitech",
+      "createdAt": "2024-02-12T00:00:00Z"
+    },
+    {
+      "id": "7",
+      "name": "Mouse Logitech",
+      "sku": "LOGI-MS-001",
+      "purchaseRate": 30,
+      "salesRate": 50,
+      "currentStock": 120,
+      "category": "Electronics",
+      "supplier": "Logitech",
+      "createdAt": "2024-02-13T00:00:00Z"
+    },
+    {
+      "id": "8",
+      "name": "Printer HP LaserJet",
+      "sku": "HP-PRT-001",
+      "purchaseRate": 250,
+      "salesRate": 350,
+      "currentStock": 15,
+      "category": "Electronics",
+      "supplier": "HP",
+      "createdAt": "2024-02-14T00:00:00Z"
+    },
+    {
+      "id": "9",
+      "name": "Table Lamp",
+      "sku": "FURN-LAMP-001",
+      "purchaseRate": 20,
+      "salesRate": 35,
+      "currentStock": 60,
+      "category": "Furniture",
+      "supplier": "Office Solutions Ltd.",
+      "createdAt": "2024-02-15T00:00:00Z"
+    },
+    {
+      "id": "10",
+      "name": "Notebook Lenovo",
+      "sku": "LENOVO-NB-001",
+      "purchaseRate": 900,
+      "salesRate": 1100,
+      "currentStock": 18,
+      "category": "Electronics",
+      "supplier": "Lenovo",
+      "createdAt": "2024-02-16T00:00:00Z"
+    },
+    {
+      "id": "11",
+      "name": "Projector Epson",
+      "sku": "EPSON-PROJ-001",
+      "purchaseRate": 600,
+      "salesRate": 800,
+      "currentStock": 8,
+      "category": "Electronics",
+      "supplier": "Epson",
+      "createdAt": "2024-02-17T00:00:00Z"
+    },
+    {
+      "id": "12",
+      "name": "Whiteboard Large",
+      "sku": "FURN-WB-001",
+      "purchaseRate": 70,
+      "salesRate": 120,
+      "currentStock": 25,
+      "category": "Furniture",
+      "supplier": "Office Solutions Ltd.",
+      "createdAt": "2024-02-18T00:00:00Z"
+    },
+    {
+      "id": "13",
+      "name": "Router TP-Link",
+      "sku": "TPLINK-RT-001",
+      "purchaseRate": 40,
+      "salesRate": 65,
+      "currentStock": 35,
+      "category": "Electronics",
+      "supplier": "TP-Link",
+      "createdAt": "2024-02-19T00:00:00Z"
+    },
+    {
+      "id": "14",
+      "name": "Scanner Canon",
+      "sku": "CANON-SCN-001",
+      "purchaseRate": 150,
+      "salesRate": 220,
+      "currentStock": 12,
+      "category": "Electronics",
+      "supplier": "Canon",
+      "createdAt": "2024-02-20T00:00:00Z"
+    },
+    {
+      "id": "15",
+      "name": "Filing Cabinet",
+      "sku": "FURN-FILE-001",
+      "purchaseRate": 120,
+      "salesRate": 180,
+      "currentStock": 20,
+      "category": "Furniture",
+      "supplier": "Office Solutions Ltd.",
+      "createdAt": "2024-02-21T00:00:00Z"
+    },
+    {
+      "id": "16",
+      "name": "Smart TV Samsung",
+      "sku": "SAMSUNG-TV-001",
+      "purchaseRate": 700,
+      "salesRate": 950,
+      "currentStock": 10,
+      "category": "Electronics",
+      "supplier": "Samsung",
+      "createdAt": "2024-02-22T00:00:00Z"
+    },
+    {
+      "id": "17",
+      "name": "Coffee Machine",
+      "sku": "APPL-COFFEE-001",
+      "purchaseRate": 80,
+      "salesRate": 120,
+      "currentStock": 14,
+      "category": "Appliances",
+      "supplier": "Philips",
+      "createdAt": "2024-02-23T00:00:00Z"
+    },
+    {
+      "id": "18",
+      "name": "Air Conditioner",
+      "sku": "APPL-AC-001",
+      "purchaseRate": 400,
+      "salesRate": 600,
+      "currentStock": 7,
+      "category": "Appliances",
+      "supplier": "LG Electronics",
+      "createdAt": "2024-02-24T00:00:00Z"
+    },
+    {
+      "id": "19",
+      "name": "Server Rack",
+      "sku": "IT-SERVER-001",
+      "purchaseRate": 1000,
+      "salesRate": 1300,
+      "currentStock": 5,
+      "category": "IT Equipment",
+      "supplier": "Dell Inc.",
+      "createdAt": "2024-02-25T00:00:00Z"
+    },
+    {
+      "id": "20",
+      "name": "Conference Phone",
+      "sku": "IT-PHONE-001",
+      "purchaseRate": 150,
+      "salesRate": 200,
+      "currentStock": 9,
+      "category": "IT Equipment",
+      "supplier": "Polycom",
+      "createdAt": "2024-02-26T00:00:00Z"
+    }
+  ],
+  "purchaseOrders": [
+    {
+      "id": "1",
+      "poNumber": "PO-2024-001",
+      "vendor": "Dell Inc.",
+      "status": "delivered",
+      "orderDate": "2024-02-15T00:00:00Z",
+      "deliveryDate": "2024-02-20T00:00:00Z",
+      "items": [
+        {
+          "productId": 1,
+          "productName": "Laptop Dell XPS 13",
+          "quantity": 10,
+          "unitPrice": 1200,
+          "total": 12000
+        }
+      ],
+      "subtotal": 12000,
+      "tax": 1440,
+      "total": 13440
+    },
+    {
+      "id": "2",
+      "poNumber": "PO-2024-002",
+      "vendor": "Apple Inc.",
+      "status": "approved",
+      "orderDate": "2024-02-18T00:00:00Z",
+      "items": [
+        {
+          "productId": 2,
+          "productName": "iPhone 15 Pro",
+          "quantity": 20,
+          "unitPrice": 999,
+          "total": 19980
+        }
+      ],
+      "subtotal": 19980,
+      "tax": 2397.6,
+      "total": 22377.6
+    },
+    {
+      "id": "3",
+      "poNumber": "PO-2024-003",
+      "vendor": "Logitech",
+      "status": "pending",
+      "orderDate": "2024-02-22T00:00:00Z",
+      "items": [
+        {
+          "productId": 6,
+          "productName": "Keyboard Logitech",
+          "quantity": 50,
+          "unitPrice": 50,
+          "total": 2500
+        }
+      ],
+      "subtotal": 2500,
+      "tax": 300,
+      "total": 2800
+    },
+    {
+      "id": "4",
+      "poNumber": "PO-2024-004",
+      "vendor": "HP",
+      "status": "delivered",
+      "orderDate": "2024-02-23T00:00:00Z",
+      "items": [
+        {
+          "productId": 8,
+          "productName": "Printer HP LaserJet",
+          "quantity": 5,
+          "unitPrice": 250,
+          "total": 1250
+        }
+      ],
+      "subtotal": 1250,
+      "tax": 150,
+      "total": 1400
+    },
+    {
+      "id": "5",
+      "poNumber": "PO-2024-005",
+      "vendor": "LG Electronics",
+      "status": "approved",
+      "orderDate": "2024-02-24T00:00:00Z",
+      "items": [
+        {
+          "productId": 4,
+          "productName": "Monitor LG UltraWide",
+          "quantity": 20,
+          "unitPrice": 300,
+          "total": 6000
+        }
+      ],
+      "subtotal": 6000,
+      "tax": 720,
+      "total": 6720
+    },
+    {
+      "id": "6",
+      "poNumber": "PO-2024-006",
+      "vendor": "Lenovo",
+      "status": "pending",
+      "orderDate": "2024-02-25T00:00:00Z",
+      "items": [
+        {
+          "productId": 10,
+          "productName": "Notebook Lenovo",
+          "quantity": 10,
+          "unitPrice": 900,
+          "total": 9000
+        }
+      ],
+      "subtotal": 9000,
+      "tax": 1080,
+      "total": 10080
+    },
+    {
+      "id": "7",
+      "poNumber": "PO-2024-007",
+      "vendor": "Epson",
+      "status": "delivered",
+      "orderDate": "2024-02-26T00:00:00Z",
+      "items": [
+        {
+          "productId": 11,
+          "productName": "Projector Epson",
+          "quantity": 3,
+          "unitPrice": 600,
+          "total": 1800
+        }
+      ],
+      "subtotal": 1800,
+      "tax": 216,
+      "total": 2016
+    },
+    {
+      "id": "8",
+      "poNumber": "PO-2024-008",
+      "vendor": "Canon",
+      "status": "approved",
+      "orderDate": "2024-02-27T00:00:00Z",
+      "items": [
+        {
+          "productId": 14,
+          "productName": "Scanner Canon",
+          "quantity": 4,
+          "unitPrice": 150,
+          "total": 600
+        }
+      ],
+      "subtotal": 600,
+      "tax": 72,
+      "total": 672
+    },
+    {
+      "id": "9",
+      "poNumber": "PO-2024-009",
+      "vendor": "Samsung",
+      "status": "pending",
+      "orderDate": "2024-02-28T00:00:00Z",
+      "items": [
+        {
+          "productId": 16,
+          "productName": "Smart TV Samsung",
+          "quantity": 2,
+          "unitPrice": 700,
+          "total": 1400
+        }
+      ],
+      "subtotal": 1400,
+      "tax": 168,
+      "total": 1568
+    },
+    {
+      "id": "10",
+      "poNumber": "PO-2024-010",
+      "vendor": "Philips",
+      "status": "delivered",
+      "orderDate": "2024-03-01T00:00:00Z",
+      "items": [
+        {
+          "productId": 17,
+          "productName": "Coffee Machine",
+          "quantity": 6,
+          "unitPrice": 80,
+          "total": 480
+        }
+      ],
+      "subtotal": 480,
+      "tax": 57.6,
+      "total": 537.6
+    },
+    {
+      "id": "11",
+      "poNumber": "PO-2024-011",
+      "vendor": "LG Electronics",
+      "status": "approved",
+      "orderDate": "2024-03-02T00:00:00Z",
+      "items": [
+        {
+          "productId": 18,
+          "productName": "Air Conditioner",
+          "quantity": 3,
+          "unitPrice": 400,
+          "total": 1200
+        }
+      ],
+      "subtotal": 1200,
+      "tax": 144,
+      "total": 1344
+    },
+    {
+      "id": "12",
+      "poNumber": "PO-2024-012",
+      "vendor": "Dell Inc.",
+      "status": "pending",
+      "orderDate": "2024-03-03T00:00:00Z",
+      "items": [
+        {
+          "productId": 19,
+          "productName": "Server Rack",
+          "quantity": 2,
+          "unitPrice": 1000,
+          "total": 2000
+        }
+      ],
+      "subtotal": 2000,
+      "tax": 240,
+      "total": 2240
+    },
+    {
+      "id": "13",
+      "poNumber": "PO-2024-013",
+      "vendor": "Polycom",
+      "status": "delivered",
+      "orderDate": "2024-03-04T00:00:00Z",
+      "items": [
+        {
+          "productId": 20,
+          "productName": "Conference Phone",
+          "quantity": 4,
+          "unitPrice": 150,
+          "total": 600
+        }
+      ],
+      "subtotal": 600,
+      "tax": 72,
+      "total": 672
+    },
+    {
+      "id": "14",
+      "poNumber": "PO-2024-014",
+      "vendor": "Office Solutions Ltd.",
+      "status": "approved",
+      "orderDate": "2024-03-05T00:00:00Z",
+      "items": [
+        {
+          "productId": 15,
+          "productName": "Filing Cabinet",
+          "quantity": 8,
+          "unitPrice": 120,
+          "total": 960
+        }
+      ],
+      "subtotal": 960,
+      "tax": 115.2,
+      "total": 1075.2
+    },
+    {
+      "id": "15",
+      "poNumber": "PO-2024-015",
+      "vendor": "Office Solutions Ltd.",
+      "status": "pending",
+      "orderDate": "2024-03-06T00:00:00Z",
+      "items": [
+        {
+          "productId": 12,
+          "productName": "Whiteboard Large",
+          "quantity": 10,
+          "unitPrice": 70,
+          "total": 700
+        }
+      ],
+      "subtotal": 700,
+      "tax": 84,
+      "total": 784
+    },
+    {
+      "id": "16",
+      "poNumber": "PO-2024-016",
+      "vendor": "TP-Link",
+      "status": "delivered",
+      "orderDate": "2024-03-07T00:00:00Z",
+      "items": [
+        {
+          "productId": 13,
+          "productName": "Router TP-Link",
+          "quantity": 15,
+          "unitPrice": 40,
+          "total": 600
+        }
+      ],
+      "subtotal": 600,
+      "tax": 72,
+      "total": 672
+    },
+    {
+      "id": "17",
+      "poNumber": "PO-2024-017",
+      "vendor": "Canon",
+      "status": "approved",
+      "orderDate": "2024-03-08T00:00:00Z",
+      "items": [
+        {
+          "productId": 14,
+          "productName": "Scanner Canon",
+          "quantity": 2,
+          "unitPrice": 150,
+          "total": 300
+        }
+      ],
+      "subtotal": 300,
+      "tax": 36,
+      "total": 336
+    },
+    {
+      "id": "18",
+      "poNumber": "PO-2024-018",
+      "vendor": "HP",
+      "status": "pending",
+      "orderDate": "2024-03-09T00:00:00Z",
+      "items": [
+        {
+          "productId": 8,
+          "productName": "Printer HP LaserJet",
+          "quantity": 3,
+          "unitPrice": 250,
+          "total": 750
+        }
+      ],
+      "subtotal": 750,
+      "tax": 90,
+      "total": 840
+    },
+    {
+      "id": "19",
+      "poNumber": "PO-2024-019",
+      "vendor": "Philips",
+      "status": "delivered",
+      "orderDate": "2024-03-10T00:00:00Z",
+      "items": [
+        {
+          "productId": 17,
+          "productName": "Coffee Machine",
+          "quantity": 5,
+          "unitPrice": 80,
+          "total": 400
+        }
+      ],
+      "subtotal": 400,
+      "tax": 48,
+      "total": 448
+    },
+    {
+      "id": "20",
+      "poNumber": "PO-2024-020",
+      "vendor": "Samsung",
+      "status": "approved",
+      "orderDate": "2024-03-11T00:00:00Z",
+      "items": [
+        {
+          "productId": 16,
+          "productName": "Smart TV Samsung",
+          "quantity": 2,
+          "unitPrice": 700,
+          "total": 1400
+        }
+      ],
+      "subtotal": 1400,
+      "tax": 168,
+      "total": 1568
+    }
+  ],
+  "sales": [
+    {
+      "id": "1",
+      "invoiceNumber": "INV-2024-001",
+      "customerName": "Tech Solutions Corp",
+      "customerEmail": "contact@techsolutions.com",
+      "saleDate": "2024-02-22T00:00:00Z",
+      "items": [
+        {
+          "productId": 1,
+          "productName": "Laptop Dell XPS 13",
+          "quantity": 3,
+          "unitPrice": 1500,
+          "total": 4500
+        }
+      ],
+      "subtotal": 4500,
+      "tax": 540,
+      "total": 5040,
+      "status": "paid"
+    },
+    {
+      "id": "2",
+      "invoiceNumber": "INV-2024-002",
+      "customerName": "Business Center Ltd",
+      "customerEmail": "orders@businesscenter.com",
+      "saleDate": "2024-02-23T00:00:00Z",
+      "items": [
+        {
+          "productId": 3,
+          "productName": "Office Chair Premium",
+          "quantity": 5,
+          "unitPrice": 220,
+          "total": 1100
+        }
+      ],
+      "subtotal": 1100,
+      "tax": 132,
+      "total": 1232,
+      "status": "pending"
+    },
+    {
+      "id": "3",
+      "invoiceNumber": "INV-2024-003",
+      "customerName": "Global Tech Ltd",
+      "customerEmail": "info@globaltech.com",
+      "saleDate": "2024-02-24T00:00:00Z",
+      "items": [
+        {
+          "productId": 2,
+          "productName": "iPhone 15 Pro",
+          "quantity": 2,
+          "unitPrice": 1199,
+          "total": 2398
+        }
+      ],
+      "subtotal": 2398,
+      "tax": 287.76,
+      "total": 2685.76,
+      "status": "paid"
+    },
+    {
+      "id": "4",
+      "invoiceNumber": "INV-2024-004",
+      "customerName": "Office World",
+      "customerEmail": "contact@officeworld.com",
+      "saleDate": "2024-02-25T00:00:00Z",
+      "items": [
+        {
+          "productId": 3,
+          "productName": "Office Chair Premium",
+          "quantity": 10,
+          "unitPrice": 220,
+          "total": 2200
+        }
+      ],
+      "subtotal": 2200,
+      "tax": 264,
+      "total": 2464,
+      "status": "pending"
+    },
+    {
+      "id": "5",
+      "invoiceNumber": "INV-2024-005",
+      "customerName": "Bright Solutions",
+      "customerEmail": "sales@brightsolutions.com",
+      "saleDate": "2024-02-26T00:00:00Z",
+      "items": [
+        {
+          "productId": 4,
+          "productName": "Monitor LG UltraWide",
+          "quantity": 5,
+          "unitPrice": 400,
+          "total": 2000
+        }
+      ],
+      "subtotal": 2000,
+      "tax": 240,
+      "total": 2240,
+      "status": "paid"
+    },
+    {
+      "id": "6",
+      "invoiceNumber": "INV-2024-006",
+      "customerName": "Techies Inc",
+      "customerEmail": "hello@techies.com",
+      "saleDate": "2024-02-27T00:00:00Z",
+      "items": [
+        {
+          "productId": 5,
+          "productName": "Desk Standing",
+          "quantity": 3,
+          "unitPrice": 300,
+          "total": 900
+        }
+      ],
+      "subtotal": 900,
+      "tax": 108,
+      "total": 1008,
+      "status": "pending"
+    },
+    {
+      "id": "7",
+      "invoiceNumber": "INV-2024-007",
+      "customerName": "Furniture Hub",
+      "customerEmail": "info@furniturehub.com",
+      "saleDate": "2024-02-28T00:00:00Z",
+      "items": [
+        {
+          "productId": 6,
+          "productName": "Keyboard Logitech",
+          "quantity": 8,
+          "unitPrice": 80,
+          "total": 640
+        }
+      ],
+      "subtotal": 640,
+      "tax": 76.8,
+      "total": 716.8,
+      "status": "paid"
+    },
+    {
+      "id": "8",
+      "invoiceNumber": "INV-2024-008",
+      "customerName": "Smart Office",
+      "customerEmail": "contact@smartoffice.com",
+      "saleDate": "2024-03-01T00:00:00Z",
+      "items": [
+        {
+          "productId": 7,
+          "productName": "Mouse Logitech",
+          "quantity": 12,
+          "unitPrice": 50,
+          "total": 600
+        }
+      ],
+      "subtotal": 600,
+      "tax": 72,
+      "total": 672,
+      "status": "pending"
+    },
+    {
+      "id": "9",
+      "invoiceNumber": "INV-2024-009",
+      "customerName": "Techno World",
+      "customerEmail": "info@technoworld.com",
+      "saleDate": "2024-03-02T00:00:00Z",
+      "items": [
+        {
+          "productId": 8,
+          "productName": "Printer HP LaserJet",
+          "quantity": 2,
+          "unitPrice": 350,
+          "total": 700
+        }
+      ],
+      "subtotal": 700,
+      "tax": 84,
+      "total": 784,
+      "status": "paid"
+    },
+    {
+      "id": "10",
+      "invoiceNumber": "INV-2024-010",
+      "customerName": "Lenovo Partners",
+      "customerEmail": "partners@lenovo.com",
+      "saleDate": "2024-03-03T00:00:00Z",
+      "items": [
+        {
+          "productId": 10,
+          "productName": "Notebook Lenovo",
+          "quantity": 4,
+          "unitPrice": 1100,
+          "total": 4400
+        }
+      ],
+      "subtotal": 4400,
+      "tax": 528,
+      "total": 4928,
+      "status": "pending"
+    },
+    {
+      "id": "11",
+      "invoiceNumber": "INV-2024-011",
+      "customerName": "Epson Supplies",
+      "customerEmail": "supplies@epson.com",
+      "saleDate": "2024-03-04T00:00:00Z",
+      "items": [
+        {
+          "productId": 11,
+          "productName": "Projector Epson",
+          "quantity": 2,
+          "unitPrice": 800,
+          "total": 1600
+        }
+      ],
+      "subtotal": 1600,
+      "tax": 192,
+      "total": 1792,
+      "status": "paid"
+    },
+    {
+      "id": "12",
+      "invoiceNumber": "INV-2024-012",
+      "customerName": "Canon World",
+      "customerEmail": "world@canon.com",
+      "saleDate": "2024-03-05T00:00:00Z",
+      "items": [
+        {
+          "productId": 14,
+          "productName": "Scanner Canon",
+          "quantity": 3,
+          "unitPrice": 220,
+          "total": 660
+        }
+      ],
+      "subtotal": 660,
+      "tax": 79.2,
+      "total": 739.2,
+      "status": "pending"
+    },
+    {
+      "id": "13",
+      "invoiceNumber": "INV-2024-013",
+      "customerName": "Samsung Office",
+      "customerEmail": "office@samsung.com",
+      "saleDate": "2024-03-06T00:00:00Z",
+      "items": [
+        {
+          "productId": 16,
+          "productName": "Smart TV Samsung",
+          "quantity": 1,
+          "unitPrice": 950,
+          "total": 950
+        }
+      ],
+      "subtotal": 950,
+      "tax": 114,
+      "total": 1064,
+      "status": "paid"
+    },
+    {
+      "id": "14",
+      "invoiceNumber": "INV-2024-014",
+      "customerName": "Philips Coffee",
+      "customerEmail": "coffee@philips.com",
+      "saleDate": "2024-03-07T00:00:00Z",
+      "items": [
+        {
+          "productId": 17,
+          "productName": "Coffee Machine",
+          "quantity": 2,
+          "unitPrice": 120,
+          "total": 240
+        }
+      ],
+      "subtotal": 240,
+      "tax": 28.8,
+      "total": 268.8,
+      "status": "pending"
+    },
+    {
+      "id": "15",
+      "invoiceNumber": "INV-2024-015",
+      "customerName": "LG Air",
+      "customerEmail": "air@lg.com",
+      "saleDate": "2024-03-08T00:00:00Z",
+      "items": [
+        {
+          "productId": 18,
+          "productName": "Air Conditioner",
+          "quantity": 1,
+          "unitPrice": 600,
+          "total": 600
+        }
+      ],
+      "subtotal": 600,
+      "tax": 72,
+      "total": 672,
+      "status": "paid"
+    },
+    {
+      "id": "16",
+      "invoiceNumber": "INV-2024-016",
+      "customerName": "Dell Servers",
+      "customerEmail": "servers@dell.com",
+      "saleDate": "2024-03-09T00:00:00Z",
+      "items": [
+        {
+          "productId": 19,
+          "productName": "Server Rack",
+          "quantity": 1,
+          "unitPrice": 1300,
+          "total": 1300
+        }
+      ],
+      "subtotal": 1300,
+      "tax": 156,
+      "total": 1456,
+      "status": "pending"
+    },
+    {
+      "id": "17",
+      "invoiceNumber": "INV-2024-017",
+      "customerName": "Polycom Comm",
+      "customerEmail": "comm@polycom.com",
+      "saleDate": "2024-03-10T00:00:00Z",
+      "items": [
+        {
+          "productId": 20,
+          "productName": "Conference Phone",
+          "quantity": 2,
+          "unitPrice": 200,
+          "total": 400
+        }
+      ],
+      "subtotal": 400,
+      "tax": 48,
+      "total": 448,
+      "status": "paid"
+    },
+    {
+      "id": "18",
+      "invoiceNumber": "INV-2024-018",
+      "customerName": "Office Solutions Ltd.",
+      "customerEmail": "sales@officesolutions.com",
+      "saleDate": "2024-03-11T00:00:00Z",
+      "items": [
+        {
+          "productId": 15,
+          "productName": "Filing Cabinet",
+          "quantity": 3,
+          "unitPrice": 180,
+          "total": 540
+        }
+      ],
+      "subtotal": 540,
+      "tax": 64.8,
+      "total": 604.8,
+      "status": "pending"
+    },
+    {
+      "id": "19",
+      "invoiceNumber": "INV-2024-019",
+      "customerName": "Smart Tech",
+      "customerEmail": "info@smarttech.com",
+      "saleDate": "2024-03-12T00:00:00Z",
+      "items": [
+        {
+          "productId": 13,
+          "productName": "Router TP-Link",
+          "quantity": 4,
+          "unitPrice": 65,
+          "total": 260
+        }
+      ],
+      "subtotal": 260,
+      "tax": 31.2,
+      "total": 291.2,
+      "status": "paid"
+    },
+    {
+      "id": "20",
+      "invoiceNumber": "INV-2024-020",
+      "customerName": "Business Center Ltd",
+      "customerEmail": "orders@businesscenter.com",
+      "saleDate": "2024-03-13T00:00:00Z",
+      "items": [
+        {
+          "productId": 3,
+          "productName": "Office Chair Premium",
+          "quantity": 7,
+          "unitPrice": 220,
+          "total": 1540
+        }
+      ],
+      "subtotal": 1540,
+      "tax": 184.8,
+      "total": 1724.8,
+      "status": "pending"
+    }
+  ],
+  "purchases": [
+    {
+      "id": "1",
+      "receiptNumber": "REC-2024-001",
+      "supplier": "Dell Inc.",
+      "purchaseDate": "2024-02-20T00:00:00Z",
+      "items": [
+        {
+          "productId": 1,
+          "productName": "Laptop Dell XPS 13",
+          "quantity": 10,
+          "unitPrice": 1200,
+          "total": 12000
+        }
+      ],
+      "subtotal": 12000,
+      "tax": 1440,
+      "total": 13440,
+      "invoiceFile": "invoice-dell-001.pdf"
+    },
+    {
+      "id": "2",
+      "receiptNumber": "REC-2024-002",
+      "supplier": "Apple Inc.",
+      "purchaseDate": "2024-02-21T00:00:00Z",
+      "items": [
+        {
+          "productId": 2,
+          "productName": "iPhone 15 Pro",
+          "quantity": 8,
+          "unitPrice": 999,
+          "total": 7992
+        }
+      ],
+      "subtotal": 7992,
+      "tax": 959.04,
+      "total": 8951.04,
+      "invoiceFile": "invoice-apple-002.pdf"
+    },
+    {
+      "id": "3",
+      "receiptNumber": "REC-2024-003",
+      "supplier": "Office Solutions Ltd.",
+      "purchaseDate": "2024-02-22T00:00:00Z",
+      "items": [
+        {
+          "productId": 3,
+          "productName": "Office Chair Premium",
+          "quantity": 20,
+          "unitPrice": 150,
+          "total": 3000
+        }
+      ],
+      "subtotal": 3000,
+      "tax": 360,
+      "total": 3360,
+      "invoiceFile": "invoice-office-003.pdf"
+    },
+    {
+      "id": "4",
+      "receiptNumber": "REC-2024-004",
+      "supplier": "LG Electronics",
+      "purchaseDate": "2024-02-23T00:00:00Z",
+      "items": [
+        {
+          "productId": 4,
+          "productName": "Monitor LG UltraWide",
+          "quantity": 10,
+          "unitPrice": 300,
+          "total": 3000
+        }
+      ],
+      "subtotal": 3000,
+      "tax": 360,
+      "total": 3360,
+      "invoiceFile": "invoice-lg-004.pdf"
+    },
+    {
+      "id": "5",
+      "receiptNumber": "REC-2024-005",
+      "supplier": "Logitech",
+      "purchaseDate": "2024-02-24T00:00:00Z",
+      "items": [
+        {
+          "productId": 6,
+          "productName": "Keyboard Logitech",
+          "quantity": 30,
+          "unitPrice": 50,
+          "total": 1500
+        }
+      ],
+      "subtotal": 1500,
+      "tax": 180,
+      "total": 1680,
+      "invoiceFile": "invoice-logi-005.pdf"
+    },
+    {
+      "id": "6",
+      "receiptNumber": "REC-2024-006",
+      "supplier": "HP",
+      "purchaseDate": "2024-02-25T00:00:00Z",
+      "items": [
+        {
+          "productId": 8,
+          "productName": "Printer HP LaserJet",
+          "quantity": 4,
+          "unitPrice": 250,
+          "total": 1000
+        }
+      ],
+      "subtotal": 1000,
+      "tax": 120,
+      "total": 1120,
+      "invoiceFile": "invoice-hp-006.pdf"
+    },
+    {
+      "id": "7",
+      "receiptNumber": "REC-2024-007",
+      "supplier": "Lenovo",
+      "purchaseDate": "2024-02-26T00:00:00Z",
+      "items": [
+        {
+          "productId": 10,
+          "productName": "Notebook Lenovo",
+          "quantity": 6,
+          "unitPrice": 900,
+          "total": 5400
+        }
+      ],
+      "subtotal": 5400,
+      "tax": 648,
+      "total": 6048,
+      "invoiceFile": "invoice-lenovo-007.pdf"
+    },
+    {
+      "id": "8",
+      "receiptNumber": "REC-2024-008",
+      "supplier": "Epson",
+      "purchaseDate": "2024-02-27T00:00:00Z",
+      "items": [
+        {
+          "productId": 11,
+          "productName": "Projector Epson",
+          "quantity": 2,
+          "unitPrice": 600,
+          "total": 1200
+        }
+      ],
+      "subtotal": 1200,
+      "tax": 144,
+      "total": 1344,
+      "invoiceFile": "invoice-epson-008.pdf"
+    },
+    {
+      "id": "9",
+      "receiptNumber": "REC-2024-009",
+      "supplier": "Canon",
+      "purchaseDate": "2024-02-28T00:00:00Z",
+      "items": [
+        {
+          "productId": 14,
+          "productName": "Scanner Canon",
+          "quantity": 2,
+          "unitPrice": 150,
+          "total": 300
+        }
+      ],
+      "subtotal": 300,
+      "tax": 36,
+      "total": 336,
+      "invoiceFile": "invoice-canon-009.pdf"
+    },
+    {
+      "id": "10",
+      "receiptNumber": "REC-2024-010",
+      "supplier": "Samsung",
+      "purchaseDate": "2024-03-01T00:00:00Z",
+      "items": [
+        {
+          "productId": 16,
+          "productName": "Smart TV Samsung",
+          "quantity": 2,
+          "unitPrice": 700,
+          "total": 1400
+        }
+      ],
+      "subtotal": 1400,
+      "tax": 168,
+      "total": 1568,
+      "invoiceFile": "invoice-samsung-010.pdf"
+    },
+    {
+      "id": "11",
+      "receiptNumber": "REC-2024-011",
+      "supplier": "Philips",
+      "purchaseDate": "2024-03-02T00:00:00Z",
+      "items": [
+        {
+          "productId": 17,
+          "productName": "Coffee Machine",
+          "quantity": 4,
+          "unitPrice": 80,
+          "total": 320
+        }
+      ],
+      "subtotal": 320,
+      "tax": 38.4,
+      "total": 358.4,
+      "invoiceFile": "invoice-philips-011.pdf"
+    },
+    {
+      "id": "12",
+      "receiptNumber": "REC-2024-012",
+      "supplier": "LG Electronics",
+      "purchaseDate": "2024-03-03T00:00:00Z",
+      "items": [
+        {
+          "productId": 18,
+          "productName": "Air Conditioner",
+          "quantity": 2,
+          "unitPrice": 400,
+          "total": 800
+        }
+      ],
+      "subtotal": 800,
+      "tax": 96,
+      "total": 896,
+      "invoiceFile": "invoice-lg-012.pdf"
+    },
+    {
+      "id": "13",
+      "receiptNumber": "REC-2024-013",
+      "supplier": "Dell Inc.",
+      "purchaseDate": "2024-03-04T00:00:00Z",
+      "items": [
+        {
+          "productId": 19,
+          "productName": "Server Rack",
+          "quantity": 1,
+          "unitPrice": 1000,
+          "total": 1000
+        }
+      ],
+      "subtotal": 1000,
+      "tax": 120,
+      "total": 1120,
+      "invoiceFile": "invoice-dell-013.pdf"
+    },
+    {
+      "id": "14",
+      "receiptNumber": "REC-2024-014",
+      "supplier": "Polycom",
+      "purchaseDate": "2024-03-05T00:00:00Z",
+      "items": [
+        {
+          "productId": 20,
+          "productName": "Conference Phone",
+          "quantity": 2,
+          "unitPrice": 150,
+          "total": 300
+        }
+      ],
+      "subtotal": 300,
+      "tax": 36,
+      "total": 336,
+      "invoiceFile": "invoice-polycom-014.pdf"
+    },
+    {
+      "id": "15",
+      "receiptNumber": "REC-2024-015",
+      "supplier": "Office Solutions Ltd.",
+      "purchaseDate": "2024-03-06T00:00:00Z",
+      "items": [
+        {
+          "productId": 12,
+          "productName": "Whiteboard Large",
+          "quantity": 5,
+          "unitPrice": 70,
+          "total": 350
+        }
+      ],
+      "subtotal": 350,
+      "tax": 42,
+      "total": 392,
+      "invoiceFile": "invoice-office-015.pdf"
+    },
+    {
+      "id": "16",
+      "receiptNumber": "REC-2024-016",
+      "supplier": "TP-Link",
+      "purchaseDate": "2024-03-07T00:00:00Z",
+      "items": [
+        {
+          "productId": 13,
+          "productName": "Router TP-Link",
+          "quantity": 8,
+          "unitPrice": 40,
+          "total": 320
+        }
+      ],
+      "subtotal": 320,
+      "tax": 38.4,
+      "total": 358.4,
+      "invoiceFile": "invoice-tplink-016.pdf"
+    },
+    {
+      "id": "17",
+      "receiptNumber": "REC-2024-017",
+      "supplier": "Canon",
+      "purchaseDate": "2024-03-08T00:00:00Z",
+      "items": [
+        {
+          "productId": 14,
+          "productName": "Scanner Canon",
+          "quantity": 1,
+          "unitPrice": 150,
+          "total": 150
+        }
+      ],
+      "subtotal": 150,
+      "tax": 18,
+      "total": 168,
+      "invoiceFile": "invoice-canon-017.pdf"
+    },
+    {
+      "id": "18",
+      "receiptNumber": "REC-2024-018",
+      "supplier": "HP",
+      "purchaseDate": "2024-03-09T00:00:00Z",
+      "items": [
+        {
+          "productId": 8,
+          "productName": "Printer HP LaserJet",
+          "quantity": 2,
+          "unitPrice": 250,
+          "total": 500
+        }
+      ],
+      "subtotal": 500,
+      "tax": 60,
+      "total": 560,
+      "invoiceFile": "invoice-hp-018.pdf"
+    },
+    {
+      "id": "19",
+      "receiptNumber": "REC-2024-019",
+      "supplier": "Philips",
+      "purchaseDate": "2024-03-10T00:00:00Z",
+      "items": [
+        {
+          "productId": 17,
+          "productName": "Coffee Machine",
+          "quantity": 3,
+          "unitPrice": 80,
+          "total": 240
+        }
+      ],
+      "subtotal": 240,
+      "tax": 28.8,
+      "total": 268.8,
+      "invoiceFile": "invoice-philips-019.pdf"
+    },
+    {
+      "id": "20",
+      "receiptNumber": "REC-2024-020",
+      "supplier": "Samsung",
+      "purchaseDate": "2024-03-11T00:00:00Z",
+      "items": [
+        {
+          "productId": 16,
+          "productName": "Smart TV Samsung",
+          "quantity": 1,
+          "unitPrice": 700,
+          "total": 700
+        }
+      ],
+      "subtotal": 700,
+      "tax": 84,
+      "total": 784,
+      "invoiceFile": "invoice-samsung-020.pdf"
+    }
+  ],
+  "suppliers": [
+    {
+      "id": "1",
+      "name": "Dell Inc.",
+      "contact": "John Dell",
+      "email": "orders@dell.com",
+      "phone": "+1-555-0123",
+      "address": "123 Dell Street, Austin, TX"
+    },
+    {
+      "id": "2",
+      "name": "Apple Inc.",
+      "contact": "Sarah Apple",
+      "email": "business@apple.com",
+      "phone": "+1-555-0124",
+      "address": "1 Apple Park Way, Cupertino, CA"
+    },
+    {
+      "id": "3",
+      "name": "Office Solutions Ltd.",
+      "contact": "Mike Office",
+      "email": "sales@officesolutions.com",
+      "phone": "+1-555-0125",
+      "address": "456 Business Ave, New York, NY"
+    },
+    {
+      "id": "4",
+      "name": "LG Electronics",
+      "contact": "Linda Green",
+      "email": "contact@lge.com",
+      "phone": "+1-555-0126",
+      "address": "789 LG Road, Dallas, TX"
+    },
+    {
+      "id": "5",
+      "name": "Logitech",
+      "contact": "Peter Mouse",
+      "email": "info@logitech.com",
+      "phone": "+1-555-0127",
+      "address": "101 Logitech Ave, Newark, CA"
+    },
+    {
+      "id": "6",
+      "name": "HP",
+      "contact": "Helen Print",
+      "email": "support@hp.com",
+      "phone": "+1-555-0128",
+      "address": "202 HP Blvd, Palo Alto, CA"
+    },
+    {
+      "id": "7",
+      "name": "Lenovo",
+      "contact": "Larry Think",
+      "email": "contact@lenovo.com",
+      "phone": "+1-555-0129",
+      "address": "303 Lenovo St, Raleigh, NC"
+    },
+    {
+      "id": "8",
+      "name": "Epson",
+      "contact": "Eve Print",
+      "email": "sales@epson.com",
+      "phone": "+1-555-0130",
+      "address": "404 Epson Dr, Long Beach, CA"
+    },
+    {
+      "id": "9",
+      "name": "Canon",
+      "contact": "Carl Scan",
+      "email": "info@canon.com",
+      "phone": "+1-555-0131",
+      "address": "505 Canon Rd, Melville, NY"
+    },
+    {
+      "id": "10",
+      "name": "Samsung",
+      "contact": "Sam Sung",
+      "email": "contact@samsung.com",
+      "phone": "+1-555-0132",
+      "address": "606 Samsung Ave, Ridgefield Park, NJ"
+    },
+    {
+      "id": "11",
+      "name": "Philips",
+      "contact": "Phil Light",
+      "email": "info@philips.com",
+      "phone": "+1-555-0133",
+      "address": "707 Philips St, Amsterdam, NL"
+    },
+    {
+      "id": "12",
+      "name": "Polycom",
+      "contact": "Polly Comm",
+      "email": "info@polycom.com",
+      "phone": "+1-555-0134",
+      "address": "808 Polycom Rd, San Jose, CA"
+    },
+    {
+      "id": "13",
+      "name": "TP-Link",
+      "contact": "Tina Link",
+      "email": "support@tplink.com",
+      "phone": "+1-555-0135",
+      "address": "909 TP-Link Ave, Shenzhen, CN"
+    },
+    {
+      "id": "14",
+      "name": "Office World",
+      "contact": "Oscar World",
+      "email": "info@officeworld.com",
+      "phone": "+1-555-0136",
+      "address": "111 Office World St, Miami, FL"
+    },
+    {
+      "id": "15",
+      "name": "Bright Solutions",
+      "contact": "Brian Bright",
+      "email": "sales@brightsolutions.com",
+      "phone": "+1-555-0137",
+      "address": "222 Bright Ave, Boston, MA"
+    },
+    {
+      "id": "16",
+      "name": "Smart Office",
+      "contact": "Sally Smart",
+      "email": "contact@smartoffice.com",
+      "phone": "+1-555-0138",
+      "address": "333 Smart St, Seattle, WA"
+    },
+    {
+      "id": "17",
+      "name": "Techno World",
+      "contact": "Terry Tech",
+      "email": "info@technoworld.com",
+      "phone": "+1-555-0139",
+      "address": "444 Techno Rd, Austin, TX"
+    },
+    {
+      "id": "18",
+      "name": "Lenovo Partners",
+      "contact": "Lenny Partner",
+      "email": "partners@lenovo.com",
+      "phone": "+1-555-0140",
+      "address": "555 Partner St, Raleigh, NC"
+    },
+    {
+      "id": "19",
+      "name": "Epson Supplies",
+      "contact": "Eddie Supply",
+      "email": "supplies@epson.com",
+      "phone": "+1-555-0141",
+      "address": "666 Supply Dr, Long Beach, CA"
+    },
+    {
+      "id": "20",
+      "name": "Canon World",
+      "contact": "Cathy World",
+      "email": "world@canon.com",
+      "phone": "+1-555-0142",
+      "address": "777 Canon Rd, Melville, NY"
+    }
+  ],
+  "customers": [
+    {
+      "id": "1",
+      "name": "Tech Solutions Corp",
+      "contact": "Alice Johnson",
+      "email": "contact@techsolutions.com",
+      "phone": "+1-555-0201",
+      "address": "789 Tech Street, San Francisco, CA"
+    },
+    {
+      "id": "2",
+      "name": "Business Center Ltd",
+      "contact": "Bob Wilson",
+      "email": "orders@businesscenter.com",
+      "phone": "+1-555-0202",
+      "address": "321 Business Blvd, Chicago, IL"
+    },
+    {
+      "id": "3",
+      "name": "Global Tech Ltd",
+      "contact": "George Global",
+      "email": "info@globaltech.com",
+      "phone": "+1-555-0203",
+      "address": "123 Global St, Houston, TX"
+    },
+    {
+      "id": "4",
+      "name": "Office World",
+      "contact": "Olivia Office",
+      "email": "contact@officeworld.com",
+      "phone": "+1-555-0204",
+      "address": "234 Office Ave, Miami, FL"
+    },
+    {
+      "id": "5",
+      "name": "Bright Solutions",
+      "contact": "Brenda Bright",
+      "email": "sales@brightsolutions.com",
+      "phone": "+1-555-0205",
+      "address": "345 Bright Blvd, Boston, MA"
+    },
+    {
+      "id": "6",
+      "name": "Smart Office",
+      "contact": "Simon Smart",
+      "email": "contact@smartoffice.com",
+      "phone": "+1-555-0206",
+      "address": "456 Smart St, Seattle, WA"
+    },
+    {
+      "id": "7",
+      "name": "Techno World",
+      "contact": "Tina Tech",
+      "email": "info@technoworld.com",
+      "phone": "+1-555-0207",
+      "address": "567 Techno Rd, Austin, TX"
+    },
+    {
+      "id": "8",
+      "name": "Lenovo Partners",
+      "contact": "Leonard Partner",
+      "email": "partners@lenovo.com",
+      "phone": "+1-555-0208",
+      "address": "678 Partner St, Raleigh, NC"
+    },
+    {
+      "id": "9",
+      "name": "Epson Supplies",
+      "contact": "Ellen Supply",
+      "email": "supplies@epson.com",
+      "phone": "+1-555-0209",
+      "address": "789 Supply Dr, Long Beach, CA"
+    },
+    {
+      "id": "10",
+      "name": "Canon World",
+      "contact": "Cameron World",
+      "email": "world@canon.com",
+      "phone": "+1-555-0210",
+      "address": "890 Canon Rd, Melville, NY"
+    },
+    {
+      "id": "11",
+      "name": "Samsung Office",
+      "contact": "Sandra Samsung",
+      "email": "office@samsung.com",
+      "phone": "+1-555-0211",
+      "address": "901 Samsung Ave, Ridgefield Park, NJ"
+    },
+    {
+      "id": "12",
+      "name": "Philips Coffee",
+      "contact": "Philip Coffee",
+      "email": "coffee@philips.com",
+      "phone": "+1-555-0212",
+      "address": "101 Philips St, Amsterdam, NL"
+    },
+    {
+      "id": "13",
+      "name": "LG Air",
+      "contact": "Lara Green",
+      "email": "air@lg.com",
+      "phone": "+1-555-0213",
+      "address": "202 LG Rd, Dallas, TX"
+    },
+    {
+      "id": "14",
+      "name": "Dell Servers",
+      "contact": "Derek Dell",
+      "email": "servers@dell.com",
+      "phone": "+1-555-0214",
+      "address": "303 Dell St, Austin, TX"
+    },
+    {
+      "id": "15",
+      "name": "Polycom Comm",
+      "contact": "Polly Comm",
+      "email": "comm@polycom.com",
+      "phone": "+1-555-0215",
+      "address": "404 Polycom Rd, San Jose, CA"
+    },
+    {
+      "id": "16",
+      "name": "Office Solutions Ltd.",
+      "contact": "Oscar Solutions",
+      "email": "sales@officesolutions.com",
+      "phone": "+1-555-0216",
+      "address": "505 Solutions Ave, New York, NY"
+    },
+    {
+      "id": "17",
+      "name": "Smart Tech",
+      "contact": "Samantha Tech",
+      "email": "info@smarttech.com",
+      "phone": "+1-555-0217",
+      "address": "606 Smart Blvd, San Francisco, CA"
+    },
+    {
+      "id": "18",
+      "name": "Business Center Ltd",
+      "contact": "Betty Center",
+      "email": "orders@businesscenter.com",
+      "phone": "+1-555-0218",
+      "address": "707 Business Blvd, Chicago, IL"
+    },
+    {
+      "id": "19",
+      "name": "Furniture Hub",
+      "contact": "Frank Hub",
+      "email": "info@furniturehub.com",
+      "phone": "+1-555-0219",
+      "address": "808 Furniture St, Dallas, TX"
+    },
+    {
+      "id": "20",
+      "name": "Bright Office",
+      "contact": "Brady Office",
+      "email": "office@bright.com",
+      "phone": "+1-555-0220",
+      "address": "909 Bright Ave, Boston, MA"
+    }
+  ]
+}

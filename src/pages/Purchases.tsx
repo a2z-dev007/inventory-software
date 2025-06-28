@@ -11,6 +11,7 @@ import { Button } from '../components/common/Button';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { FormField } from '../components/forms/FormField';
 import { SelectField } from '../components/forms/SelectField';
+import { formatCurrency } from '../utils/constants';
 
 const purchaseItemSchema = z.object({
   productId: z.number().min(1, 'Product is required'),
@@ -229,15 +230,15 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span>Subtotal:</span>
-                  <span>${subtotal.toFixed(2)}</span>
+                  <span>{formatCurrency(subtotal)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Tax (12%):</span>
-                  <span>${tax.toFixed(2)}</span>
+                  <span>{formatCurrency(tax)}</span>
                 </div>
                 <div className="flex justify-between font-bold text-lg border-t pt-2">
                   <span>Total:</span>
-                  <span>${total.toFixed(2)}</span>
+                  <span>{formatCurrency(total)}</span>
                 </div>
               </div>
             </div>
@@ -299,15 +300,15 @@ export const Purchases: React.FC = () => {
     
     purchase.items.forEach((item: any, index: number) => {
       doc.text(`${index + 1}. ${item.productName}`, 25, yPos);
-      doc.text(`   Qty: ${item.quantity} × $${item.unitPrice} = $${item.total}`, 25, yPos + 10);
+      doc.text(`   Qty: ${item.quantity} × ₹${item.unitPrice} = ₹${item.total}`, 25, yPos + 10);
       yPos += 25;
     });
     
     // Totals
     yPos += 10;
-    doc.text(`Subtotal: $${purchase.subtotal.toFixed(2)}`, 20, yPos);
-    doc.text(`Tax: $${purchase.tax.toFixed(2)}`, 20, yPos + 15);
-    doc.text(`Total: $${purchase.total.toFixed(2)}`, 20, yPos + 30);
+    doc.text(`Subtotal: ₹${purchase.subtotal.toFixed(2)}`, 20, yPos);
+    doc.text(`Tax: ₹${purchase.tax.toFixed(2)}`, 20, yPos + 15);
+    doc.text(`Total: ₹${purchase.total.toFixed(2)}`, 20, yPos + 30);
     
     doc.save(`${purchase.receiptNumber}.pdf`);
   };
@@ -396,7 +397,7 @@ export const Purchases: React.FC = () => {
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    ${purchase.total.toLocaleString()}
+                    {formatCurrency(purchase.total)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                     <button

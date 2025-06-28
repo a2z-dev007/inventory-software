@@ -14,6 +14,8 @@ import { apiService } from '../services/api';
 import { Card, CardHeader } from '../components/common/Card';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { useAuth } from '../hooks/useAuth';
+import { formatCurrency } from '../utils/constants';
+import { Product, Sale } from '../types';
 
 interface MetricCardProps {
   title: string;
@@ -82,8 +84,8 @@ export const Dashboard: React.FC = () => {
     return <LoadingSpinner size="lg" />;
   }
 
-  const lowStockProducts = products?.filter(product => product.currentStock < 10) || [];
-  const recentSalesData = recentSales?.slice(0, 5) || [];
+  const lowStockProducts: Product[] = products?.filter((product: Product) => product.currentStock < 10) || [];
+  const recentSalesData: Sale[] = recentSales?.slice(0, 5) || [];
 
   return (
     <div className="space-y-6">
@@ -108,14 +110,14 @@ export const Dashboard: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
           title="Today's Sales"
-          value={`$${metrics?.todaySales?.toLocaleString() || 0}`}
+          value={formatCurrency(metrics?.todaySales || 0)}
           icon={TrendingUp}
           trend={{ direction: 'up', value: '+12%' }}
           color="bg-green-500"
         />
         <MetricCard
           title="Today's Purchases"
-          value={`$${metrics?.todayPurchases?.toLocaleString() || 0}`}
+          value={formatCurrency(metrics?.todayPurchases || 0)}
           icon={TrendingDown}
           color="bg-blue-500"
         />
@@ -165,7 +167,7 @@ export const Dashboard: React.FC = () => {
             {lowStockProducts.length === 0 ? (
               <p className="text-gray-500 text-center py-4">All products are well stocked!</p>
             ) : (
-              lowStockProducts.slice(0, 5).map((product) => (
+              lowStockProducts.slice(0, 5).map((product: Product) => (
                 <div key={product.id} className="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-200">
                   <div>
                     <p className="font-medium text-gray-900">{product.name}</p>
@@ -192,20 +194,20 @@ export const Dashboard: React.FC = () => {
             {recentSalesData.length === 0 ? (
               <p className="text-gray-500 text-center py-4">No recent sales found.</p>
             ) : (
-              recentSalesData.map((sale) => (
+              recentSalesData.map((sale: Sale) => (
                 <div key={sale.id} className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
                   <div>
                     <p className="font-medium text-gray-900">{sale.customerName}</p>
                     <p className="text-sm text-gray-600">{sale.invoiceNumber}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-medium text-green-600">
-                      ${sale.total.toLocaleString()}
+                    <p className="text-sm font-medium text-green-600">
+                      {formatCurrency(sale.total)}
                     </p>
                     <p className={`text-xs px-2 py-1 rounded-full ${
-                      sale.status === 'paid' 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-yellow-100 text-yellow-800'
+                      sale.status === 'paid' ? 'bg-green-100 text-green-800' :
+                      sale.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-red-100 text-red-800'
                     }`}>
                       {sale.status}
                     </p>

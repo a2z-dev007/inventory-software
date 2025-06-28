@@ -9,6 +9,8 @@ import { Card, CardHeader } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { FormField } from '../components/forms/FormField';
+import { formatCurrency } from '../utils/constants';
+import { Product } from '../types';
 
 const productSchema = z.object({
   name: z.string().min(1, 'Product name is required'),
@@ -25,7 +27,7 @@ type ProductFormData = z.infer<typeof productSchema>;
 interface ProductModalProps {
   isOpen: boolean;
   onClose: () => void;
-  product?: any;
+  product?: Product;
 }
 
 const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product }) => {
@@ -61,7 +63,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: ProductFormData }) =>
-      apiService.updateProduct(id, { ...data, createdAt: new Date().toISOString() }),
+      apiService.updateProduct(id.toString(), { ...data, createdAt: new Date().toISOString() }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       onClose();
@@ -179,7 +181,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
 
 export const Products: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | undefined>(undefined);
   const [searchTerm, setSearchTerm] = useState('');
   const queryClient = useQueryClient();
 
@@ -195,13 +197,13 @@ export const Products: React.FC = () => {
     },
   });
 
-  const filteredProducts = products?.filter(product =>
+  const filteredProducts: Product[] = products?.filter((product: Product) =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.category.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
-  const handleEdit = (product: any) => {
+  const handleEdit = (product: Product) => {
     setEditingProduct(product);
     setIsModalOpen(true);
   };
@@ -209,13 +211,13 @@ export const Products: React.FC = () => {
   console.log('Filtered Products:', products);
   const handleDelete = (id: number) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
-      deleteMutation.mutate(id);
+      deleteMutation.mutate(id.toString());
     }
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
-    setEditingProduct(null);
+    setEditingProduct(undefined);
   };
 
   if (isLoading) {
@@ -281,7 +283,7 @@ export const Products: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredProducts.map((product) => (
+              {filteredProducts.map((product: Product) => (
                 <tr key={product.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
@@ -309,10 +311,10 @@ export const Products: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    ${product.purchaseRate.toLocaleString()}
+                    {formatCurrency(product.purchaseRate)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    ${product.salesRate.toLocaleString()}
+                    {formatCurrency(product.salesRate)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${

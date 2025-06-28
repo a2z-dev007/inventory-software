@@ -1,6 +1,9 @@
 import axios from 'axios';
+import { API_ROUTES } from './apiRoutes';
+import { API_BASE_URL } from '../utils/constants';
+import { queryClient } from '../App'; // Adjust the import path if needed
+import { toast } from 'react-toastify';
 
-const API_BASE_URL = 'http://localhost:3001';
 
 const getAuthToken = () => {
   return localStorage.getItem('token') || sessionStorage.getItem('token');
@@ -30,6 +33,9 @@ const request = async <T>(endpoint: string, options?: any): Promise<T> => {
     });
     return response.data;
   } catch (error: any) {
+    if (error.response && error.response.data && error.response.data.message) {
+      return error.response.data;
+    }
     if (error.response) {
       throw new Error(`API Error: ${error.response.status}`);
     }
@@ -39,23 +45,33 @@ const request = async <T>(endpoint: string, options?: any): Promise<T> => {
 
 export const apiService = {
   // Authentication
-  login: async (username: string, password: string) => {
-    const users = await request<any[]>('/users');
-    const user = users.find(u => u.username === username && u.password === password);
-    
-    if (!user) {
-      throw new Error('Invalid credentials');
+  login: async (username: string, password: string, rememberMe: boolean) => {
+    try {
+      const res = await request<{ 
+        success: boolean; 
+        message: string;
+        data?: { 
+          user: any; 
+          token: string;
+          expiresIn: string;
+        }; 
+        error?: { type: string; value: string; msg: string; path: string; location: string } 
+      }>(API_ROUTES.LOGIN, {
+        method: 'POST',
+        body: JSON.stringify({ username, password, rememberMe }),
+      });
+      return res;
+    } catch (error) {
+      console.error('Login failed:', error);
+      throw error;
     }
-
-    const token = btoa(`${username}:${password}:${Date.now()}`);
-    const { password: _, ...userWithoutPassword } = user;
-    return { ...userWithoutPassword, token };
   },
 
   // Products
   getProducts: async () => {
     try {
-      return await request<any[]>('/products');
+      const res = await request<any>(API_ROUTES.PRODUCTS);
+      return res.data.products;
     } catch (error) {
       console.error('Error fetching products:', error);
       throw error;
@@ -63,137 +79,337 @@ export const apiService = {
   },
 
   createProduct: async (product: Omit<any, 'id'>) => {
-    return request<any>('/products', {
-      method: 'POST',
-      body: JSON.stringify(product),
-    });
+    try {
+      const res = await request<any>(API_ROUTES.PRODUCTS, {
+        method: 'POST',
+        body: JSON.stringify(product),
+      });
+      toast.success(res.message || 'Product created successfully');
+      return res;
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to create product');
+      throw error;
+    }
   },
 
-  updateProduct: async (id: number, product: Partial<any>) => {
-    return request<any>(`/products/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(product),
-    });
+  updateProduct: async (id: string, product: Partial<any>) => {
+    try {
+      const res = await request<any>(API_ROUTES.PRODUCT(id), {
+        method: 'PUT',
+        body: JSON.stringify(product),
+      });
+      toast.success(res.message || 'Product updated successfully');
+      return res;
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to update product');
+      throw error;
+    }
   },
 
-  deleteProduct: async (id: number) => {
-    return request<void>(`/products/${id}`, {
-      method: 'DELETE',
-    });
+  deleteProduct: async (id: string) => {
+    try {
+      const res = await request<any>(API_ROUTES.PRODUCT(id), {
+        method: 'DELETE',
+      });
+      toast.success(res.message || 'Product deleted successfully');
+      return res;
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to delete product');
+      throw error;
+    }
   },
 
   // Purchase Orders
   getPurchaseOrders: async () => {
-    return request<any[]>('/purchaseOrders');
+    try {
+      const res = await request<any>(API_ROUTES.PURCHASE_ORDERS);
+      return res.data.purchaseOrders;
+    } catch (error) {
+      console.error('Error fetching purchase orders:', error);
+      throw error;
+    }
   },
 
   createPurchaseOrder: async (po: Omit<any, 'id'>) => {
-    return request<any>('/purchaseOrders', {
-      method: 'POST',
-      body: JSON.stringify(po),
-    });
+    try {
+      const res = await request<any>(API_ROUTES.PURCHASE_ORDERS, {
+        method: 'POST',
+        body: JSON.stringify(po),
+      });
+      toast.success(res.message || 'Purchase order created successfully');
+      return res;
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to create purchase order');
+      throw error;
+    }
   },
 
-  updatePurchaseOrder: async (id: number, po: Partial<any>) => {
-    return request<any>(`/purchaseOrders/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(po),
-    });
+  updatePurchaseOrder: async (id: string, po: Partial<any>) => {
+    try {
+      const res = await request<any>(API_ROUTES.PURCHASE_ORDER(id), {
+        method: 'PUT',
+        body: JSON.stringify(po),
+      });
+      toast.success(res.message || 'Purchase order updated successfully');
+      return res;
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to update purchase order');
+      throw error;
+    }
   },
 
-  deletePurchaseOrder: async (id: number) => {
-    return request<void>(`/purchaseOrders/${id}`, {
-      method: 'DELETE',
-    });
+  deletePurchaseOrder: async (id: string) => {
+    try {
+      const res = await request<any>(API_ROUTES.PURCHASE_ORDER(id), {
+        method: 'DELETE',
+      });
+      toast.success(res.message || 'Purchase order deleted successfully');
+      return res;
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to delete purchase order');
+      throw error;
+    }
   },
 
   // Sales
   getSales: async () => {
-    return request<any[]>('/sales');
+    try {
+      const res = await request<any>(API_ROUTES.SALES);
+      return res.data.sales;
+    } catch (error) {
+      console.error('Error fetching sales:', error);
+      throw error;
+    }
   },
 
   createSale: async (sale: Omit<any, 'id'>) => {
-    return request<any>('/sales', {
-      method: 'POST',
-      body: JSON.stringify(sale),
-    });
+    try {
+      const res = await request<any>(API_ROUTES.SALES, {
+        method: 'POST',
+        body: JSON.stringify(sale),
+      });
+      toast.success(res.message || 'Sale created successfully');
+      return res;
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to create sale');
+      throw error;
+    }
   },
 
-  updateSale: async (id: number, sale: Partial<any>) => {
-    return request<any>(`/sales/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(sale),
-    });
+  updateSale: async (id: string, sale: Partial<any>) => {
+    try {
+      const res = await request<any>(API_ROUTES.SALE(id), {
+        method: 'PUT',
+        body: JSON.stringify(sale),
+      });
+      toast.success(res.message || 'Sale updated successfully');
+      return res;
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to update sale');
+      throw error;
+    }
+  },
+
+  deleteSale: async (id: string) => {
+    try {
+      const res = await request<any>(API_ROUTES.SALE(id), {
+        method: 'DELETE',
+      });
+      toast.success(res.message || 'Sale deleted successfully');
+      return res;
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to delete sale');
+      throw error;
+    }
   },
 
   // Purchases
   getPurchases: async () => {
-    return request<any[]>('/purchases');
+    try {
+      const res = await request<any>(API_ROUTES.PURCHASES);
+      return res.data.purchases;
+    } catch (error) {
+      console.error('Error fetching purchases:', error);
+      throw error;
+    }
   },
 
   createPurchase: async (purchase: Omit<any, 'id'>) => {
-    return request<any>('/purchases', {
-      method: 'POST',
-      body: JSON.stringify(purchase),
-    });
+    try {
+      const res = await request<any>(API_ROUTES.PURCHASES, {
+        method: 'POST',
+        body: JSON.stringify(purchase),
+      });
+      toast.success(res.message || 'Purchase created successfully');
+      return res;
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to create purchase');
+      throw error;
+    }
   },
 
-  // Suppliers
+  updatePurchase: async (id: string, purchase: Partial<any>) => {
+    try {
+      const res = await request<any>(API_ROUTES.PURCHASE(id), {
+        method: 'PUT',
+        body: JSON.stringify(purchase),
+      });
+      toast.success(res.message || 'Purchase updated successfully');
+      return res;
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to update purchase');
+      throw error;
+    }
+  },
+
+  deletePurchase: async (id: string) => {
+    try {
+      const res = await request<any>(API_ROUTES.PURCHASE(id), {
+        method: 'DELETE',
+      });
+      toast.success(res.message || 'Purchase deleted successfully');
+      return res;
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to delete purchase');
+      throw error;
+    }
+  },
+
+  // Vendors
   getSuppliers: async () => {
-    return request<any[]>('/suppliers');
+    try {
+      const res = await request<any>(API_ROUTES.VENDORS);
+      return res.data.vendors;
+    } catch (error) {
+      console.error('Error fetching vendors:', error);
+      throw error;
+    }
   },
 
   createSupplier: async (supplier: Omit<any, 'id'>) => {
-    return request<any>('/suppliers', {
-      method: 'POST',
-      body: JSON.stringify(supplier),
-    });
+    try {
+      const res = await request<any>(API_ROUTES.VENDORS, {
+        method: 'POST',
+        body: JSON.stringify(supplier),
+      });
+      toast.success(res.message || 'Vendor created successfully');
+      return res;
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to create vendor');
+      throw error;
+    }
+  },
+
+  updateSupplier: async (id: string, supplier: Partial<any>) => {
+    try {
+      const res = await request<any>(API_ROUTES.VENDOR(id), {
+        method: 'PUT',
+        body: JSON.stringify(supplier),
+      });
+      toast.success(res.message || 'Vendor updated successfully');
+      return res;
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to update vendor');
+      throw error;
+    }
+  },
+
+  deleteSupplier: async (id: string) => {
+    try {
+      const res = await request<any>(API_ROUTES.VENDOR(id), {
+        method: 'DELETE',
+      });
+      toast.success(res.message || 'Vendor deleted successfully');
+      return res;
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to delete vendor');
+      throw error;
+    }
   },
 
   // Customers
-  getCustomers: async () => {
-    return request<any[]>('/customers');
+  getcustomers: async (params: { page?: number; limit?: number; search?: string; sortBy?: string; sortOrder?: string } = {}) => {
+    try {
+      const query = new URLSearchParams({
+        page: params.page?.toString() || '1',
+        limit: params.limit?.toString() || '10',
+        search: params.search || '',
+        sortBy: params.sortBy || 'name',
+        sortOrder: params.sortOrder || 'asc',
+      }).toString();
+      const res = await request<any>(`${API_ROUTES.CUSTOMERS}?${query}`);
+      return res.data.customers;
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+      throw error;
+    }
   },
 
-  createCustomer: async (customer: Omit<any, 'id'>) => {
-    return request<any>('/customers', {
-      method: 'POST',
-      body: JSON.stringify(customer),
-    });
+  createClient: async (client: Omit<any, 'id'>) => {
+    try {
+      const res = await request<any>(API_ROUTES.CUSTOMERS, {
+        method: 'POST',
+        body: JSON.stringify(client),
+      });
+      toast.success(res.message || 'Customer created successfully');
+      return res;
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to create customer');
+      throw error;
+    }
+  },
+
+  updateClient: async (id: string, client: Partial<any>) => {
+    try {
+      const res = await request<any>(API_ROUTES.CUSTOMER(id), {
+        method: 'PUT',
+        body: JSON.stringify(client),
+      });
+      toast.success(res.message || 'Customer updated successfully');
+      return res;
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to update customer');
+      throw error;
+    }
+  },
+
+  deleteClient: async (id: string) => {
+    try {
+      const res = await request<any>(API_ROUTES.CUSTOMER(id), {
+        method: 'DELETE',
+      });
+      toast.success(res.message || 'Customer deleted successfully');
+      return res;
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to delete customer');
+      throw error;
+    }
   },
 
   // Dashboard metrics
   getDashboardMetrics: async () => {
-    const [products, sales, purchases, customers, suppliers, purchaseOrders] = await Promise.all([
-      apiService.getProducts(),
-      apiService.getSales(),
-      apiService.getPurchases(),
-      apiService.getCustomers(),
-      apiService.getSuppliers(),
-      apiService.getPurchaseOrders(),
-    ]);
+    const products = Array.isArray(queryClient.getQueryData(['products'])) ? queryClient.getQueryData(['products']) : await apiService.getProducts();
+    const sales = Array.isArray(queryClient.getQueryData(['sales'])) ? queryClient.getQueryData(['sales']) : await apiService.getSales();
+    const purchases = Array.isArray(queryClient.getQueryData(['purchases'])) ? queryClient.getQueryData(['purchases']) : await apiService.getPurchases();
+    const customers = Array.isArray(queryClient.getQueryData(['customers'])) ? queryClient.getQueryData(['customers']) : await apiService.getcustomers();
+    const suppliers = Array.isArray(queryClient.getQueryData(['suppliers'])) ? queryClient.getQueryData(['suppliers']) : await apiService.getSuppliers();
+    const purchaseOrders = Array.isArray(queryClient.getQueryData(['purchase-orders'])) ? queryClient.getQueryData(['purchase-orders']) : await apiService.getPurchaseOrders();
 
     const today = new Date().toISOString().split('T')[0];
     
-    const todaySales = sales
-      .filter(sale => sale.saleDate.startsWith(today))
-      .reduce((sum, sale) => sum + sale.total, 0);
-    
-    const todayPurchases = purchases
-      .filter(purchase => purchase.purchaseDate.startsWith(today))
-      .reduce((sum, purchase) => sum + purchase.total, 0);
-    
-    const lowStockItems = products.filter(product => product.currentStock < 10).length;
-    const pendingOrders = purchaseOrders.filter(po => po.status === 'approved').length;
-    const overdueInvoices = sales.filter(sale => sale.status === 'overdue').length;
+    const todaySales = Array.isArray(sales) ? sales.filter((sale: any) => sale.saleDate?.startsWith(today)).reduce((sum: number, sale: any) => sum + (sale.total || 0), 0) : 0;
+    const todayPurchases = Array.isArray(purchases) ? purchases.filter((purchase: any) => purchase.purchaseDate?.startsWith(today)).reduce((sum: number, purchase: any) => sum + (purchase.total || 0), 0) : 0;
+    const lowStockItems = Array.isArray(products) ? products.filter((product: any) => product.currentStock < 10).length : 0;
+    const pendingOrders = Array.isArray(purchaseOrders) ? purchaseOrders.filter((po: any) => po.status === 'approved').length : 0;
+    const overdueInvoices = Array.isArray(sales) ? sales.filter((sale: any) => sale.status === 'overdue').length : 0;
 
     return {
       todaySales,
       todayPurchases,
       lowStockItems,
-      totalProducts: products.length,
-      totalCustomers: customers.length,
-      totalSuppliers: suppliers.length,
+      totalProducts: Array.isArray(products) ? products.length : 0,
+      totalCustomers: Array.isArray(customers) ? customers.length : 0,
+      totalSuppliers: Array.isArray(suppliers) ? suppliers.length : 0,
       pendingOrders,
       overdueInvoices,
     };

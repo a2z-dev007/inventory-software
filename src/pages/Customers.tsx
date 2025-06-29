@@ -9,6 +9,7 @@ import { Card, CardHeader } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { FormField } from '../components/forms/FormField';
+import { useDebounce } from '../hooks/useDebounce';
 
 const customerSchema = z.object({
   name: z.string().min(1, 'Customer name is required'),
@@ -191,6 +192,7 @@ export const Customers: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearch = useDebounce(searchTerm, 800); 
   const [page, setPage] = useState(1);
   const limit = 10;
 
@@ -199,8 +201,8 @@ export const Customers: React.FC = () => {
     data: customerResponse = { customers: [], pagination: { page: 1, pages: 1, total: 0, limit } },
     isLoading,
   } = useQuery<PaginatedCustomers>({
-    queryKey: ['customers', page, searchTerm],
-    queryFn: () => apiService.getCustomers({ page, limit, search: searchTerm }),
+    queryKey: ['customers', page, debouncedSearch],
+    queryFn: () => apiService.getCustomers({ page, limit, search: debouncedSearch }),
   });
 
   // Always fallback to array/object to avoid map on undefined

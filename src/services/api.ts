@@ -328,7 +328,7 @@ export const apiService = {
   },
 
   // Customers
-  getcustomers: async (params: { page?: number; limit?: number; search?: string; sortBy?: string; sortOrder?: string } = {}) => {
+  getCustomers: async (params: { page?: number; limit?: number; search?: string; sortBy?: string; sortOrder?: string } = {}) => {
     try {
       const query = new URLSearchParams({
         page: params.page?.toString() || '1',
@@ -338,7 +338,8 @@ export const apiService = {
         sortOrder: params.sortOrder || 'asc',
       }).toString();
       const res = await request<any>(`${API_ROUTES.CUSTOMERS}?${query}`);
-      return res.data.customers;
+      // Return only the data property
+      return res.data;
     } catch (error) {
       console.error('Error fetching customers:', error);
       throw error;

@@ -27,6 +27,8 @@ interface CustomerModalProps {
 }
 
 const CustomerModal: React.FC<CustomerModalProps> = ({ isOpen, onClose, customer }) => {
+  // Debug: log customer prop
+  console.log('CustomerModal props:', { isOpen, customer });
   const queryClient = useQueryClient();
   const isEditing = !!customer;
 
@@ -35,13 +37,39 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ isOpen, onClose, customer
     handleSubmit,
     formState: { errors },
     reset,
+    setValue,
   } = useForm<CustomerFormData>({
     resolver: zodResolver(customerSchema),
-    defaultValues: customer || {},
   });
 
+  // Always reset form values when modal opens or customer changes
+  React.useEffect(() => {
+    if (isOpen) {
+      if (customer) {
+        reset({
+          name: customer.name || '',
+          contact: customer.contact || '',
+          email: customer.email || '',
+          phone: customer.phone || '',
+          address: customer.address || '',
+        });
+      } else {
+        reset({ name: '', contact: '', email: '', phone: '', address: '' });
+      }
+    }
+  }, [isOpen, customer, reset]);
+
   const createMutation = useMutation({
-    mutationFn: apiService.createCustomer,
+    mutationFn: apiService.createClient,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      onClose();
+      reset();
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: CustomerFormData }) => apiService.updateClient(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       onClose();
@@ -50,7 +78,13 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ isOpen, onClose, customer
   });
 
   const onSubmit = (data: CustomerFormData) => {
-    createMutation.mutate(data);
+    if (isEditing && customer?._id) {
+      // Debug: log id and data
+      console.log('Updating customer:', customer._id, data);
+      updateMutation.mutate({ id: customer._id, data });
+    } else if (!customer?._id) {
+      createMutation.mutate(data);
+    }
   };
 
   if (!isOpen) return null;
@@ -122,7 +156,7 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ isOpen, onClose, customer
               </Button>
               <Button
                 type="submit"
-                loading={createMutation.isPending}
+                loading={createMutation.isPending || updateMutation.isPending}
               >
                 {isEditing ? 'Update Customer' : 'Add Customer'}
               </Button>
@@ -134,32 +168,54 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ isOpen, onClose, customer
   );
 };
 
+// Add Sale interface back
+interface Sale {
+  id: string;
+  customerName: string;
+  total: number;
+  saleDate: string;
+}
+
+// Remove unused Customer interface and add PaginatedCustomers type
+interface PaginatedCustomers {
+  customers: any[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+}
+
 export const Customers: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(1);
+  const limit = 10;
 
-  const { data: customers, isLoading } = useQuery({
-    queryKey: ['customers'],
-    queryFn: apiService.getCustomers,
+  // Fetch paginated customers with correct useQuery syntax and types
+  const {
+    data: customerResponse = { customers: [], pagination: { page: 1, pages: 1, total: 0, limit } },
+    isLoading,
+  } = useQuery<PaginatedCustomers>({
+    queryKey: ['customers', page, searchTerm],
+    queryFn: () => apiService.getCustomers({ page, limit, search: searchTerm }),
   });
 
-  const { data: sales } = useQuery({
+  // Always fallback to array/object to avoid map on undefined
+  const customers = Array.isArray(customerResponse?.customers) ? customerResponse.customers : [];
+  const pagination = customerResponse?.pagination || { page: 1, pages: 1, total: 0, limit };
+
+  const { data: sales = [] } = useQuery<Sale[]>({
     queryKey: ['sales'],
     queryFn: apiService.getSales,
   });
 
-  const filteredCustomers = customers?.filter(customer =>
-    customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.contact.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.email.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
-
   const getCustomerStats = (customerName: string) => {
-    const customerSales = sales?.filter(sale => sale.customerName === customerName) || [];
-    const totalSales = customerSales.reduce((sum, sale) => sum + sale.total, 0);
-    const lastSale = customerSales.sort((a, b) => new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime())[0];
-    
+    const customerSales = sales.filter((sale: Sale) => sale.customerName === customerName) || [];
+    const totalSales = customerSales.reduce((sum: number, sale: Sale) => sum + sale.total, 0);
+    const lastSale = customerSales.sort((a: Sale, b: Sale) => new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime())[0];
     return {
       totalSales,
       totalOrders: customerSales.length,
@@ -168,6 +224,8 @@ export const Customers: React.FC = () => {
   };
 
   const handleEdit = (customer: any) => {
+    // Debug: log customer object
+    console.log('handleEdit called with:', customer);
     setEditingCustomer(customer);
     setIsModalOpen(true);
   };
@@ -206,18 +264,17 @@ export const Customers: React.FC = () => {
               placeholder="Search customers..."
               className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
             />
           </div>
         </div>
 
         {/* Customers Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCustomers.map((customer) => {
+          {customers.map((customer: any) => {
             const stats = getCustomerStats(customer.name);
-            
             return (
-              <Card key={customer.id} className="hover:shadow-md transition-shadow">
+              <Card key={customer._id || customer.id} className="hover:shadow-md transition-shadow">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center">
                     <div className="h-10 w-10 bg-green-100 rounded-lg flex items-center justify-center">
@@ -283,7 +340,7 @@ export const Customers: React.FC = () => {
           })}
         </div>
 
-        {filteredCustomers.length === 0 && (
+        {customers.length === 0 && (
           <div className="text-center py-12">
             <Users className="mx-auto h-12 w-12 text-gray-400" />
             <h3 className="mt-2 text-sm font-medium text-gray-900">No customers found</h3>
@@ -292,6 +349,27 @@ export const Customers: React.FC = () => {
             </p>
           </div>
         )}
+
+        {/* Pagination Controls */}
+        <div className="flex justify-center items-center space-x-2 mt-6">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={pagination.page <= 1}
+            onClick={() => setPage(page - 1)}
+          >
+            Previous
+          </Button>
+          <span className="px-2">Page {pagination.page} of {pagination.pages}</span>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={pagination.page >= pagination.pages}
+            onClick={() => setPage(page + 1)}
+          >
+            Next
+          </Button>
+        </div>
       </Card>
 
       <CustomerModal

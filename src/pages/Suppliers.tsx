@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Truck, Edit, Trash2, Search, Phone, Mail, MapPin } from 'lucide-react';
+import { Plus, Truck, Edit, Search, Phone, Mail, MapPin } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -9,6 +9,8 @@ import { Card, CardHeader } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { FormField } from '../components/forms/FormField';
+import { usePagination } from '../hooks/usePagination';
+import { useDebounce } from '../hooks/useDebounce';
 
 const supplierSchema = z.object({
   name: z.string().min(1, 'Supplier name is required'),
@@ -37,8 +39,29 @@ const SupplierModal: React.FC<SupplierModalProps> = ({ isOpen, onClose, supplier
     reset,
   } = useForm<SupplierFormData>({
     resolver: zodResolver(supplierSchema),
-    defaultValues: supplier || {},
   });
+
+  React.useEffect(() => {
+    if (isOpen) {
+      reset(
+        supplier
+          ? {
+              name: supplier.name || '',
+              contact: supplier.contact || '',
+              email: supplier.email || '',
+              phone: supplier.phone || '',
+              address: supplier.address || '',
+            }
+          : {
+              name: '',
+              contact: '',
+              email: '',
+              phone: '',
+              address: '',
+            }
+      );
+    }
+  }, [isOpen, supplier, reset]);
 
   const createMutation = useMutation({
     mutationFn: apiService.createSupplier,
@@ -49,8 +72,22 @@ const SupplierModal: React.FC<SupplierModalProps> = ({ isOpen, onClose, supplier
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: SupplierFormData }) =>
+      apiService.updateSupplier(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+      onClose();
+      reset();
+    },
+  });
+
   const onSubmit = (data: SupplierFormData) => {
-    createMutation.mutate(data);
+    if (isEditing && supplier?._id) {
+      updateMutation.mutate({ id: supplier._id, data });
+    } else {
+      createMutation.mutate(data);
+    }
   };
 
   if (!isOpen) return null;
@@ -113,17 +150,10 @@ const SupplierModal: React.FC<SupplierModalProps> = ({ isOpen, onClose, supplier
             />
 
             <div className="flex justify-end space-x-3 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-              >
+              <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                loading={createMutation.isPending}
-              >
+              <Button type="submit" loading={createMutation.isPending}>
                 {isEditing ? 'Update Supplier' : 'Add Supplier'}
               </Button>
             </div>
@@ -134,21 +164,39 @@ const SupplierModal: React.FC<SupplierModalProps> = ({ isOpen, onClose, supplier
   );
 };
 
+// Add type for suppliers API response
+interface SuppliersApiResponse {
+  vendors: any[];
+  pagination: {
+    page: number;
+    pages: number;
+    total: number;
+    limit: number;
+  };
+}
+
 export const Suppliers: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<any>(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const debouncedSearch = useDebounce(searchInput, 300);
+  const { page, setPage, handleNext, handlePrev } = usePagination(1);
 
-  const { data: suppliers, isLoading } = useQuery({
-    queryKey: ['suppliers'],
-    queryFn: apiService.getSuppliers,
+  const {
+    data,
+    isLoading,
+    isFetching,
+  } = useQuery<SuppliersApiResponse>({
+    queryKey: ['suppliers', page, debouncedSearch],
+    queryFn: () => apiService.getSuppliers({ page, limit: 6, search: debouncedSearch }),
+    // keepPreviousData: true, // Remove or move to options if your React Query version supports it
   });
 
-  const filteredSuppliers = suppliers?.filter(supplier =>
-    supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    supplier.contact.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    supplier.email.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  const suppliers = data?.vendors || [];
+  const pagination = data?.pagination || { page: 1, pages: 1, total: 0, limit: 6 };
+
+  console.log('📦 Current Page State:', page);
+  console.log('📄 Pagination Response:', pagination);
 
   const handleEdit = (supplier: any) => {
     setEditingSupplier(supplier);
@@ -160,10 +208,6 @@ export const Suppliers: React.FC = () => {
     setEditingSupplier(null);
   };
 
-  if (isLoading) {
-    return <LoadingSpinner size="lg" />;
-  }
-
   return (
     <div className="space-y-6">
       <Card>
@@ -171,10 +215,7 @@ export const Suppliers: React.FC = () => {
           title="Suppliers"
           subtitle="Manage your supplier network"
           action={
-            <Button
-              icon={Plus}
-              onClick={() => setIsModalOpen(true)}
-            >
+            <Button icon={Plus} onClick={() => setIsModalOpen(true)}>
               Add Supplier
             </Button>
           }
@@ -188,62 +229,93 @@ export const Suppliers: React.FC = () => {
               type="text"
               placeholder="Search suppliers..."
               className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              value={searchInput}
+              onChange={(e) => {
+                setSearchInput(e.target.value);
+                setPage(1); // reset to first page on search
+              }}
             />
           </div>
         </div>
 
-        {/* Suppliers Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredSuppliers.map((supplier) => (
-            <Card key={supplier.id} className="hover:shadow-md transition-shadow">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center">
-                  <div className="h-10 w-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <Truck className="h-5 w-5 text-blue-600" />
+        {isLoading || isFetching ? (
+          <LoadingSpinner size="lg" />
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {suppliers.map((supplier: any) => (
+                <Card key={supplier.id} className="hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center">
+                      <div className="h-10 w-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <Truck className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <div className="ml-3">
+                        <h3 className="text-lg font-medium text-gray-900">{supplier.name}</h3>
+                        <p className="text-sm text-gray-500">{supplier.contact}</p>
+                      </div>
+                    </div>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleEdit(supplier)}
+                        className="text-blue-600 hover:text-blue-900"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="ml-3">
-                    <h3 className="text-lg font-medium text-gray-900">{supplier.name}</h3>
-                    <p className="text-sm text-gray-500">{supplier.contact}</p>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Mail className="h-4 w-4 mr-2" />
+                      {supplier.email}
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Phone className="h-4 w-4 mr-2" />
+                      {supplier.phone}
+                    </div>
+                    <div className="flex items-start text-sm text-gray-600">
+                      <MapPin className="h-4 w-4 mr-2 mt-0.5" />
+                      <span className="line-clamp-2">{supplier.address}</span>
+                    </div>
                   </div>
-                </div>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => handleEdit(supplier)}
-                    className="text-blue-600 hover:text-blue-900"
-                  >
-                    <Edit className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
+                </Card>
+              ))}
+            </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center text-sm text-gray-600">
-                  <Mail className="h-4 w-4 mr-2" />
-                  {supplier.email}
-                </div>
-                <div className="flex items-center text-sm text-gray-600">
-                  <Phone className="h-4 w-4 mr-2" />
-                  {supplier.phone}
-                </div>
-                <div className="flex items-start text-sm text-gray-600">
-                  <MapPin className="h-4 w-4 mr-2 mt-0.5" />
-                  <span className="line-clamp-2">{supplier.address}</span>
-                </div>
+            {suppliers.length === 0 && (
+              <div className="text-center py-12">
+                <Truck className="mx-auto h-12 w-12 text-gray-400" />
+                <h3 className="mt-2 text-sm font-medium text-gray-900">No suppliers found</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Get started by adding your first supplier.
+                </p>
               </div>
-            </Card>
-          ))}
-        </div>
+            )}
 
-        {filteredSuppliers.length === 0 && (
-          <div className="text-center py-12">
-            <Truck className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No suppliers found</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Get started by adding your first supplier.
-            </p>
-          </div>
+            {/* Pagination Controls */}
+            {pagination.pages > 1 && (
+              <div className="flex justify-center items-center space-x-4 mt-6">
+                <Button
+                  variant="outline"
+                  onClick={() => handlePrev()}
+                  disabled={page === 1}
+                >
+                  Previous
+                </Button>
+                <span className="text-sm text-gray-700">
+                  Page {pagination.page} of {pagination.pages}
+                </span>
+                <Button
+                  variant="outline"
+                  onClick={() => handleNext(pagination)}
+                  disabled={page === pagination.pages}
+                >
+                  Next
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </Card>
 

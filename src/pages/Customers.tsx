@@ -10,6 +10,7 @@ import { Button } from '../components/common/Button';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { FormField } from '../components/forms/FormField';
 import { useDebounce } from '../hooks/useDebounce';
+import { usePagination } from '../hooks/usePagination';
 
 const customerSchema = z.object({
   name: z.string().min(1, 'Customer name is required'),
@@ -193,7 +194,14 @@ export const Customers: React.FC = () => {
   const [editingCustomer, setEditingCustomer] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearch = useDebounce(searchTerm, 800); 
-  const [page, setPage] = useState(1);
+  const {
+  page,
+  setPage,
+  handleNext,
+  handlePrev,
+  resetPage
+} = usePagination(1);
+
   const limit = 10;
 
   // Fetch paginated customers with correct useQuery syntax and types
@@ -266,7 +274,11 @@ export const Customers: React.FC = () => {
               placeholder="Search customers..."
               className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               value={searchTerm}
-              onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
+             onChange={(e) => {
+  setSearchTerm(e.target.value);
+  resetPage();
+}}
+
             />
           </div>
         </div>
@@ -355,22 +367,23 @@ export const Customers: React.FC = () => {
         {/* Pagination Controls */}
         <div className="flex justify-center items-center space-x-2 mt-6">
           <Button
-            type="button"
-            variant="outline"
-            disabled={pagination.page <= 1}
-            onClick={() => setPage(page - 1)}
-          >
-            Previous
-          </Button>
-          <span className="px-2">Page {pagination.page} of {pagination.pages}</span>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={pagination.page >= pagination.pages}
-            onClick={() => setPage(page + 1)}
-          >
-            Next
-          </Button>
+  type="button"
+  variant="outline"
+  disabled={pagination.page <= 1}
+  onClick={handlePrev}
+>
+  Previous
+</Button>
+<span className="px-2">Page {pagination.page} of {pagination.pages}</span>
+<Button
+  type="button"
+  variant="outline"
+  disabled={pagination.page >= pagination.pages}
+  onClick={() => handleNext(pagination)}
+>
+  Next
+</Button>
+
         </div>
       </Card>
 

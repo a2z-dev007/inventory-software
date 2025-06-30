@@ -9,35 +9,50 @@ const getAuthToken = () => {
   return localStorage.getItem('token') || sessionStorage.getItem('token');
 };
 
-const request = async <T>(endpoint: string, options?: any): Promise<T> => {
+const request = async <T>(endpoint: string, options?: Record<string, unknown>): Promise<T> => {
   const token = getAuthToken();
   const headers = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...(options?.headers || {})
+    ...(options?.headers as Record<string, string> || {})
   };
   const url = `${API_BASE_URL}${endpoint}`;
+  // Move params to top-level config for axios
+  const axiosConfig: Record<string, unknown> = {
+    url,
+    method: options?.method || 'GET',
+    data: options?.body ? JSON.parse(options.body as string) : undefined,
+    headers,
+    ...(options?.params ? { params: options.params } : {}),
+  };
   
   try {
-    const response = await axios({
-      url,
-      method: options?.method || 'GET',
-      data: options?.body ? JSON.parse(options.body) : undefined,
-      headers,
-    });
+    const response = await axios(axiosConfig);
     console.log(`API Request: ${url}`, {
-      method: options?.method || 'GET',
-      body: options?.body,
+      method: axiosConfig.method,
+      params: axiosConfig.params,
+      body: axiosConfig.data,
       headers,
-      response: response.data,
+      response: (response as unknown as Record<string, unknown>).data,
     });
-    return response.data;
-  } catch (error: any) {
-    if (error.response && error.response.data && error.response.data.message) {
-      return error.response.data;
+    return (response as unknown as Record<string, unknown>).data as T;
+  } catch (error: unknown) {
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'response' in error &&
+      (error as Record<string, unknown>).response &&
+      (error as Record<string, any>).response.data &&
+      (error as Record<string, any>).response.data.message
+    ) {
+      return (error as Record<string, any>).response.data;
     }
-    if (error.response) {
-      throw new Error(`API Error: ${error.response.status}`);
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'response' in error
+    ) {
+      throw new Error(`API Error: ${(error as Record<string, any>).response.status}`);
     }
     throw error;
   }
@@ -276,15 +291,35 @@ export const apiService = {
   },
 
   // Vendors
-  getSuppliers: async () => {
-    try {
-      const res = await request<any>(API_ROUTES.VENDORS);
-      return res.data.vendors;
-    } catch (error) {
-      console.error('Error fetching vendors:', error);
-      throw error;
-    }
-  },
+  // getSuppliers: async () => {
+  //   try {
+  //     const res = await request<any>(API_ROUTES.VENDORS);
+  //     return res.data.vendors;
+  //   } catch (error) {
+  //     console.error('Error fetching vendors:', error);
+  //     throw error;
+  //   }
+  // },
+
+  getSuppliers: async ({ page = 1, limit = 10, search = '' }) => {
+  try {
+    const res = await request<any>(API_ROUTES.VENDORS, {
+      method: 'GET',
+      params: {
+        page,
+        limit,
+        search,
+      },
+    });
+
+    // Your backend sends response as: { success, data: { vendors, pagination } }
+    return res.data; // ✅ Return vendors + pagination
+  } catch (error) {
+    console.error('Error fetching vendors:', error);
+    throw error;
+  }
+},
+
 
   createSupplier: async (supplier: Omit<any, 'id'>) => {
     try {
@@ -392,7 +427,7 @@ export const apiService = {
     const products = Array.isArray(queryClient.getQueryData(['products'])) ? queryClient.getQueryData(['products']) : await apiService.getProducts();
     const sales = Array.isArray(queryClient.getQueryData(['sales'])) ? queryClient.getQueryData(['sales']) : await apiService.getSales();
     const purchases = Array.isArray(queryClient.getQueryData(['purchases'])) ? queryClient.getQueryData(['purchases']) : await apiService.getPurchases();
-    const customers = Array.isArray(queryClient.getQueryData(['customers'])) ? queryClient.getQueryData(['customers']) : await apiService.getcustomers();
+    const customers = Array.isArray(queryClient.getQueryData(['customers'])) ? queryClient.getQueryData(['customers']) : await apiService.getCustomers();
     const suppliers = Array.isArray(queryClient.getQueryData(['suppliers'])) ? queryClient.getQueryData(['suppliers']) : await apiService.getSuppliers();
     const purchaseOrders = Array.isArray(queryClient.getQueryData(['purchase-orders'])) ? queryClient.getQueryData(['purchase-orders']) : await apiService.getPurchaseOrders();
 

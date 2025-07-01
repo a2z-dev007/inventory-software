@@ -12,6 +12,7 @@ import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { FormField } from '../components/forms/FormField';
 import { SelectField } from '../components/forms/SelectField';
 import { formatCurrency } from '../utils/constants';
+import { usePagination } from '../hooks/usePagination';
 
 const purchaseItemSchema = z.object({
   productId: z.number().min(1, 'Product is required'),
@@ -33,6 +34,45 @@ interface PurchaseModalProps {
   purchase?: any;
 }
 
+// Types
+interface Supplier {
+  _id: string;
+  name: string;
+  contact: string;
+  email: string;
+  phone: string;
+  address: string;
+}
+interface SuppliersApiResponse {
+  vendors: Supplier[];
+  pagination: {
+    page: number;
+    pages: number;
+    total: number;
+    limit: number;
+  };
+}
+interface Purchase {
+  id: string;
+  receiptNumber: string;
+  supplier: string;
+  purchaseDate: string;
+  invoiceFile?: string;
+  total: number;
+  items: any[];
+  subtotal: number;
+  tax: number;
+}
+interface PurchasesApiResponse {
+  purchases: Purchase[];
+  pagination: {
+    page: number;
+    pages: number;
+    total: number;
+    limit: number;
+  };
+}
+
 const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase }) => {
   const queryClient = useQueryClient();
   const isEditing = !!purchase;
@@ -42,9 +82,9 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
     queryFn: apiService.getProducts,
   });
 
-  const { data: suppliers } = useQuery({
+  const { data: suppliers } = useQuery<SuppliersApiResponse>({
     queryKey: ['suppliers'],
-    queryFn: apiService.getSuppliers,
+    queryFn: () => apiService.getSuppliers({ page: 1, limit: 100 }),
   });
 
   const {
@@ -140,7 +180,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
               <SelectField
                 label="Supplier"
                 name="supplier"
-                options={suppliers?.map(supplier => ({
+                options={suppliers?.vendors?.map((supplier: Supplier) => ({
                   value: supplier.name,
                   label: supplier.name,
                 })) || []}
@@ -268,16 +308,20 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
 export const Purchases: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const { page, setPage, handleNext, handlePrev } = usePagination(1);
 
-  const { data: purchases, isLoading } = useQuery({
-    queryKey: ['purchases'],
-    queryFn: apiService.getPurchases,
+  const { data: purchasesData, isLoading } = useQuery<PurchasesApiResponse>({
+    queryKey: ['purchases', page],
+    queryFn: () => apiService.getPurchases({ page, limit: 10 }),
   });
 
-  const filteredPurchases = purchases?.filter(purchase =>
+  const purchases = purchasesData?.purchases || [];
+  const pagination = purchasesData?.pagination || { page: 1, pages: 1, total: 0, limit: 10 };
+
+  const filteredPurchases = purchases.filter(purchase =>
     purchase.receiptNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
     purchase.supplier.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  );
 
   const generateReceiptPDF = (purchase: any) => {
     const doc = new jsPDF();
@@ -413,6 +457,29 @@ export const Purchases: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls */}
+        {pagination.pages > 1 && (
+          <div className="flex justify-center items-center space-x-4 mt-6">
+            <Button
+              variant="outline"
+              onClick={() => handlePrev()}
+              disabled={page === 1}
+            >
+              Previous
+            </Button>
+            <span className="text-sm text-gray-700">
+              Page {pagination.page} of {pagination.pages}
+            </span>
+            <Button
+              variant="outline"
+              onClick={() => handleNext(pagination)}
+              disabled={page === pagination.pages}
+            >
+              Next
+            </Button>
+          </div>
+        )}
 
         {filteredPurchases.length === 0 && (
           <div className="text-center py-8">

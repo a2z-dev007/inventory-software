@@ -239,10 +239,13 @@ export const apiService = {
   },
 
   // Purchases
-  getPurchases: async () => {
+  getPurchases: async (params: { page?: number; limit?: number; search?: string } = {}) => {
     try {
-      const res = await request<any>(API_ROUTES.PURCHASES);
-      return res.data.purchases;
+      const res = await request<any>(API_ROUTES.PURCHASES, {
+        method: 'GET',
+        params,
+      });
+      return res.data; // Should include { purchases, pagination }
     } catch (error) {
       console.error('Error fetching purchases:', error);
       throw error;

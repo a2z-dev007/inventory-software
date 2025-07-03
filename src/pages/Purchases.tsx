@@ -141,13 +141,19 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
   const calculateTax = (subtotal: number) => subtotal * 0.12;
   const calculateTotal = (subtotal: number, tax: number) => subtotal + tax;
 
+  const generateReceiptNumber = () => {
+    const now = new Date();
+    return `PUR-${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}-${now.getHours().toString().padStart(2,'0')}${now.getMinutes().toString().padStart(2,'0')}${now.getSeconds().toString().padStart(2,'0')}`;
+  };
+
   const onSubmit = async (data: PurchaseFormData) => {
     const payload = {
+      receiptNumber: generateReceiptNumber(),
       vendor: data.supplier,
       purchaseDate: new Date().toISOString(),
       items: data.items.map(item => ({
         productId: item.productId,
-        productName: products?.find((p) => p.id === item.productId)?.name || '',
+        productName: products?.find((p) => p._id === item.productId)?.name || '',
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         total: item.quantity * item.unitPrice,
@@ -222,7 +228,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
                         label="Product"
                         name={`items.${index}.productId`}
                         options={products?.map(product => ({
-                          value: product.id,
+                          value: product._id,
                           label: `${product.name} (${product.sku})`,
                         })) || []}
                         register={register}

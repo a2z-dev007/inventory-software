@@ -27,6 +27,9 @@ export const SelectField: React.FC<SelectFieldProps> = ({
   required = false,
   className = '',
 }) => {
+  // Determine if options are numbers
+  const isNumberOptions = options.length > 0 && typeof options[0].value === 'number';
+
   return (
     <div className={className}>
       <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-1">
@@ -38,7 +41,7 @@ export const SelectField: React.FC<SelectFieldProps> = ({
         className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
           error ? 'border-red-300' : 'border-gray-300'
         }`}
-        {...register(name)}
+        {...register(name, isNumberOptions ? { valueAsNumber: true } : {})}
       >
         <option value="">{placeholder}</option>
         {options.map((option) => (

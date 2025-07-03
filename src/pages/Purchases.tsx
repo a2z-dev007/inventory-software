@@ -15,7 +15,7 @@ import { formatCurrency } from '../utils/constants';
 import { usePagination } from '../hooks/usePagination';
 
 const purchaseItemSchema = z.object({
-  productId: z.number().min(1, 'Product is required'),
+  productId: z.string().min(1, 'Product is required'),
   quantity: z.number().min(1, 'Quantity must be at least 1'),
   unitPrice: z.number().min(0, 'Unit price must be positive'),
 });
@@ -23,10 +23,15 @@ const purchaseItemSchema = z.object({
 const purchaseSchema = z.object({
   supplier: z.string().min(1, 'Supplier is required'),
   items: z.array(purchaseItemSchema).min(1, 'At least one item is required'),
-  invoiceFile: z.string().optional(),
+  invoiceFile: z.any().optional(),
 });
 
-type PurchaseFormData = z.infer<typeof purchaseSchema>;
+type PurchaseFormData = {
+  supplier: string;
+  items: { productId: number; quantity: number; unitPrice: number }[];
+  invoiceFile: FileList;
+  // add other fields as needed
+};
 
 interface PurchaseModalProps {
   isOpen: boolean;
@@ -136,29 +141,24 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
   const calculateTax = (subtotal: number) => subtotal * 0.12;
   const calculateTotal = (subtotal: number, tax: number) => subtotal + tax;
 
-  const onSubmit = (data: PurchaseFormData) => {
-    const subtotal = calculateSubtotal();
-    const tax = calculateTax(subtotal);
-    const total = calculateTotal(subtotal, tax);
-
-    const purchaseData = {
-      ...data,
-      receiptNumber: isEditing ? purchase.receiptNumber : `REC-${Date.now()}`,
-      purchaseDate: isEditing ? purchase.purchaseDate : new Date().toISOString(),
-      items: data.items.map(item => {
-        const product = products?.find(p => p.id === Number(item.productId));
-        return {
-          ...item,
-          productName: product?.name || '',
-          total: item.quantity * item.unitPrice,
-        };
-      }),
-      subtotal,
-      tax,
-      total,
+  const onSubmit = async (data: PurchaseFormData) => {
+    const payload = {
+      vendor: data.supplier,
+      purchaseDate: new Date().toISOString(),
+      items: data.items.map(item => ({
+        productId: item.productId,
+        productName: products?.find((p) => p.id === item.productId)?.name || '',
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        total: item.quantity * item.unitPrice,
+      })),
+      subtotal: calculateSubtotal(),
+      tax: calculateTax(calculateSubtotal()),
+      total: calculateTotal(calculateSubtotal(), calculateTax(calculateSubtotal())),
+      invoiceFile: data.invoiceFile?.[0]?.name || '', // or null/undefined if not present
     };
 
-    createMutation.mutate(purchaseData);
+    createMutation.mutate(payload);
   };
 
   if (!isOpen) return null;
@@ -192,9 +192,10 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
               <FormField
                 label="Invoice File"
                 name="invoiceFile"
-                placeholder="e.g., invoice-001.pdf"
+                type="file"
                 register={register}
                 error={errors.invoiceFile}
+                inputProps={{ accept: '.pdf,.jpg,.jpeg,.png' }}
               />
             </div>
 

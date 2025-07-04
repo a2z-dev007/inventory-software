@@ -14,7 +14,7 @@ import { SelectField } from '../components/forms/SelectField';
 import { formatCurrency } from '../utils/constants';
 
 const poItemSchema = z.object({
-  productId: z.number().min(1, 'Product is required'),
+  productId: z.string().min(1, 'Product is required'),
   quantity: z.number().min(1, 'Quantity must be at least 1'),
   unitPrice: z.number().min(0, 'Unit price must be positive'),
 });
@@ -60,14 +60,14 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
       vendor: purchaseOrder.vendor,
       status: purchaseOrder.status,
       items: purchaseOrder.items.map((item: any) => ({
-        productId: item.productId,
+        productId: String(item.productId ?? item.id ?? item._id),
         quantity: item.quantity,
         unitPrice: item.unitPrice,
       })),
     } : {
       vendor: '',
       status: 'draft',
-      items: [{ productId: 0, quantity: 1, unitPrice: 0 }],
+      items: [{ productId: '', quantity: 1, unitPrice: 0 }],
     },
   });
 
@@ -98,7 +98,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
 
   const calculateSubtotal = () => {
     return watchedItems.reduce((sum, item) => {
-      const product = products?.find(p => p.id === Number(item.productId));
+      const product = products?.find(p => String(p.id ?? p._id) === item.productId);
       return sum + (item.quantity * item.unitPrice);
     }, 0);
   };
@@ -116,7 +116,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
       poNumber: isEditing ? purchaseOrder.poNumber : `PO-${Date.now()}`,
       orderDate: isEditing ? purchaseOrder.orderDate : new Date().toISOString(),
       items: data.items.map(item => {
-        const product = products?.find(p => p.id === Number(item.productId));
+        const product = products?.find(p => String(p.id ?? p._id) === item.productId);
         return {
           ...item,
           productName: product?.name || '',
@@ -187,7 +187,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
                   variant="outline"
                   size="sm"
                   icon={Plus}
-                  onClick={() => append({ productId: 0, quantity: 1, unitPrice: 0 })}
+                  onClick={() => append({ productId: '', quantity: 1, unitPrice: 0 })}
                 >
                   Add Item
                 </Button>
@@ -201,7 +201,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
                         label="Product"
                         name={`items.${index}.productId`}
                         options={products?.map(product => ({
-                          value: product.id,
+                          value: String(product.id ?? product._id),
                           label: `${product.name} (${product.sku})`,
                         })) || []}
                         register={register}

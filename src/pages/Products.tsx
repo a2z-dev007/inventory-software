@@ -9,6 +9,7 @@ import { Card, CardHeader } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { FormField } from '../components/forms/FormField';
+import { SelectField } from '../components/forms/SelectField';
 import { formatCurrency } from '../utils/constants';
 import { Product } from '../types';
 
@@ -34,6 +35,14 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
   const queryClient = useQueryClient();
   const isEditing = !!product;
 
+  // Fetch suppliers for dropdown
+  const { data: suppliersData } = useQuery({
+    queryKey: ['suppliers'],
+    queryFn: () => apiService.getSuppliers({ page: 1, limit: 100 }),
+  });
+  type Supplier = { id?: string; _id?: string; name: string };
+  const suppliers: Supplier[] = suppliersData?.vendors || [];
+
   const {
     register,
     handleSubmit,
@@ -48,7 +57,9 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
       salesRate: product.salesRate,
       currentStock: product.currentStock,
       category: product.category,
-      supplier: product.supplier,
+      supplier: typeof product.supplier === 'object' && product.supplier !== null
+        ? String((product.supplier as { id?: string; _id?: string }).id ?? (product.supplier as { _id?: string })._id)
+        : String(product.supplier),
     } : {},
   });
 
@@ -71,10 +82,14 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
   });
 
   const onSubmit = (data: ProductFormData) => {
+    // Find the supplier name by ID
+    const selectedSupplier = suppliers.find(s => String(s.id ?? s._id) === data.supplier);
+    const payload = { ...data, vendor: selectedSupplier ? selectedSupplier.name : '', createdAt: new Date().toISOString() };
+    delete (payload as any).supplier;
     if (isEditing) {
-      updateMutation.mutate({ id: product.id, data });
+      updateMutation.mutate({ id: product.id, data: payload });
     } else {
-      createMutation.mutate({ ...data, createdAt: new Date().toISOString() });
+      createMutation.mutate(payload);
     }
   };
 
@@ -148,10 +163,13 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
               />
             </div>
 
-            <FormField
+            <SelectField<ProductFormData>
               label="Supplier"
               name="supplier"
-              placeholder="Enter supplier name"
+              options={suppliers.map((supplier) => ({
+                value: String(supplier.id ?? supplier._id),
+                label: supplier.name,
+              }))}
               register={register}
               error={errors.supplier}
               required

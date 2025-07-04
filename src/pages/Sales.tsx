@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, ShoppingCart, Download, Edit, Search, Receipt } from 'lucide-react';
 import { useForm, useFieldArray } from 'react-hook-form';
@@ -12,9 +12,10 @@ import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { FormField } from '../components/forms/FormField';
 import { SelectField } from '../components/forms/SelectField';
 import { formatCurrency } from '../utils/constants';
+import { Controller } from 'react-hook-form';
 
 const saleItemSchema = z.object({
-  productId: z.number().min(1, 'Product is required'),
+  productId: z.string().min(1, 'Product is required'),
   quantity: z.number().min(1, 'Quantity must be at least 1'),
   unitPrice: z.number().min(0, 'Unit price must be positive'),
 });
@@ -31,7 +32,43 @@ type SaleFormData = z.infer<typeof saleSchema>;
 interface SaleModalProps {
   isOpen: boolean;
   onClose: () => void;
-  sale?: any;
+  sale?: Sale;
+}
+
+interface Product {
+  _id: string;
+  name: string;
+  currentStock: number;
+  salesRate: number;
+}
+
+interface Customer {
+  name: string;
+  email: string;
+}
+
+interface SaleItem {
+  productId: string;
+  quantity: number;
+  unitPrice: number;
+}
+
+interface Sale {
+  id: string;
+  invoiceNumber: string;
+  customerName: string;
+  customerEmail: string;
+  status: 'paid' | 'pending' | 'overdue';
+  saleDate: string;
+  items: SaleItem[];
+  subtotal: number;
+  tax: number;
+  total: number;
+}
+
+interface SaleItemWithDetails extends SaleItem {
+  productName: string;
+  total: number;
 }
 
 const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
@@ -43,9 +80,13 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
     queryFn: apiService.getProducts,
   });
 
-  const { data: customers } = useQuery({
+  const { data: customers } = useQuery<Customer[]>({
     queryKey: ['customers'],
-    queryFn: apiService.getCustomers,
+    queryFn: async () => {
+      const res = await apiService.getCustomers();
+      // If apiService.getCustomers returns { customers: Customer[] }, adjust accordingly:
+      return Array.isArray(res) ? res : res?.customers || [];
+    },
   });
 
   const {
@@ -62,8 +103,8 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
       customerName: sale.customerName,
       customerEmail: sale.customerEmail,
       status: sale.status,
-      items: sale.items.map((item: any) => ({
-        productId: item.productId,
+      items: sale.items.map((item: SaleItem) => ({
+        productId: String(item.productId),
         quantity: item.quantity,
         unitPrice: item.unitPrice,
       })),
@@ -71,7 +112,7 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
       customerName: '',
       customerEmail: '',
       status: 'pending',
-      items: [{ productId: 0, quantity: 1, unitPrice: 0 }],
+      items: [{ productId: '', quantity: 1, unitPrice: 0 }],
     },
   });
 
@@ -92,7 +133,7 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) =>
+    mutationFn: ({ id, data }: { id: string; data: SaleFormData }) =>
       apiService.updateSale(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales'] });
@@ -110,14 +151,16 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
   const calculateTotal = (subtotal: number, tax: number) => subtotal + tax;
 
   const handleCustomerSelect = (customerName: string) => {
-    const customer = customers?.find(c => c.name === customerName);
+    const customer = (customers as Customer[] | undefined)?.find((c) => c.name === customerName);
     if (customer) {
       setValue('customerEmail', customer.email);
     }
   };
 
-  const handleProductSelect = (index: number, productId: number) => {
-    const product = products?.find(p => p.id === productId);
+  const handleProductSelect = (index: number, productId: string) => {
+    const productList = products as Product[] | undefined;
+    if (!productList) return;
+    const product = productList.find((p) => p._id === productId);
     if (product) {
       setValue(`items.${index}.unitPrice`, product.salesRate);
     }
@@ -130,10 +173,10 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
 
     const saleData = {
       ...data,
-      invoiceNumber: isEditing ? sale.invoiceNumber : `INV-${Date.now()}`,
-      saleDate: isEditing ? sale.saleDate : new Date().toISOString(),
-      items: data.items.map(item => {
-        const product = products?.find(p => p.id === Number(item.productId));
+      invoiceNumber: isEditing && sale ? sale.invoiceNumber : `INV-${Date.now()}`,
+      saleDate: isEditing && sale ? sale.saleDate : new Date().toISOString(),
+      items: data.items.map((item) => {
+        const product = (products as Product[] | undefined)?.find((p) => p._id === item.productId);
         return {
           ...item,
           productName: product?.name || '',
@@ -145,12 +188,36 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
       total,
     };
 
-    if (isEditing) {
+    if (isEditing && sale && sale.id) {
       updateMutation.mutate({ id: sale.id, data: saleData });
+    } else if (isEditing && (!sale || !sale.id)) {
+      console.error('No valid sale id for update!');
     } else {
       createMutation.mutate(saleData);
     }
   };
+
+  useEffect(() => {
+    if (sale) {
+      reset({
+        customerName: sale.customerName,
+        customerEmail: sale.customerEmail,
+        status: sale.status,
+        items: sale.items.map((item) => ({
+          productId: String(item.productId),
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+        })),
+      });
+    } else {
+      reset({
+        customerName: '',
+        customerEmail: '',
+        status: 'pending',
+        items: [{ productId: '', quantity: 1, unitPrice: 0 }],
+      });
+    }
+  }, [sale, reset]);
 
   if (!isOpen) return null;
 
@@ -169,22 +236,31 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <SelectField
-                  label="Customer"
-                  name="customerName"
-                  options={customers?.map(customer => ({
-                    value: customer.name,
-                    label: customer.name,
-                  })) || []}
-                  register={register}
-                  error={errors.customerName}
-                  required
-                />
-                <input
-                  type="hidden"
-                  {...register('customerName', {
-                    onChange: (e) => handleCustomerSelect(e.target.value)
-                  })}
+                <Controller
+                  control={control}
+                  name="customerEmail"
+                  render={({ field }) => (
+                    <SelectField
+                      label="Customer"
+                      name="customerEmail"
+                      options={customers?.map((customer: Customer) => ({
+                        value: customer.email,
+                        label: customer.name,
+                        key: customer.email,
+                      })) || []}
+                      register={register}
+                      error={errors.customerEmail}
+                      required
+                      value={field.value}
+                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                        field.onChange(e); // update form value
+                        const selectedCustomer = customers?.find((c) => c.email === e.target.value);
+                        if (selectedCustomer) {
+                          setValue('customerName', selectedCustomer.name);
+                        }
+                      }}
+                    />
+                  )}
                 />
               </div>
 
@@ -220,7 +296,7 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
                   variant="outline"
                   size="sm"
                   icon={Plus}
-                  onClick={() => append({ productId: 0, quantity: 1, unitPrice: 0 })}
+                  onClick={() => append({ productId: '', quantity: 1, unitPrice: 0 })}
                 >
                   Add Item
                 </Button>
@@ -233,19 +309,17 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
                       <SelectField
                         label="Product"
                         name={`items.${index}.productId`}
-                        options={products?.map(product => ({
-                          value: product.id,
+                        options={products?.map((product) => ({
+                          value: product._id,
                           label: `${product.name} (Stock: ${product.currentStock})`,
                         })) || []}
                         register={register}
                         error={errors.items?.[index]?.productId}
                         required
-                      />
-                      <input
-                        type="hidden"
-                        {...register(`items.${index}.productId`, {
-                          onChange: (e) => handleProductSelect(index, Number(e.target.value))
-                        })}
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                          handleProductSelect(index, e.target.value);
+                          setValue(`items.${index}.productId`, e.target.value);
+                        }}
                       />
                     </div>
 
@@ -262,7 +336,6 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
                       label="Unit Price"
                       name={`items.${index}.unitPrice`}
                       type="number"
-                      step="0.01"
                       register={register}
                       error={errors.items?.[index]?.unitPrice}
                       required
@@ -326,21 +399,20 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
 
 export const Sales: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingSale, setEditingSale] = useState<any>(null);
+  const [editingSale, setEditingSale] = useState<Sale | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const queryClient = useQueryClient();
 
   const { data: sales, isLoading } = useQuery({
     queryKey: ['sales'],
     queryFn: apiService.getSales,
   });
 
-  const filteredSales = sales?.filter(sale =>
+  const filteredSales = (sales as Sale[] | undefined)?.filter((sale) =>
     sale.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
     sale.customerName.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
-  const generateInvoicePDF = (sale: any) => {
+  const generateInvoicePDF = (sale: Sale) => {
     const doc = new jsPDF();
     
     // Header
@@ -358,7 +430,7 @@ export const Sales: React.FC = () => {
     doc.text('Items:', 20, 135);
     let yPos = 150;
     
-    sale.items.forEach((item: any, index: number) => {
+    (sale.items as SaleItemWithDetails[]).forEach((item, index) => {
       doc.text(`${index + 1}. ${item.productName}`, 25, yPos);
       doc.text(`   Qty: ${item.quantity} × ₹${item.unitPrice} = ₹${item.total}`, 25, yPos + 10);
       yPos += 25;
@@ -374,7 +446,7 @@ export const Sales: React.FC = () => {
   };
 
   const handleEdit = (sale: any) => {
-    setEditingSale(sale);
+    setEditingSale({ ...sale, id: sale.id || sale._id });
     setIsModalOpen(true);
   };
 
@@ -452,7 +524,7 @@ export const Sales: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredSales.map((sale) => (
+              {filteredSales.map((sale: Sale) => (
                 <tr key={sale.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
@@ -513,7 +585,7 @@ export const Sales: React.FC = () => {
       <SaleModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        sale={editingSale}
+        sale={editingSale ?? undefined}
       />
     </div>
   );

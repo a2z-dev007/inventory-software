@@ -154,7 +154,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
               <SelectField
                 label="Vendor"
                 name="vendor"
-                options={suppliers?.map(supplier => ({
+                options={suppliers?.vendors?.map((supplier: Supplier) => ({
                   value: supplier.name,
                   label: supplier.name,
                 })) || []}

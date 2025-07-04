@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Edit, Trash2, Search, Package } from 'lucide-react';
 import { useForm } from 'react-hook-form';
@@ -57,11 +57,31 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
       salesRate: product.salesRate,
       currentStock: product.currentStock,
       category: product.category,
-      supplier: typeof product.supplier === 'object' && product.supplier !== null
-        ? String((product.supplier as { id?: string; _id?: string }).id ?? (product.supplier as { _id?: string })._id)
-        : String(product.supplier),
+      supplier: product.supplier as string,
     } : {},
   });
+
+  // Prefill form fields with correct supplier ID after suppliers load
+  useEffect(() => {
+    if (isOpen && product && suppliers.length > 0) {
+      let supplierId = '';
+      if (typeof product.supplier === 'object' && product.supplier !== null) {
+        supplierId = String((product.supplier as Record<string, unknown>).id ?? (product.supplier as Record<string, unknown>)._id);
+      } else if (typeof product.supplier === 'string') {
+        const found = suppliers.find(s => s.name === product.supplier);
+        supplierId = found ? String(found.id ?? found._id) : '';
+      }
+      reset({
+        name: product.name,
+        sku: product.sku,
+        purchaseRate: product.purchaseRate,
+        salesRate: product.salesRate,
+        currentStock: product.currentStock,
+        category: product.category,
+        supplier: supplierId,
+      });
+    }
+  }, [isOpen, product, suppliers, reset]);
 
   const createMutation = useMutation({
     mutationFn: apiService.createProduct,
@@ -72,22 +92,61 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
     },
   });
 
+  // const updateMutation = useMutation({
+  //   mutationFn: ({ id, data }: { id: string; data: ProductFormData }) =>
+  //     apiService.updateProduct(id, data),
+  //   onSuccess: async () => {
+  //     await queryClient.invalidateQueries({ queryKey: ['products'] });
+  //     await queryClient.refetchQueries({ queryKey: ['products'] });
+  //     onClose();
+  //     reset();
+  //   },
+  //   onError: (error: unknown) => {
+  //     if (error && typeof error === 'object' && 'response' in error) {
+  //       // Axios error
+  //       console.error('Update error (axios):', (error as any).response?.data || error);
+  //       alert('Failed to update product: ' + ((error as any).response?.data?.message || error));
+  //     } else {
+  //       console.error('Update error:', error);
+  //       alert('Failed to update product. See console for details.');
+  //     }
+  //   }
+  // });
+
+
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: ProductFormData }) =>
-      apiService.updateProduct(id.toString(), { ...data, createdAt: new Date().toISOString() }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
+    mutationFn: ({ id, data }: { id: string; data: ProductFormData }) =>
+      apiService.updateProduct(id, data),
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['products'] });
       onClose();
+      reset();
+    },
+    onError: (error: unknown) => {
+      if (error && typeof error === 'object' && 'response' in error) {
+        console.error('Update error (axios):', (error as any).response?.data || error);
+        alert('Failed to update product: ' + ((error as any).response?.data?.message || error));
+      } else {
+        console.error('Update error:', error);
+        alert('Failed to update product. See console for details.');
+      }
     },
   });
-
+  
   const onSubmit = (data: ProductFormData) => {
+    console.log('onSubmit called', { isEditing, product, data });
     // Find the supplier name by ID
     const selectedSupplier = suppliers.find(s => String(s.id ?? s._id) === data.supplier);
     const payload = { ...data, vendor: selectedSupplier ? selectedSupplier.name : '', createdAt: new Date().toISOString() };
-    delete (payload as any).supplier;
+    delete (payload as Record<string, unknown>).supplier;
     if (isEditing) {
-      updateMutation.mutate({ id: product.id, data: payload });
+      const id = (product.id ?? product._id ?? '').toString();
+      if (!id) {
+        alert('Product ID is missing. Cannot update.');
+        return;
+      }
+      console.log('Update payload:', payload);
+      updateMutation.mutate({ id, data: payload });
     } else {
       createMutation.mutate(payload);
     }
@@ -206,6 +265,7 @@ export const Products: React.FC = () => {
   const { data: products, isLoading } = useQuery({
     queryKey: ['products'],
     queryFn: apiService.getProducts,
+    staleTime: 0, // Forces fresh fetch every time
   });
 
   const deleteMutation = useMutation({

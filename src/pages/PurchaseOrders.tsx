@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, FileText, Download, Edit, Trash2, Search } from 'lucide-react';
 import { useForm, useFieldArray } from 'react-hook-form';
@@ -93,6 +93,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
       onClose();
+      reset();
     },
   });
 
@@ -134,6 +135,27 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
       createMutation.mutate(poData);
     }
   };
+
+  // Prefill form fields when editing a purchase order
+  useEffect(() => {
+    if (purchaseOrder) {
+      reset({
+        vendor: purchaseOrder.vendor,
+        status: purchaseOrder.status,
+        items: purchaseOrder.items.map((item: any) => ({
+          productId: String(item.productId ?? item.id ?? item._id),
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+        })),
+      });
+    } else {
+      reset({
+        vendor: '',
+        status: 'draft',
+        items: [{ productId: '', quantity: 1, unitPrice: 0 }],
+      });
+    }
+  }, [purchaseOrder, reset]);
 
   if (!isOpen) return null;
 
@@ -341,7 +363,7 @@ export const PurchaseOrders: React.FC = () => {
   };
 
   const handleEdit = (po: any) => {
-    setEditingPO(po);
+    setEditingPO({ ...po, id: po.id ?? po._id });
     setIsModalOpen(true);
   };
 

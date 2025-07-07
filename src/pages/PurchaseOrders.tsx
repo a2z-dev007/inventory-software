@@ -12,6 +12,8 @@ import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { FormField } from '../components/forms/FormField';
 import { SelectField } from '../components/forms/SelectField';
 import { formatCurrency } from '../utils/constants';
+import { useDebounce } from '../hooks/useDebounce';
+import { usePagination } from '../hooks/usePagination';
 
 const poItemSchema = z.object({
   productId: z.string().min(1, 'Product is required'),
@@ -37,10 +39,11 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
   const queryClient = useQueryClient();
   const isEditing = !!purchaseOrder;
 
-  const { data: products } = useQuery({
+  const { data: productsData } = useQuery({
     queryKey: ['products'],
-    queryFn: apiService.getProducts,
+    queryFn: () => apiService.getProducts(),
   });
+  const products = Array.isArray(productsData?.products) ? productsData.products : Array.isArray(productsData) ? productsData : [];
 
   const { data: suppliers } = useQuery({
     queryKey: ['suppliers'],
@@ -99,7 +102,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
 
   const calculateSubtotal = () => {
     return watchedItems.reduce((sum, item) => {
-      const product = products?.find(p => String(p.id ?? p._id) === item.productId);
+      const product = products.find(p => String(p.id ?? p._id) === item.productId);
       return sum + (item.quantity * item.unitPrice);
     }, 0);
   };
@@ -117,7 +120,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
       poNumber: isEditing ? purchaseOrder.poNumber : `PO-${Date.now()}`,
       orderDate: isEditing ? purchaseOrder.orderDate : new Date().toISOString(),
       items: data.items.map(item => {
-        const product = products?.find(p => String(p.id ?? p._id) === item.productId);
+        const product = products.find(p => String(p.id ?? p._id) === item.productId);
         return {
           ...item,
           productName: product?.name || '',
@@ -222,7 +225,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
                       <SelectField
                         label="Product"
                         name={`items.${index}.productId`}
-                        options={products?.map(product => ({
+                        options={products.map(product => ({
                           value: String(product.id ?? product._id),
                           label: `${product.name} (${product.sku})`,
                         })) || []}
@@ -311,12 +314,21 @@ export const PurchaseOrders: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPO, setEditingPO] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearch = useDebounce(searchTerm, 800);
+  const { page, handleNext, handlePrev, resetPage } = usePagination(1);
+  const limit = 10;
   const queryClient = useQueryClient();
 
-  const { data: purchaseOrders, isLoading } = useQuery({
-    queryKey: ['purchase-orders'],
-    queryFn: apiService.getPurchaseOrders,
+  const {
+    data: poResponse = { purchaseOrders: [], pagination: { page: 1, pages: 1, total: 0, limit } },
+    isLoading,
+  } = useQuery<{ purchaseOrders: any[]; pagination: { page: number; pages: number; total: number; limit: number } }>({
+    queryKey: ['purchase-orders', page, debouncedSearch],
+    queryFn: () => apiService.getPurchaseOrders({ page, limit, search: debouncedSearch }),
   });
+
+  const purchaseOrders = Array.isArray(poResponse?.purchaseOrders) ? poResponse.purchaseOrders : [];
+  const pagination = poResponse?.pagination || { page: 1, pages: 1, total: 0, limit };
 
   const deleteMutation = useMutation({
     mutationFn: apiService.deletePurchaseOrder,
@@ -325,10 +337,7 @@ export const PurchaseOrders: React.FC = () => {
     },
   });
 
-  const filteredPOs = purchaseOrders?.filter(po =>
-    po.poNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    po.vendor.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  const filteredPOs = purchaseOrders;
 
   const generatePDF = (po: any) => {
     const doc = new jsPDF();
@@ -417,7 +426,10 @@ export const PurchaseOrders: React.FC = () => {
               placeholder="Search purchase orders..."
               className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                resetPage();
+              }}
             />
           </div>
         </div>
@@ -510,6 +522,27 @@ export const PurchaseOrders: React.FC = () => {
             </p>
           </div>
         )}
+
+        {/* Pagination Controls */}
+        <div className="flex justify-center items-center space-x-2 mt-6">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={pagination.page <= 1}
+            onClick={handlePrev}
+          >
+            Previous
+          </Button>
+          <span className="px-2">Page {pagination.page} of {pagination.pages}</span>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={pagination.page >= pagination.pages}
+            onClick={() => handleNext(pagination)}
+          >
+            Next
+          </Button>
+        </div>
       </Card>
 
       <POModal

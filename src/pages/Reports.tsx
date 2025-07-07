@@ -28,10 +28,11 @@ export const Reports: React.FC = () => {
     queryFn: apiService.getPurchases,
   });
 
-  const { data: products } = useQuery({
+  const { data: productsData } = useQuery({
     queryKey: ['products'],
-    queryFn: apiService.getProducts,
+    queryFn: () => apiService.getProducts(),
   });
+  const products = Array.isArray(productsData?.products) ? productsData.products : Array.isArray(productsData) ? productsData : [];
 
   const { data: customers } = useQuery({
     queryKey: ['customers'],
@@ -141,11 +142,11 @@ export const Reports: React.FC = () => {
   };
 
   const generateInventoryReport = () => {
-    const lowStockProducts = products?.filter(product => product.currentStock < 10) || [];
-    const totalStockValue = products?.reduce((sum, product) => 
-      sum + (product.currentStock * product.purchaseRate), 0) || 0;
+    const lowStockProducts = products.filter(product => product.currentStock < 10);
+    const totalStockValue = products.reduce((sum, product) => 
+      sum + (product.currentStock * product.purchaseRate), 0);
     
-    const categorySummary = products?.reduce((acc, product) => {
+    const categorySummary = products.reduce((acc, product) => {
       if (!acc[product.category]) {
         acc[product.category] = { count: 0, value: 0, stock: 0 };
       }
@@ -159,7 +160,7 @@ export const Reports: React.FC = () => {
       products: products || [],
       lowStockProducts,
       summary: {
-        totalProducts: products?.length || 0,
+        totalProducts: products.length || 0,
         totalStockValue,
         lowStockCount: lowStockProducts.length,
       },

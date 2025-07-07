@@ -13,6 +13,7 @@ import { FormField } from '../components/forms/FormField';
 import { SelectField } from '../components/forms/SelectField';
 import { formatCurrency } from '../utils/constants';
 import { usePagination } from '../hooks/usePagination';
+import { useDebounce } from '../hooks/useDebounce';
 
 const purchaseItemSchema = z.object({
   productId: z.string().min(1, 'Product is required'),
@@ -82,10 +83,11 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
   const queryClient = useQueryClient();
   const isEditing = !!purchase;
 
-  const { data: products } = useQuery({
+  const { data: productsData } = useQuery({
     queryKey: ['products'],
-    queryFn: apiService.getProducts,
+    queryFn: () => apiService.getProducts(),
   });
+  const products = Array.isArray(productsData?.products) ? productsData.products : Array.isArray(productsData) ? productsData : [];
 
   const { data: suppliers } = useQuery<SuppliersApiResponse>({
     queryKey: ['suppliers'],
@@ -153,7 +155,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
       purchaseDate: new Date().toISOString(),
       items: data.items.map(item => ({
         productId: item.productId,
-        productName: products?.find((p) => p._id === item.productId)?.name || '',
+        productName: products.find((p) => p._id === item.productId)?.name || '',
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         total: item.quantity * item.unitPrice,
@@ -227,7 +229,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
                       <SelectField
                         label="Product"
                         name={`items.${index}.productId`}
-                        options={products?.map(product => ({
+                        options={products.map(product => ({
                           value: product._id,
                           label: `${product.name} (${product.sku})`,
                         })) || []}
@@ -315,20 +317,18 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
 export const Purchases: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const { page, setPage, handleNext, handlePrev } = usePagination(1);
+  const debouncedSearch = useDebounce(searchTerm, 800);
+  const { page, handleNext, handlePrev } = usePagination(1);
 
   const { data: purchasesData, isLoading } = useQuery<PurchasesApiResponse>({
-    queryKey: ['purchases', page],
-    queryFn: () => apiService.getPurchases({ page, limit: 10 }),
+    queryKey: ['purchases', page, debouncedSearch],
+    queryFn: () => apiService.getPurchases({ page, limit: 10, search: debouncedSearch }),
   });
 
   const purchases = purchasesData?.purchases || [];
   const pagination = purchasesData?.pagination || { page: 1, pages: 1, total: 0, limit: 10 };
 
-  const filteredPurchases = purchases.filter(purchase =>
-    purchase.receiptNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    purchase.supplier.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredPurchases = purchases;
 
   const generateReceiptPDF = (purchase: any) => {
     const doc = new jsPDF();
@@ -393,7 +393,9 @@ export const Purchases: React.FC = () => {
               placeholder="Search purchases..."
               className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+              }}
             />
           </div>
         </div>

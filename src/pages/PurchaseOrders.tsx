@@ -32,7 +32,7 @@ type PurchaseOrderFormData = z.infer<typeof purchaseOrderSchema>;
 interface POModalProps {
   isOpen: boolean;
   onClose: () => void;
-  purchaseOrder?: any;
+  purchaseOrder?: PurchaseOrder | null;
 }
 
 const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => {
@@ -41,14 +41,15 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
 
   const { data: productsData } = useQuery({
     queryKey: ['products'],
-    queryFn: () => apiService.getProducts(),
+    queryFn: () => apiService.getProducts({}),
   });
-  const products = Array.isArray(productsData?.products) ? productsData.products : Array.isArray(productsData) ? productsData : [];
+  const products: Product[] = Array.isArray(productsData?.products) ? productsData.products : Array.isArray(productsData) ? productsData : [];
 
-  const { data: suppliers } = useQuery({
+  const { data: suppliersData } = useQuery({
     queryKey: ['suppliers'],
-    queryFn: apiService.getSuppliers,
+    queryFn: () => apiService.getSuppliers({}),
   });
+  const suppliers: { vendors?: Supplier[] } = suppliersData || {};
 
   const {
     register,
@@ -62,8 +63,8 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
     defaultValues: purchaseOrder ? {
       vendor: purchaseOrder.vendor,
       status: purchaseOrder.status,
-      items: purchaseOrder.items.map((item: any) => ({
-        productId: String(item.productId ?? item.id ?? item._id),
+      items: purchaseOrder.items.map((item: PurchaseOrderItem) => ({
+        productId: String(item.productId),
         quantity: item.quantity,
         unitPrice: item.unitPrice,
       })),
@@ -84,17 +85,17 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
   const createMutation = useMutation({
     mutationFn: apiService.createPurchaseOrder,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
+      queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'purchase-orders' });
       onClose();
       reset();
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) =>
+    mutationFn: ({ id, data }: { id: string; data: PurchaseOrderFormData }) =>
       apiService.updatePurchaseOrder(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
+      queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'purchase-orders' });
       onClose();
       reset();
     },
@@ -102,7 +103,6 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
 
   const calculateSubtotal = () => {
     return watchedItems.reduce((sum, item) => {
-      const product = products.find(p => String(p.id ?? p._id) === item.productId);
       return sum + (item.quantity * item.unitPrice);
     }, 0);
   };
@@ -120,7 +120,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
       poNumber: isEditing ? purchaseOrder.poNumber : `PO-${Date.now()}`,
       orderDate: isEditing ? purchaseOrder.orderDate : new Date().toISOString(),
       items: data.items.map(item => {
-        const product = products.find(p => String(p.id ?? p._id) === item.productId);
+        const product = products.find((p: Product) => String(p.id ?? p._id) === item.productId);
         return {
           ...item,
           productName: product?.name || '',
@@ -133,7 +133,12 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
     };
 
     if (isEditing) {
-      updateMutation.mutate({ id: purchaseOrder.id, data: poData });
+      const id = String(purchaseOrder.id ?? purchaseOrder._id);
+      if (!id) {
+        alert('Invalid purchase order ID');
+        return;
+      }
+      updateMutation.mutate({ id, data: poData });
     } else {
       createMutation.mutate(poData);
     }
@@ -145,8 +150,8 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
       reset({
         vendor: purchaseOrder.vendor,
         status: purchaseOrder.status,
-        items: purchaseOrder.items.map((item: any) => ({
-          productId: String(item.productId ?? item.id ?? item._id),
+        items: purchaseOrder.items.map((item: PurchaseOrderItem) => ({
+          productId: String(item.productId),
           quantity: item.quantity,
           unitPrice: item.unitPrice,
         })),
@@ -225,7 +230,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
                       <SelectField
                         label="Product"
                         name={`items.${index}.productId`}
-                        options={products.map(product => ({
+                        options={products.map((product: Product) => ({
                           value: String(product.id ?? product._id),
                           label: `${product.name} (${product.sku})`,
                         })) || []}
@@ -248,7 +253,6 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
                       label="Unit Price"
                       name={`items.${index}.unitPrice`}
                       type="number"
-                      step="0.01"
                       register={register}
                       error={errors.items?.[index]?.unitPrice}
                       required
@@ -310,9 +314,42 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
   );
 };
 
+// Add types for Product, Supplier, PurchaseOrder
+interface Product {
+  id?: string | number;
+  _id?: string | number;
+  name: string;
+  sku: string;
+}
+
+interface Supplier {
+  name: string;
+}
+
+interface PurchaseOrderItem {
+  productId: string;
+  quantity: number;
+  unitPrice: number;
+  productName?: string;
+  total?: number;
+}
+
+interface PurchaseOrder {
+  id?: string;
+  _id?: string;
+  poNumber: string;
+  vendor: string;
+  status: 'draft' | 'approved' | 'delivered' | 'cancelled';
+  orderDate: string;
+  items: PurchaseOrderItem[];
+  subtotal: number;
+  tax: number;
+  total: number;
+}
+
 export const PurchaseOrders: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingPO, setEditingPO] = useState<any>(null);
+  const [editingPO, setEditingPO] = useState<PurchaseOrder | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearch = useDebounce(searchTerm, 800);
   const { page, handleNext, handlePrev, resetPage } = usePagination(1);
@@ -322,8 +359,9 @@ export const PurchaseOrders: React.FC = () => {
   const {
     data: poResponse = { purchaseOrders: [], pagination: { page: 1, pages: 1, total: 0, limit } },
     isLoading,
-  } = useQuery<{ purchaseOrders: any[]; pagination: { page: number; pages: number; total: number; limit: number } }>({
+  } = useQuery<{ purchaseOrders: PurchaseOrder[]; pagination: { page: number; pages: number; total: number; limit: number } }>({
     queryKey: ['purchase-orders', page, debouncedSearch],
+    // Use a function that ignores the context param for react-query v4 compatibility
     queryFn: () => apiService.getPurchaseOrders({ page, limit, search: debouncedSearch }),
   });
 
@@ -331,15 +369,15 @@ export const PurchaseOrders: React.FC = () => {
   const pagination = poResponse?.pagination || { page: 1, pages: 1, total: 0, limit };
 
   const deleteMutation = useMutation({
-    mutationFn: apiService.deletePurchaseOrder,
+    mutationFn: (id: string) => apiService.deletePurchaseOrder(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
+      queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'purchase-orders' });
     },
   });
 
   const filteredPOs = purchaseOrders;
 
-  const generatePDF = (po: any) => {
+  const generatePDF = (po: PurchaseOrder) => {
     const doc = new jsPDF();
     
     // Header
@@ -356,7 +394,7 @@ export const PurchaseOrders: React.FC = () => {
     doc.text('Items:', 20, 120);
     let yPos = 135;
     
-    po.items.forEach((item: any, index: number) => {
+    po.items.forEach((item: PurchaseOrderItem, index: number) => {
       doc.text(`${index + 1}. ${item.productName}`, 25, yPos);
       doc.text(`   Qty: ${item.quantity} × ₹${item.unitPrice} = ₹${item.total}`, 25, yPos + 10);
       yPos += 25;
@@ -371,14 +409,18 @@ export const PurchaseOrders: React.FC = () => {
     doc.save(`${po.poNumber}.pdf`);
   };
 
-  const handleEdit = (po: any) => {
+  const handleEdit = (po: PurchaseOrder) => {
     setEditingPO({ ...po, id: po.id ?? po._id });
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: number | string | undefined) => {
+    if (!id) {
+      alert('Invalid purchase order ID');
+      return;
+    }
     if (window.confirm('Are you sure you want to delete this purchase order?')) {
-      deleteMutation.mutate(id);
+      deleteMutation.mutate(String(id));
     }
   };
 
@@ -461,7 +503,7 @@ export const PurchaseOrders: React.FC = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredPOs.map((po) => (
-                <tr key={po.id} className="hover:bg-gray-50">
+                <tr key={po.id ?? po._id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <FileText className="h-5 w-5 text-gray-400 mr-3" />
@@ -500,7 +542,7 @@ export const PurchaseOrders: React.FC = () => {
                       <Edit className="h-4 w-4" />
                     </button>
                     <button
-                      onClick={() => handleDelete(po.id)}
+                      onClick={() => handleDelete(po.id ?? po._id)}
                       className="text-red-600 hover:text-red-900"
                       title="Delete"
                     >
@@ -548,7 +590,7 @@ export const PurchaseOrders: React.FC = () => {
       <POModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        purchaseOrder={editingPO}
+        purchaseOrder={editingPO || undefined}
       />
     </div>
   );

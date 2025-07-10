@@ -18,10 +18,11 @@ export const Reports: React.FC = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
-  const { data: sales } = useQuery({
+  const { data: salesData } = useQuery({
     queryKey: ['sales'],
-    queryFn: apiService.getSales,
+    queryFn: () => apiService.getSales({}),
   });
+  const sales = salesData?.sales || [];
 
   const { data: purchases } = useQuery({
     queryKey: ['purchases'],

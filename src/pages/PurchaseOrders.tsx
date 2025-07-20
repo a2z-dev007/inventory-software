@@ -108,13 +108,9 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
     }, 0);
   };
 
-  const calculateTax = (subtotal: number) => subtotal * 0.12; // 12% tax
-  const calculateTotal = (subtotal: number, tax: number) => subtotal + tax;
-
   const onSubmit = (data: PurchaseOrderFormData) => {
     const subtotal = calculateSubtotal();
-    const tax = calculateTax(subtotal);
-    const total = calculateTotal(subtotal, tax);
+    const total = subtotal;
 
     const poData = {
       ...data,
@@ -129,7 +125,6 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
         };
       }),
       subtotal,
-      tax,
       total,
     };
 
@@ -169,8 +164,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
   if (!isOpen) return null;
 
   const subtotal = calculateSubtotal();
-  const tax = calculateTax(subtotal);
-  const total = calculateTotal(subtotal, tax);
+  const total = subtotal;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -282,10 +276,6 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
                   <span>Subtotal:</span>
                   <span>{formatCurrency(subtotal)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>Tax (12%):</span>
-                  <span>{formatCurrency(tax)}</span>
-                </div>
                 <div className="flex justify-between font-bold text-lg border-t pt-2">
                   <span>Total:</span>
                   <span>{formatCurrency(total)}</span>
@@ -344,7 +334,6 @@ interface PurchaseOrder {
   orderDate: string;
   items: PurchaseOrderItem[];
   subtotal: number;
-  tax: number;
   total: number;
 }
 
@@ -406,7 +395,6 @@ export const PurchaseOrders: React.FC = () => {
     // Totals
     yPos += 10;
     doc.text(`Subtotal: ₹${po.subtotal.toFixed(2)}`, 20, yPos);
-    doc.text(`Tax: ₹${po.tax.toFixed(2)}`, 20, yPos + 15);
     doc.text(`Total: ₹${po.total.toFixed(2)}`, 20, yPos + 30);
     
     doc.save(`${po.poNumber}.pdf`);
@@ -546,8 +534,9 @@ export const PurchaseOrders: React.FC = () => {
                     </button>
                     <button
                       onClick={() => {
-                        if (window.confirm('Are you sure you want to delete this purchase order?')) {
-                          deleteMutation.mutate(po.id ?? po._id);
+                        const id = po.id ?? po._id;
+                        if (id && window.confirm('Are you sure you want to delete this purchase order?')) {
+                          deleteMutation.mutate(String(id));
                         }
                       }}
                       className="text-red-600 hover:text-red-900"

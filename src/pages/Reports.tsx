@@ -18,16 +18,17 @@ export const Reports: React.FC = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
-  const { data: salesData } = useQuery({
+  const { data: salesData } = useQuery<{ sales: any[] }>({
     queryKey: ['sales'],
     queryFn: () => apiService.getSales({}),
   });
-  const sales = salesData?.sales || [];
+  const sales: any[] = salesData?.sales || [];
 
-  const { data: purchases } = useQuery({
+  const { data: purchases } = useQuery<{ purchases: any[] }>({
     queryKey: ['purchases'],
-    queryFn: apiService.getPurchases,
+    queryFn: () => apiService.getPurchases(),
   });
+  const purchasesList: any[] = purchases?.purchases || [];
 
   const { data: productsData } = useQuery({
     queryKey: ['products'],
@@ -81,7 +82,6 @@ export const Reports: React.FC = () => {
     }) || [];
 
     const totalSales = filteredSales.reduce((sum, sale) => sum + sale.total, 0);
-    const totalTax = filteredSales.reduce((sum, sale) => sum + sale.tax, 0);
     const averageSale = filteredSales.length > 0 ? totalSales / filteredSales.length : 0;
 
     const salesByCustomer = filteredSales.reduce((acc, sale) => {
@@ -102,7 +102,6 @@ export const Reports: React.FC = () => {
       filteredSales,
       summary: {
         totalSales,
-        totalTax,
         averageSale,
         totalOrders: filteredSales.length,
       },
@@ -114,13 +113,12 @@ export const Reports: React.FC = () => {
   const generatePurchasesReport = () => {
     const { start, end } = getDateRangeFilter();
     
-    const filteredPurchases = purchases?.filter(purchase => {
+    const filteredPurchases = purchasesList?.filter(purchase => {
       const purchaseDate = new Date(purchase.purchaseDate);
       return purchaseDate >= start && purchaseDate <= end;
     }) || [];
 
     const totalPurchases = filteredPurchases.reduce((sum, purchase) => sum + purchase.total, 0);
-    const totalTax = filteredPurchases.reduce((sum, purchase) => sum + purchase.tax, 0);
 
     const purchasesBySupplier = filteredPurchases.reduce((acc, purchase) => {
       if (!acc[purchase.supplier]) {
@@ -135,7 +133,6 @@ export const Reports: React.FC = () => {
       filteredPurchases,
       summary: {
         totalPurchases,
-        totalTax,
         totalOrders: filteredPurchases.length,
       },
       purchasesBySupplier,
@@ -196,7 +193,7 @@ export const Reports: React.FC = () => {
 
   const generateSuppliersReport = () => {
     const supplierPurchases = suppliers?.map(supplier => {
-      const supplierPurchasesData = purchases?.filter(purchase => purchase.supplier === supplier.name) || [];
+      const supplierPurchasesData = purchasesList?.filter(purchase => purchase.supplier === supplier.name) || [];
       const totalPurchases = supplierPurchasesData.reduce((sum, purchase) => sum + purchase.total, 0);
       const lastPurchase = supplierPurchasesData.sort((a, b) => 
         new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime())[0];

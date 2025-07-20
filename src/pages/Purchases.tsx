@@ -68,7 +68,7 @@ interface Purchase {
   total: number;
   items: any[];
   subtotal: number;
-  tax: number;
+  // Removed tax
 }
 interface PurchasesApiResponse {
   purchases: Purchase[];
@@ -155,9 +155,10 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
           unitPrice: item.unitPrice,
         })),
         subtotal: calculateSubtotal(),
-        tax: calculateTax(calculateSubtotal()),
-        total: calculateTotal(calculateSubtotal(), calculateTax(calculateSubtotal())),
+        // Removed tax
+        total: calculateSubtotal(),
         invoiceFile: payload.invoiceFile?.[0]?.name || '',
+        supplier: payload.supplier, // add supplier for type compatibility
       };
       if (isEditing && purchase && purchase._id) {
         return apiService.updatePurchase(purchase._id, backendPayload);
@@ -178,8 +179,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
     }, 0);
   };
 
-  const calculateTax = (subtotal: number) => subtotal * 0.12;
-  const calculateTotal = (subtotal: number, tax: number) => subtotal + tax;
+  // Removed calculateTax and calculateTotal
 
   const generateReceiptNumber = () => {
     const now = new Date();
@@ -199,9 +199,10 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
         total: item.quantity * item.unitPrice,
       })),
       subtotal: calculateSubtotal(),
-      tax: calculateTax(calculateSubtotal()),
-      total: calculateTotal(calculateSubtotal(), calculateTax(calculateSubtotal())),
+      // Removed tax
+      total: calculateSubtotal(),
       invoiceFile: data.invoiceFile?.[0]?.name || '',
+      supplier: data.supplier, // add supplier for type compatibility
     };
 
     createMutation.mutate(payload);
@@ -210,8 +211,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
   if (!isOpen) return null;
 
   const subtotal = calculateSubtotal();
-  const tax = calculateTax(subtotal);
-  const total = calculateTotal(subtotal, tax);
+  // Removed tax and total
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -318,13 +318,10 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
                   <span>Subtotal:</span>
                   <span>{formatCurrency(subtotal)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>Tax (12%):</span>
-                  <span>{formatCurrency(tax)}</span>
-                </div>
+                {/* Removed Tax row */}
                 <div className="flex justify-between font-bold text-lg border-t pt-2">
                   <span>Total:</span>
-                  <span>{formatCurrency(total)}</span>
+                  <span>{formatCurrency(subtotal)}</span>
                 </div>
               </div>
             </div>
@@ -399,7 +396,7 @@ export const Purchases: React.FC = () => {
     // Totals
     yPos += 10;
     doc.text(`Subtotal: ₹${purchase.subtotal.toFixed(2)}`, 20, yPos);
-    doc.text(`Tax: ₹${purchase.tax.toFixed(2)}`, 20, yPos + 15);
+    // Removed Tax line
     doc.text(`Total: ₹${purchase.total.toFixed(2)}`, 20, yPos + 30);
     
     doc.save(`${purchase.receiptNumber}.pdf`);

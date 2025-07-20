@@ -56,7 +56,6 @@ export interface Sale {
   saleDate: string;
   items: SaleItem[];
   subtotal: number;
-  tax: number;
   total: number;
   status: 'paid' | 'pending' | 'overdue';
 }
@@ -68,7 +67,6 @@ export interface Purchase {
   purchaseDate: string;
   items: PurchaseOrderItem[];
   subtotal: number;
-  tax: number;
   total: number;
   invoiceFile?: string;
 }

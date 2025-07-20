@@ -467,5 +467,20 @@ export const apiService = {
       pendingOrders,
       overdueInvoices,
     };
-  }
+  },
+
+  // Change Password
+  changePassword: async (currentPassword: string, newPassword: string) => {
+    try {
+      const res = await request<any>(API_ROUTES.CHANGE_PASSWORD, {
+        method: 'PUT',
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      // toast.success(res.message || 'Password changed successfully');
+      return res;
+    } catch (error: any) {
+      // toast.error(error?.response?.data?.message || error.message || 'Failed to change password');
+      throw error;
+    }
+  },
 };

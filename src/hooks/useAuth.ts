@@ -35,7 +35,7 @@ export const useAuth = () => {
       dispatch(loginSuccess({ user, remember, token }));
       return { success: true };
     } catch (error) {
-      toast.error((error as Error).message || 'Login failed');
+      // toast.error((error as Error).message || 'Login failed');
       return { success: false, error: (error as Error).message };
     }
   };

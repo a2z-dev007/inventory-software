@@ -10,7 +10,7 @@ interface DetailModalProps {
 
 const formatValue = (key: string, value: any) => {
   if (value === null || value === undefined) return <span className="text-gray-400">-</span>;
-  if (typeof value === 'number' && /total|amount|price|subtotal|tax|discount/i.test(key)) {
+  if (typeof value === 'number' && /total|amount|price|subtotal|discount/i.test(key)) {
     return <span className="font-semibold">₹{value.toLocaleString()}</span>;
   }
   if (typeof value === 'string' && /date/i.test(key) && !isNaN(Date.parse(value))) {

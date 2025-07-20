@@ -39,9 +39,9 @@ export const Login: React.FC = () => {
 
     const result = await login(data.username, data.password, data.remember);
     
-    if (!result.success) {
-      setError(result.error || 'Login failed');
-    }
+    // if (!result.success) {
+    //   setError(result.error || 'Login failed');
+    // }
     
     setIsLoading(false);
   };

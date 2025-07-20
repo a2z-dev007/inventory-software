@@ -41,17 +41,17 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
   const queryClient = useQueryClient();
   const isEditing = !!sale;
 
-  const { data: productsData } = useQuery({
+  const { data: productsData } = useQuery<{ products: any[] }>({
     queryKey: ['products'],
     queryFn: () => apiService.getProducts(),
   });
-  const products = Array.isArray(productsData?.products) ? productsData.products : Array.isArray(productsData) ? productsData : [];
+  const products: any[] = Array.isArray(productsData?.products) ? productsData.products : Array.isArray(productsData) ? productsData : [];
 
-  const { data: customerResponse } = useQuery({
+  const { data: customerResponse } = useQuery<{ customers: any[] }>({
     queryKey: ['customers'],
-    queryFn: apiService.getCustomers,
+    queryFn: () => apiService.getCustomers(),
   });
-  const customers = customerResponse?.customers || [];
+  const customers: any[] = customerResponse?.customers || [];
   const {
     register,
     handleSubmit,
@@ -156,9 +156,6 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
     }, 0);
   };
 
-  const calculateTax = (subtotal: number) => subtotal * 0.12;
-  const calculateTotal = (subtotal: number, tax: number) => subtotal + tax;
-
   const handleCustomerSelect = (customerName: string) => {
     const customer = customers?.find(c => c.name === customerName);
     if (customer) {
@@ -175,8 +172,7 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
 
   const onSubmit = (data: SaleFormData) => {
     const subtotal = calculateSubtotal();
-    const tax = calculateTax(subtotal);
-    const total = calculateTotal(subtotal, tax);
+    const total = subtotal;
 
     const saleData = {
       ...data,
@@ -191,7 +187,6 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
         };
       }),
       subtotal,
-      tax,
       total,
     };
 
@@ -207,8 +202,7 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
   if (!isOpen) return null;
 
   const subtotal = calculateSubtotal();
-  const tax = calculateTax(subtotal);
-  const total = calculateTotal(subtotal, tax);
+  const total = subtotal;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -266,7 +260,7 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
                   variant="outline"
                   size="sm"
                   icon={Plus}
-                  onClick={() => append({ productId: 0, quantity: 1, unitPrice: 0 })}
+                  onClick={() => append({ productId: '', quantity: 1, unitPrice: 0 })}
                 >
                   Add Item
                 </Button>
@@ -329,10 +323,6 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
                 <div className="flex justify-between">
                   <span>Subtotal:</span>
                   <span>{formatCurrency(subtotal)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Tax (12%):</span>
-                  <span>{formatCurrency(tax)}</span>
                 </div>
                 <div className="flex justify-between font-bold text-lg border-t pt-2">
                   <span>Total:</span>
@@ -414,7 +404,6 @@ export const Sales: React.FC = () => {
     // Totals
     yPos += 10;
     doc.text(`Subtotal: ₹${sale.subtotal.toFixed(2)}`, 20, yPos);
-    doc.text(`Tax: ₹${sale.tax.toFixed(2)}`, 20, yPos + 15);
     doc.text(`Total: ₹${sale.total.toFixed(2)}`, 20, yPos + 30);
     
     doc.save(`${sale.invoiceNumber}.pdf`);

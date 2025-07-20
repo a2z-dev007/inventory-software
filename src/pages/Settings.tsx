@@ -3,18 +3,53 @@ import { Settings as SettingsIcon, User, Bell, Shield, Database, Palette } from 
 import { useAuth } from '../hooks/useAuth';
 import { Card, CardHeader } from '../components/common/Card';
 import { Button } from '../components/common/Button';
+import { apiService } from '../services/api';
+import { toast } from 'react-toastify';
+import { fi } from 'date-fns/locale';
 
 export const Settings: React.FC = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('profile');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [changing, setChanging] = useState(false);
 
   const tabs = [
     { id: 'profile', name: 'Profile', icon: User },
-    { id: 'notifications', name: 'Notifications', icon: Bell },
+    // { id: 'notifications', name: 'Notifications', icon: Bell },
     { id: 'security', name: 'Security', icon: Shield },
-    { id: 'system', name: 'System', icon: Database },
-    { id: 'appearance', name: 'Appearance', icon: Palette },
+    // { id: 'system', name: 'System', icon: Database },
+    // { id: 'appearance', name: 'Appearance', icon: Palette },
   ];
+
+  const changeUserPassword = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      toast.error('Please fill all the fields');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error('New password and confirm password do not match');
+      return;
+    }
+    setChanging(true);
+    try {
+     const res = await apiService.changePassword(currentPassword, newPassword);
+     if (res.success) {
+      toast.success('Password changed successfully');
+     } else {
+      toast.error(res.message);
+     }
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (error: any) {
+      console.log(error);
+      toast.error(error.message);
+    } finally {
+      setChanging(false);
+    }
+  }
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -96,13 +131,18 @@ export const Settings: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
                   <input
                     type="password"
+                    value={currentPassword}
+                    onChange={e => setCurrentPassword(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
+                
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
                   <input
                     type="password"
+                    value={newPassword}
+                    onChange={e => setNewPassword(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
@@ -110,14 +150,21 @@ export const Settings: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
                   <input
                     type="password"
+                    value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
-                <Button>Update Password</Button>
+                <Button
+                  onClick={changeUserPassword}
+                  disabled={changing}
+                >
+                  {changing ? 'Updating...' : 'Update Password'}
+                </Button>
               </div>
             </Card>
 
-            <Card>
+            {/* <Card>
               <CardHeader title="Two-Factor Authentication" />
               <div className="space-y-4">
                 <p className="text-sm text-gray-600">
@@ -125,7 +172,7 @@ export const Settings: React.FC = () => {
                 </p>
                 <Button variant="outline">Enable 2FA</Button>
               </div>
-            </Card>
+            </Card> */}
           </div>
         );
 
@@ -135,15 +182,6 @@ export const Settings: React.FC = () => {
             <Card>
               <CardHeader title="System Configuration" />
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Default Tax Rate (%)</label>
-                  <input
-                    type="number"
-                    defaultValue="12"
-                    step="0.01"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
                   <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">

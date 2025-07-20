@@ -61,19 +61,9 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
     reset,
   } = useForm<PurchaseOrderFormData>({
     resolver: zodResolver(purchaseOrderSchema),
-    defaultValues: purchaseOrder ? {
-      vendor: purchaseOrder.vendor,
-      status: purchaseOrder.status,
-      items: purchaseOrder.items.map((item: PurchaseOrderItem) => ({
-        productId: String(item.productId),
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-      })),
-    } : {
-      vendor: '',
-      status: 'draft',
-      items: [{ productId: '', quantity: 1, unitPrice: 0 }],
-    },
+    defaultValues: purchaseOrder
+      ? { ...purchaseOrder, vendor: purchaseOrder.vendor || '', status: purchaseOrder.status || 'draft', items: purchaseOrder.items || [] }
+      : { vendor: '', status: 'draft', items: [{ productId: '', quantity: 1, unitPrice: 0 }] },
   });
 
   const { fields, append, remove } = useFieldArray({
@@ -176,19 +166,19 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <SelectField
+              <SelectField<PurchaseOrderFormData>
                 label="Vendor"
                 name="vendor"
                 options={suppliers?.vendors?.map((supplier: Supplier) => ({
                   value: supplier.name,
                   label: supplier.name,
                 })) || []}
-                register={register}
+                control={control}
                 error={errors.vendor}
                 required
               />
 
-              <SelectField
+              <SelectField<PurchaseOrderFormData>
                 label="Status"
                 name="status"
                 options={[
@@ -197,7 +187,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
                   { value: 'delivered', label: 'Delivered' },
                   { value: 'cancelled', label: 'Cancelled' },
                 ]}
-                register={register}
+                control={control}
                 error={errors.status}
                 required
               />
@@ -222,14 +212,14 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
                 {fields.map((field, index) => (
                   <div key={field.id} className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 border border-gray-200 rounded-lg">
                     <div className="md:col-span-2">
-                      <SelectField
+                      <SelectField<PurchaseOrderFormData>
                         label="Product"
                         name={`items.${index}.productId`}
                         options={products.map((product: Product) => ({
                           value: String(product.id ?? product._id),
                           label: `${product.name} (${product.sku})`,
                         })) || []}
-                        register={register}
+                        control={control}
                         error={errors.items?.[index]?.productId}
                         required
                       />

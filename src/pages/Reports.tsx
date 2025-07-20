@@ -8,6 +8,7 @@ import { Card, CardHeader } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { SelectField } from '../components/forms/SelectField';
+import Select from 'react-select';
 
 type ReportType = 'sales' | 'purchases' | 'inventory' | 'customers' | 'suppliers';
 type DateRange = '7days' | '30days' | '90days' | 'custom';
@@ -443,6 +444,20 @@ export const Reports: React.FC = () => {
     return <LoadingSpinner size="lg" />;
   }
 
+  const reportTypeOptions = [
+    { value: 'sales', label: 'Sales Report' },
+    { value: 'purchases', label: 'Purchases Report' },
+    { value: 'inventory', label: 'Inventory Report' },
+    { value: 'customers', label: 'Customers Report' },
+    { value: 'suppliers', label: 'Suppliers Report' },
+  ];
+  const dateRangeOptions = [
+    { value: '7days', label: 'Last 7 Days' },
+    { value: '30days', label: 'Last 30 Days' },
+    { value: '90days', label: 'Last 90 Days' },
+    { value: 'custom', label: 'Custom Range' },
+  ];
+
   return (
     <div className="space-y-6">
       <Card>
@@ -463,31 +478,22 @@ export const Reports: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Report Type</label>
-            <select
-              value={reportType}
-              onChange={(e) => setReportType(e.target.value as ReportType)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="sales">Sales Report</option>
-              <option value="purchases">Purchases Report</option>
-              <option value="inventory">Inventory Report</option>
-              <option value="customers">Customers Report</option>
-              <option value="suppliers">Suppliers Report</option>
-            </select>
+            <Select
+              options={reportTypeOptions}
+              value={reportTypeOptions.find(opt => opt.value === reportType)}
+              onChange={option => setReportType(option?.value || 'sales')}
+              classNamePrefix="react-select"
+            />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
-            <select
-              value={dateRange}
-              onChange={(e) => setDateRange(e.target.value as DateRange)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="7days">Last 7 Days</option>
-              <option value="30days">Last 30 Days</option>
-              <option value="90days">Last 90 Days</option>
-              <option value="custom">Custom Range</option>
-            </select>
+            <Select
+              options={dateRangeOptions}
+              value={dateRangeOptions.find(opt => opt.value === dateRange)}
+              onChange={option => setDateRange(option?.value || '30days')}
+              classNamePrefix="react-select"
+            />
           </div>
 
           {dateRange === 'custom' && (

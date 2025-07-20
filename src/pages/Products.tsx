@@ -49,19 +49,14 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
     reset,
   } = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
-    defaultValues: product ? {
-      name: product.name,
-      sku: product.sku,
-      purchaseRate: product.purchaseRate,
-      salesRate: product.salesRate,
-      currentStock: product.currentStock,
-      category: product.category,
-      supplier: product.supplier as string,
-    } : {},
+    defaultValues: product
+      ? { ...product, supplier: product.supplier || '' }
+      : { name: '', sku: '', category: '', purchaseRate: 0, salesRate: 0, currentStock: 0, supplier: '' },
   });
 
   // Prefill form fields with correct supplier ID after suppliers load
@@ -230,7 +225,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
                 value: String(supplier.id ?? supplier._id),
                 label: supplier.name,
               }))}
-              register={register}
+              control={control}
               error={errors.supplier}
               required
             />

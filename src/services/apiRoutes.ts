@@ -7,6 +7,7 @@ export const API_ROUTES = {
   ME: '/auth/me',
   REFRESH: '/auth/refresh',
   CHANGE_PASSWORD: '/auth/change-password',
+  CHANGE_PASSWORD_UNAUTH: '/users/change-password',
 
   USERS: '/users',
   USER: (id: string) => `/users/${id}`,

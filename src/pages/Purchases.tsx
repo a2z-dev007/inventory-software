@@ -223,14 +223,14 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <SelectField
+              <SelectField<PurchaseFormData>
                 label="Supplier"
                 name="supplier"
                 options={suppliersList.map((supplier: Supplier) => ({
                   value: supplier.name, // vendor is supplier name
                   label: supplier.name,
                 })) || []}
-                register={register}
+                control={control}
                 error={errors.supplier}
                 required
               />
@@ -264,14 +264,14 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
                 {fields.map((field, index) => (
                   <div key={field.id} className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 border border-gray-200 rounded-lg">
                     <div className="md:col-span-2">
-                      <SelectField
+                      <SelectField<PurchaseFormData>
                         label="Product"
                         name={`items.${index}.productId`}
                         options={products.map((product: any) => ({
                           value: String(product._id),
                           label: `${product.name} (${product.sku})`,
                         })) || []}
-                        register={register}
+                        control={control}
                         error={errors.items?.[index]?.productId}
                         required
                       />

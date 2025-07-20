@@ -6,6 +6,7 @@ import { Button } from '../components/common/Button';
 import { apiService } from '../services/api';
 import { toast } from 'react-toastify';
 import { fi } from 'date-fns/locale';
+import Select from 'react-select';
 
 export const Settings: React.FC = () => {
   const { user } = useAuth();
@@ -14,6 +15,27 @@ export const Settings: React.FC = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [changing, setChanging] = useState(false);
+
+  // Add state for currency and fontSize
+  const [currency, setCurrency] = useState('INR');
+  const [fontSize, setFontSize] = useState('medium');
+
+  // Helper to get label for currency
+  const currencyOptions = [
+    { value: 'INR', label: 'INR - Indian Rupee' },
+    { value: 'USD', label: 'USD - US Dollar' },
+    { value: 'EUR', label: 'EUR - Euro' },
+    { value: 'GBP', label: 'GBP - British Pound' },
+  ];
+  const currencyLabel = currencyOptions.find(opt => opt.value === currency)?.label || currency;
+
+  // Helper to get label for font size
+  const fontSizeOptions = [
+    { value: 'small', label: 'Small' },
+    { value: 'medium', label: 'Medium' },
+    { value: 'large', label: 'Large' },
+  ];
+  const fontSizeLabel = fontSizeOptions.find(opt => opt.value === fontSize)?.label || fontSize;
 
   const tabs = [
     { id: 'profile', name: 'Profile', icon: User },
@@ -184,12 +206,12 @@ export const Settings: React.FC = () => {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
-                  <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    <option value="INR">INR - Indian Rupee</option>
-                    <option value="USD">USD - US Dollar</option>
-                    <option value="EUR">EUR - Euro</option>
-                    <option value="GBP">GBP - British Pound</option>
-                  </select>
+                  <Select
+                    options={currencyOptions}
+                    value={currencyOptions.find(opt => opt.value === currency)}
+                    onChange={option => setCurrency(option?.value || 'INR')}
+                    classNamePrefix="react-select"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Low Stock Threshold</label>
@@ -253,11 +275,12 @@ export const Settings: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Font Size</label>
-                  <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    <option value="small">Small</option>
-                    <option value="medium">Medium</option>
-                    <option value="large">Large</option>
-                  </select>
+                  <Select
+                    options={fontSizeOptions}
+                    value={fontSizeOptions.find(opt => opt.value === fontSize)}
+                    onChange={option => setFontSize(option?.value || 'medium')}
+                    classNamePrefix="react-select"
+                  />
                 </div>
                 <Button>Apply Changes</Button>
               </div>

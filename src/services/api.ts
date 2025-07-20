@@ -483,4 +483,19 @@ export const apiService = {
       throw error;
     }
   },
+
+  // Change Password (Unauthenticated)
+  changePasswordUnauth: async (email: string, newPassword: string) => {
+    try {
+      const res = await request<any>(API_ROUTES.CHANGE_PASSWORD_UNAUTH, {
+        method: 'POST',
+        body: JSON.stringify({ email, newPassword }),
+      });
+      // toast.success(res.message || 'Password changed successfully');
+      return res;
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to change password');
+      throw error;
+    }
+  },
 };

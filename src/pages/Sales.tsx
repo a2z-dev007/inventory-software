@@ -215,14 +215,14 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <SelectField
+                <SelectField<SaleFormData>
                   label="Customer"
                   name="customerName"
                   options={customers?.map((customer: any) => ({
                     value: customer.name,
                     label: customer.name,
                   })) || []}
-                  register={register}
+                  control={control}
                   error={errors.customerName}
                   required
                 />
@@ -237,7 +237,7 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
                 required
               />
 
-              <SelectField
+              <SelectField<SaleFormData>
                 label="Status"
                 name="status"
                 options={[
@@ -245,7 +245,7 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
                   { value: 'paid', label: 'Paid' },
                   { value: 'overdue', label: 'Overdue' },
                 ]}
-                register={register}
+                control={control}
                 error={errors.status}
                 required
               />
@@ -277,7 +277,7 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
                           value: String(product.id ?? product._id),
                           label: `${product.name} (Stock: ${product.currentStock})`,
                         })) || []}
-                        register={register}
+                        control={control}
                         error={errors.items?.[index]?.productId}
                         required
                       />

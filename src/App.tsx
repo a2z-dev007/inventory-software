@@ -18,6 +18,7 @@ import { Settings } from './pages/Settings';
 import { useAuth } from './hooks/useAuth';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { ForgotPassword } from './pages/ForgotPassword';
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -36,6 +37,10 @@ const AppRoutes: React.FC = () => {
       <Route 
         path="/login" 
         element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} 
+      />
+      <Route 
+        path="/forgot-password" 
+        element={<ForgotPassword />} 
       />
       
       <Route path="/" element={

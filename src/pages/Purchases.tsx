@@ -212,6 +212,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
   const subtotal = calculateSubtotal();
   const tax = calculateTax(subtotal);
   const total = calculateTotal(subtotal, tax);
+  // comment
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Edit, Trash2, Search, Package } from 'lucide-react';
 import { useForm } from 'react-hook-form';
@@ -9,8 +9,12 @@ import { Card, CardHeader } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { FormField } from '../components/forms/FormField';
+import { SelectField } from '../components/forms/SelectField';
 import { formatCurrency } from '../utils/constants';
 import { Product } from '../types';
+import { useDebounce } from '../hooks/useDebounce';
+import { usePagination } from '../hooks/usePagination';
+import { DetailModal } from '../components/common/DetailModal';
 
 const productSchema = z.object({
   name: z.string().min(1, 'Product name is required'),
@@ -34,6 +38,14 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
   const queryClient = useQueryClient();
   const isEditing = !!product;
 
+  // Fetch suppliers for dropdown
+  const { data: suppliersData } = useQuery({
+    queryKey: ['suppliers'],
+    queryFn: () => apiService.getSuppliers({ page: 1, limit: 100 }),
+  });
+  type Supplier = { id?: string; _id?: string; name: string };
+  const suppliers: Supplier[] = suppliersData?.vendors || [];
+
   const {
     register,
     handleSubmit,
@@ -48,9 +60,45 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
       salesRate: product.salesRate,
       currentStock: product.currentStock,
       category: product.category,
-      supplier: product.supplier,
+      supplier: product.supplier as string,
     } : {},
   });
+
+  // Prefill form fields with correct supplier ID after suppliers load
+  useEffect(() => {
+    if (isOpen && product && suppliers.length > 0) {
+      let supplierId = '';
+      if (typeof product.supplier === 'object' && product.supplier !== null) {
+        supplierId = String((product.supplier as Record<string, unknown>).id ?? (product.supplier as Record<string, unknown>)._id);
+      } else if (typeof product.supplier === 'string') {
+        const found = suppliers.find(s => s.name === product.supplier);
+        supplierId = found ? String(found.id ?? found._id) : '';
+      }
+      reset({
+        name: product.name,
+        sku: product.sku,
+        purchaseRate: product.purchaseRate,
+        salesRate: product.salesRate,
+        currentStock: product.currentStock,
+        category: product.category,
+        supplier: supplierId,
+      });
+    }
+  }, [isOpen, product, suppliers, reset]);
+
+  useEffect(() => {
+    if (isOpen && !product) {
+      reset({
+        name: '',
+        sku: '',
+        purchaseRate: 0,
+        salesRate: 0,
+        currentStock: 0,
+        category: '',
+        supplier: '',
+      });
+    }
+  }, [isOpen, product, reset]);
 
   const createMutation = useMutation({
     mutationFn: apiService.createProduct,
@@ -62,19 +110,46 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: ProductFormData }) =>
-      apiService.updateProduct(id.toString(), { ...data, createdAt: new Date().toISOString() }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
+    mutationFn: ({ id, data }: { id: string; data: ProductFormData }) =>
+      apiService.updateProduct(id, data),
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['products'] });
       onClose();
+      reset();
+    },
+    onError: (error: unknown) => {
+      if (
+        error &&
+        typeof error === 'object' &&
+        'response' in error &&
+        (error as { response?: { data?: { message?: string } } }).response
+      ) {
+        // Axios error
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const err = error as { response?: { data?: { message?: string } } };
+        console.error('Update error (axios):', err.response?.data || error);
+        alert('Failed to update product: ' + (err.response?.data?.message || error));
+      } else {
+        console.error('Update error:', error);
+        alert('Failed to update product. See console for details.');
+      }
     },
   });
-
+  
   const onSubmit = (data: ProductFormData) => {
+    // Find the supplier name by ID
+    const selectedSupplier = suppliers.find(s => String(s.id ?? s._id) === data.supplier);
+    const payload = { ...data, vendor: selectedSupplier ? selectedSupplier.name : '', createdAt: new Date().toISOString() };
+    delete (payload as Record<string, unknown>).supplier;
     if (isEditing) {
-      updateMutation.mutate({ id: product.id, data });
+      const id = (product?.id ?? '').toString();
+      if (!id) {
+        alert('Product ID is missing. Cannot update.');
+        return;
+      }
+      updateMutation.mutate({ id, data: payload });
     } else {
-      createMutation.mutate({ ...data, createdAt: new Date().toISOString() });
+      createMutation.mutate(payload);
     }
   };
 
@@ -148,10 +223,13 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
               />
             </div>
 
-            <FormField
+            <SelectField<ProductFormData>
               label="Supplier"
               name="supplier"
-              placeholder="Enter supplier name"
+              options={suppliers.map((supplier) => ({
+                value: String(supplier.id ?? supplier._id),
+                label: supplier.name,
+              }))}
               register={register}
               error={errors.supplier}
               required
@@ -183,12 +261,33 @@ export const Products: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | undefined>(undefined);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedDetailItem, setSelectedDetailItem] = useState<any>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const debouncedSearch = useDebounce(searchTerm, 800);
+  const { page, handleNext, handlePrev, resetPage } = usePagination(1);
+  const limit = 10;
   const queryClient = useQueryClient();
 
-  const { data: products, isLoading } = useQuery({
-    queryKey: ['products'],
-    queryFn: apiService.getProducts,
+  const {
+    data: productResponse = { products: [], pagination: { page: 1, pages: 1, total: 0, limit } },
+    isLoading,
+  } = useQuery({
+    queryKey: ['products', page, debouncedSearch],
+    queryFn: () => apiService.getProducts({ page, limit, search: debouncedSearch }),
+    staleTime: 0,
   });
+
+  const products = Array.isArray(productResponse?.products)
+    ? productResponse.products.map((p: Product) => {
+        const id = typeof p.id === 'string'
+          ? p.id
+          : (typeof ((p as unknown) as { _id?: string })._id === 'string'
+              ? ((p as unknown) as { _id: string })._id
+              : undefined);
+        return { ...p, id };
+      })
+    : [];
+  const pagination = productResponse?.pagination || { page: 1, pages: 1, total: 0, limit };
 
   const deleteMutation = useMutation({
     mutationFn: apiService.deleteProduct,
@@ -197,18 +296,13 @@ export const Products: React.FC = () => {
     },
   });
 
-  const filteredProducts: Product[] = products?.filter((product: Product) =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.category.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  const filteredProducts: Product[] = products;
 
   const handleEdit = (product: Product) => {
     setEditingProduct(product);
     setIsModalOpen(true);
   };
 
-  console.log('Filtered Products:', products);
   const handleDelete = (id: number) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
       deleteMutation.mutate(id.toString());
@@ -249,7 +343,10 @@ export const Products: React.FC = () => {
               placeholder="Search products..."
               className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                resetPage();
+              }}
             />
           </div>
         </div>
@@ -335,10 +432,23 @@ export const Products: React.FC = () => {
                       <Edit className="h-4 w-4" />
                     </button>
                     <button
-                      onClick={() => handleDelete(product.id)}
+                      onClick={() => {
+                        if (window.confirm('Are you sure you want to delete this product?')) {
+                          deleteMutation.mutate(product.id);
+                        }
+                      }}
                       className="text-red-600 hover:text-red-900"
+                      title="Delete"
                     >
                       <Trash2 className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => { setSelectedDetailItem(product); setIsDetailModalOpen(true); }}
+                      className="text-gray-600 hover:text-gray-900"
+                      title="View Details"
+                    >
+                      <span className="sr-only">View Details</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                     </button>
                   </td>
                 </tr>
@@ -356,12 +466,39 @@ export const Products: React.FC = () => {
             </p>
           </div>
         )}
+
+        {/* Pagination Controls */}
+        <div className="flex justify-center items-center space-x-2 mt-6">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={pagination.page <= 1}
+            onClick={handlePrev}
+          >
+            Previous
+          </Button>
+          <span className="px-2">Page {pagination.page} of {pagination.pages}</span>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={pagination.page >= pagination.pages}
+            onClick={() => handleNext(pagination)}
+          >
+            Next
+          </Button>
+        </div>
       </Card>
 
       <ProductModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         product={editingProduct}
+      />
+      <DetailModal
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        item={selectedDetailItem}
+        title="Product Details"
       />
     </div>
   );

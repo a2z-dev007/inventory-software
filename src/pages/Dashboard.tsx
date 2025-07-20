@@ -7,7 +7,6 @@ import {
   AlertTriangle,
   Users,
   Truck,
-  FileText,
   Clock
 } from 'lucide-react';
 import { apiService } from '../services/api';
@@ -70,22 +69,23 @@ export const Dashboard: React.FC = () => {
     queryFn: apiService.getDashboardMetrics,
   });
 
-  const { data: products } = useQuery({
+  const { data: productsData } = useQuery({
     queryKey: ['products'],
-    queryFn: apiService.getProducts,
+    queryFn: () => apiService.getProducts(),
   });
+  const products: Product[] = Array.isArray(productsData?.products) ? productsData.products : Array.isArray(productsData) ? productsData : [];
 
   const { data: recentSales } = useQuery({
     queryKey: ['sales'],
-    queryFn: apiService.getSales,
+    queryFn: () => apiService.getSales(),
   });
+  const recentSalesData: Sale[] = Array.isArray(recentSales?.sales) ? recentSales.sales.slice(0, 5) : Array.isArray(recentSales) ? recentSales.slice(0, 5) : [];
 
   if (isLoading) {
     return <LoadingSpinner size="lg" />;
   }
 
-  const lowStockProducts: Product[] = products?.filter((product: Product) => product.currentStock < 10) || [];
-  const recentSalesData: Sale[] = recentSales?.slice(0, 5) || [];
+  const lowStockProducts: Product[] = products.filter((product: Product) => product.currentStock < 10);
 
   return (
     <div className="space-y-6">

@@ -83,10 +83,15 @@ export const apiService = {
   },
 
   // Products
-  getProducts: async () => {
+  getProducts: async (params: { page?: number; limit?: number; search?: string } = {}) => {
     try {
-      const res = await request<any>(API_ROUTES.PRODUCTS);
-      return res.data.products;
+      const query = new URLSearchParams({
+        page: params.page?.toString() || '1',
+        limit: params.limit?.toString() || '10',
+        search: params.search || '',
+      }).toString();
+      const res = await request<any>(`${API_ROUTES.PRODUCTS}?${query}`);
+      return res.data; // { products, pagination }
     } catch (error) {
       console.error('Error fetching products:', error);
       throw error;
@@ -135,10 +140,15 @@ export const apiService = {
   },
 
   // Purchase Orders
-  getPurchaseOrders: async () => {
+  getPurchaseOrders: async (params: { page?: number; limit?: number; search?: string } = {}) => {
     try {
-      const res = await request<any>(API_ROUTES.PURCHASE_ORDERS);
-      return res.data.purchaseOrders;
+      const query = new URLSearchParams({
+        page: params.page?.toString() || '1',
+        limit: params.limit?.toString() || '10',
+        search: params.search || '',
+      }).toString();
+      const res = await request<any>(`${API_ROUTES.PURCHASE_ORDERS}?${query}`);
+      return res.data; // { purchaseOrders, pagination }
     } catch (error) {
       console.error('Error fetching purchase orders:', error);
       throw error;
@@ -187,10 +197,15 @@ export const apiService = {
   },
 
   // Sales
-  getSales: async () => {
+  getSales: async (params: { page?: number; limit?: number; search?: string } = {}) => {
     try {
-      const res = await request<any>(API_ROUTES.SALES);
-      return res.data.sales;
+      const query = new URLSearchParams({
+        page: params.page?.toString() || '1',
+        limit: params.limit?.toString() || '10',
+        search: params.search || '',
+      }).toString();
+      const res = await request<any>(`${API_ROUTES.SALES}?${query}`);
+      return res.data; // { sales, pagination }
     } catch (error) {
       console.error('Error fetching sales:', error);
       throw error;
@@ -239,10 +254,13 @@ export const apiService = {
   },
 
   // Purchases
-  getPurchases: async () => {
+  getPurchases: async (params: { page?: number; limit?: number; search?: string } = {}) => {
     try {
-      const res = await request<any>(API_ROUTES.PURCHASES);
-      return res.data.purchases;
+      const res = await request<any>(API_ROUTES.PURCHASES, {
+        method: 'GET',
+        params,
+      });
+      return res.data; // Should include { purchases, pagination }
     } catch (error) {
       console.error('Error fetching purchases:', error);
       throw error;

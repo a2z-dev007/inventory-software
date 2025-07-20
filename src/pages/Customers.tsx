@@ -11,6 +11,7 @@ import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { FormField } from '../components/forms/FormField';
 import { useDebounce } from '../hooks/useDebounce';
 import { usePagination } from '../hooks/usePagination';
+import { DetailModal } from '../components/common/DetailModal';
 
 const customerSchema = z.object({
   name: z.string().min(1, 'Customer name is required'),
@@ -193,7 +194,10 @@ export const Customers: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedDetailItem, setSelectedDetailItem] = useState<any>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const debouncedSearch = useDebounce(searchTerm, 800); 
+  const queryClient = useQueryClient();
   const {
   page,
   setPage,
@@ -217,10 +221,12 @@ export const Customers: React.FC = () => {
   const customers = Array.isArray(customerResponse?.customers) ? customerResponse.customers : [];
   const pagination = customerResponse?.pagination || { page: 1, pages: 1, total: 0, limit };
 
-  const { data: sales = [] } = useQuery<Sale[]>({
+  // Use this instead to avoid the overload error:
+  const { data: salesData } = useQuery({
     queryKey: ['sales'],
-    queryFn: apiService.getSales,
+    queryFn: () => apiService.getSales({}),
   });
+  const sales = salesData?.sales || [];
 
   const getCustomerStats = (customerName: string) => {
     const customerSales = sales.filter((sale: Sale) => sale.customerName === customerName) || [];
@@ -244,6 +250,13 @@ export const Customers: React.FC = () => {
     setIsModalOpen(false);
     setEditingCustomer(null);
   };
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => apiService.deleteClient(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+    },
+  });
 
   if (isLoading) {
     return <LoadingSpinner size="lg" />;
@@ -305,6 +318,25 @@ export const Customers: React.FC = () => {
                       className="text-blue-600 hover:text-blue-900"
                     >
                       <Edit className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => { setSelectedDetailItem(customer); setIsDetailModalOpen(true); }}
+                      className="text-gray-600 hover:text-gray-900"
+                      title="View Details"
+                    >
+                      <span className="sr-only">View Details</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (window.confirm('Are you sure you want to delete this customer?')) {
+                          deleteMutation.mutate(customer._id || customer.id);
+                        }
+                      }}
+                      className="text-red-600 hover:text-red-900"
+                      title="Delete"
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
@@ -391,6 +423,12 @@ export const Customers: React.FC = () => {
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         customer={editingCustomer}
+      />
+      <DetailModal
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        item={selectedDetailItem}
+        title="Customer Details"
       />
     </div>
   );

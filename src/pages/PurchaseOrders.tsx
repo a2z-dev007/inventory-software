@@ -545,7 +545,11 @@ export const PurchaseOrders: React.FC = () => {
                       <Edit className="h-4 w-4" />
                     </button>
                     <button
-                      onClick={() => handleDelete(po.id ?? po._id)}
+                      onClick={() => {
+                        if (window.confirm('Are you sure you want to delete this purchase order?')) {
+                          deleteMutation.mutate(po.id ?? po._id);
+                        }
+                      }}
                       className="text-red-600 hover:text-red-900"
                       title="Delete"
                     >

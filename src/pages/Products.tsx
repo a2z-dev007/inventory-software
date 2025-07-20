@@ -432,8 +432,13 @@ export const Products: React.FC = () => {
                       <Edit className="h-4 w-4" />
                     </button>
                     <button
-                      onClick={() => handleDelete(product.id)}
+                      onClick={() => {
+                        if (window.confirm('Are you sure you want to delete this product?')) {
+                          deleteMutation.mutate(product.id);
+                        }
+                      }}
                       className="text-red-600 hover:text-red-900"
+                      title="Delete"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Receipt, Upload, Download, Edit, Search } from 'lucide-react';
+import { Plus, Receipt, Download, Search, Trash2, Edit } from 'lucide-react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -60,7 +60,7 @@ interface SuppliersApiResponse {
   };
 }
 interface Purchase {
-  id: string;
+  _id: string;
   receiptNumber: string;
   supplier: string;
   purchaseDate: string;
@@ -94,6 +94,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
     queryKey: ['suppliers'],
     queryFn: () => apiService.getSuppliers({ page: 1, limit: 100 }),
   });
+  const suppliersList = suppliers?.vendors || [];
 
   const {
     register,
@@ -105,19 +106,34 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
   } = useForm<PurchaseFormData>({
     resolver: zodResolver(purchaseSchema),
     defaultValues: purchase ? {
-      supplier: purchase.supplier,
+      supplier: purchase.vendor || purchase.supplier || '',
       items: purchase.items.map((item: any) => ({
-        productId: item.productId,
+        productId: String(item.productId),
         quantity: item.quantity,
         unitPrice: item.unitPrice,
       })),
       invoiceFile: purchase.invoiceFile,
     } : {
       supplier: '',
-      items: [{ productId: 0, quantity: 1, unitPrice: 0 }],
+      items: [{ productId: '', quantity: 1, unitPrice: 0 }],
       invoiceFile: '',
     },
   });
+
+  // Reset form when editing
+  React.useEffect(() => {
+    if (isEditing && purchase) {
+      reset({
+        supplier: purchase.vendor || purchase.supplier || '',
+        items: purchase.items.map((item: any) => ({
+          productId: String(item.productId),
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+        })),
+        invoiceFile: purchase.invoiceFile,
+      });
+    }
+  }, [isEditing, purchase, reset]);
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -127,7 +143,28 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
   const watchedItems = watch('items');
 
   const createMutation = useMutation({
-    mutationFn: apiService.createPurchase,
+    mutationFn: (payload: PurchaseFormData) => {
+      // Prepare payload for backend
+      const backendPayload = {
+        receiptNumber: isEditing && purchase ? purchase.receiptNumber : generateReceiptNumber(),
+        vendor: payload.supplier, // vendor is the supplier name
+        purchaseDate: isEditing && purchase ? purchase.purchaseDate : new Date().toISOString(),
+        items: payload.items.map(item => ({
+          productId: String(item.productId),
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+        })),
+        subtotal: calculateSubtotal(),
+        tax: calculateTax(calculateSubtotal()),
+        total: calculateTotal(calculateSubtotal(), calculateTax(calculateSubtotal())),
+        invoiceFile: payload.invoiceFile?.[0]?.name || '',
+      };
+      if (isEditing && purchase && purchase._id) {
+        return apiService.updatePurchase(purchase._id, backendPayload);
+      } else {
+        return apiService.createPurchase(backendPayload);
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchases'] });
       onClose();
@@ -151,12 +188,12 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
 
   const onSubmit = async (data: PurchaseFormData) => {
     const payload = {
-      receiptNumber: generateReceiptNumber(),
+      receiptNumber: isEditing && purchase ? purchase.receiptNumber : generateReceiptNumber(),
       vendor: data.supplier,
-      purchaseDate: new Date().toISOString(),
+      purchaseDate: isEditing && purchase ? purchase.purchaseDate : new Date().toISOString(),
       items: data.items.map(item => ({
-        productId: item.productId,
-        productName: products.find((p) => p._id === item.productId)?.name || '',
+        productId: String(item.productId),
+        productName: products.find((p: any) => String(p._id) === String(item.productId))?.name || '',
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         total: item.quantity * item.unitPrice,
@@ -164,7 +201,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
       subtotal: calculateSubtotal(),
       tax: calculateTax(calculateSubtotal()),
       total: calculateTotal(calculateSubtotal(), calculateTax(calculateSubtotal())),
-      invoiceFile: data.invoiceFile?.[0]?.name || '', // or null/undefined if not present
+      invoiceFile: data.invoiceFile?.[0]?.name || '',
     };
 
     createMutation.mutate(payload);
@@ -189,8 +226,8 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
               <SelectField
                 label="Supplier"
                 name="supplier"
-                options={suppliers?.vendors?.map((supplier: Supplier) => ({
-                  value: supplier.name,
+                options={suppliersList.map((supplier: Supplier) => ({
+                  value: supplier.name, // vendor is supplier name
                   label: supplier.name,
                 })) || []}
                 register={register}
@@ -230,8 +267,8 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
                       <SelectField
                         label="Product"
                         name={`items.${index}.productId`}
-                        options={products.map(product => ({
-                          value: product._id,
+                        options={products.map((product: any) => ({
+                          value: String(product._id),
                           label: `${product.name} (${product.sku})`,
                         })) || []}
                         register={register}
@@ -253,7 +290,6 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
                       label="Unit Price"
                       name={`items.${index}.unitPrice`}
                       type="number"
-                      step="0.01"
                       register={register}
                       error={errors.items?.[index]?.unitPrice}
                       required
@@ -316,10 +352,12 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
 };
 
 export const Purchases: React.FC = () => {
+  const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDetailItem, setSelectedDetailItem] = useState<any>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedEditPurchase, setSelectedEditPurchase] = useState<Purchase | null>(null); // <-- New state
   const debouncedSearch = useDebounce(searchTerm, 800);
   const { page, handleNext, handlePrev } = usePagination(1);
 
@@ -366,6 +404,13 @@ export const Purchases: React.FC = () => {
     
     doc.save(`${purchase.receiptNumber}.pdf`);
   };
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => apiService.deletePurchase(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['purchases'] });
+    },
+  });
 
   if (isLoading) {
     return <LoadingSpinner size="lg" />;
@@ -430,7 +475,7 @@ export const Purchases: React.FC = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredPurchases.map((purchase) => (
-                <tr key={purchase.id} className="hover:bg-gray-50">
+                <tr key={purchase._id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <Receipt className="h-5 w-5 text-gray-400 mr-3" />
@@ -470,6 +515,27 @@ export const Purchases: React.FC = () => {
                     >
                       <span className="sr-only">View Details</span>
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedEditPurchase(purchase); // <-- Set for editing
+                        setIsModalOpen(true);
+                      }}
+                      className="text-blue-600 hover:text-blue-900"
+                      title="Edit"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (window.confirm('Are you sure you want to delete this purchase?')) {
+                          deleteMutation.mutate(purchase._id);
+                        }
+                      }}
+                      className="text-red-600 hover:text-red-900"
+                      title="Delete"
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   </td>
                 </tr>
@@ -514,7 +580,8 @@ export const Purchases: React.FC = () => {
 
       <PurchaseModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => { setIsModalOpen(false); setSelectedEditPurchase(null); }}
+        purchase={selectedEditPurchase}
       />
       <DetailModal
         isOpen={isDetailModalOpen}

@@ -19,6 +19,7 @@ import { DetailModal } from '../components/common/DetailModal';
 const productSchema = z.object({
   name: z.string().min(1, 'Product name is required'),
   sku: z.string().min(1, 'SKU is required'),
+  unitType:z.string(),
   purchaseRate: z.number().min(0, 'Purchase rate must be positive'),
   salesRate: z.number().min(0, 'Sales rate must be positive'),
   currentStock: z.number().min(0, 'Current stock must be positive'),
@@ -56,7 +57,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
     resolver: zodResolver(productSchema),
     defaultValues: product
       ? { ...product, supplier: product.supplier || '' }
-      : { name: '', sku: '', category: '', purchaseRate: 0, salesRate: 0, currentStock: 0, supplier: '' },
+      : { name: '', sku: '', category: '',unitType: '', purchaseRate: 0, salesRate: 0, currentStock: 0, supplier: '' },
   });
 
   // Prefill form fields with correct supplier ID after suppliers load
@@ -72,6 +73,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
       reset({
         name: product.name,
         sku: product.sku,
+        unitType: product.unitType,
         purchaseRate: product.purchaseRate,
         salesRate: product.salesRate,
         currentStock: product.currentStock,

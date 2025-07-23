@@ -3,6 +3,7 @@ import { API_ROUTES } from './apiRoutes';
 import { API_BASE_URL } from '../utils/constants';
 import { queryClient } from '../App'; // Adjust the import path if needed
 import { toast } from 'react-toastify';
+import { DashboardStats } from '../types';
 
 
 const getAuthToken = () => {
@@ -161,8 +162,15 @@ export const apiService = {
         method: 'POST',
         body: JSON.stringify(po),
       });
-      toast.success(res.message || 'Purchase order created successfully');
-      return res;
+      if (res.success === false) {
+        throw new Error(res.message || 'Failed to create purchase order');
+        return
+      }
+      if(res.success){
+        toast.success(res.message || 'Purchase order created successfully');
+        return res;
+      }
+  
     } catch (error: any) {
       toast.error(error?.response?.data?.message || error.message || 'Failed to create purchase order');
       throw error;
@@ -175,8 +183,14 @@ export const apiService = {
         method: 'PUT',
         body: JSON.stringify(po),
       });
-      toast.success(res.message || 'Purchase order updated successfully');
-      return res;
+      if (res.success === false) {
+        throw new Error(res.message || 'Failed to update purchase order');
+        return
+      }
+      if(res.success){
+        toast.success(res.message || 'Purchase order updated successfully');
+        return res;
+      }
     } catch (error: any) {
       toast.error(error?.response?.data?.message || error.message || 'Failed to update purchase order');
       throw error;
@@ -442,31 +456,31 @@ export const apiService = {
 
   // Dashboard metrics
   getDashboardMetrics: async () => {
-    const products = Array.isArray(queryClient.getQueryData(['products'])) ? queryClient.getQueryData(['products']) : await apiService.getProducts();
-    const sales = Array.isArray(queryClient.getQueryData(['sales'])) ? queryClient.getQueryData(['sales']) : await apiService.getSales();
-    const purchases = Array.isArray(queryClient.getQueryData(['purchases'])) ? queryClient.getQueryData(['purchases']) : await apiService.getPurchases();
-    const customers = Array.isArray(queryClient.getQueryData(['customers'])) ? queryClient.getQueryData(['customers']) : await apiService.getCustomers();
-    const suppliers = Array.isArray(queryClient.getQueryData(['suppliers'])) ? queryClient.getQueryData(['suppliers']) : await apiService.getSuppliers();
-    const purchaseOrders = Array.isArray(queryClient.getQueryData(['purchase-orders'])) ? queryClient.getQueryData(['purchase-orders']) : await apiService.getPurchaseOrders();
-
-    const today = new Date().toISOString().split('T')[0];
-    
-    const todaySales = Array.isArray(sales) ? sales.filter((sale: any) => sale.saleDate?.startsWith(today)).reduce((sum: number, sale: any) => sum + (sale.total || 0), 0) : 0;
-    const todayPurchases = Array.isArray(purchases) ? purchases.filter((purchase: any) => purchase.purchaseDate?.startsWith(today)).reduce((sum: number, purchase: any) => sum + (purchase.total || 0), 0) : 0;
-    const lowStockItems = Array.isArray(products) ? products.filter((product: any) => product.currentStock < 10).length : 0;
-    const pendingOrders = Array.isArray(purchaseOrders) ? purchaseOrders.filter((po: any) => po.status === 'approved').length : 0;
-    const overdueInvoices = Array.isArray(sales) ? sales.filter((sale: any) => sale.status === 'overdue').length : 0;
-
-    return {
-      todaySales,
-      todayPurchases,
-      lowStockItems,
-      totalProducts: Array.isArray(products) ? products.length : 0,
-      totalCustomers: Array.isArray(customers) ? customers.length : 0,
-      totalSuppliers: Array.isArray(suppliers) ? suppliers.length : 0,
-      pendingOrders,
-      overdueInvoices,
-    };
+    try {
+      const res = await request<DashboardStats>(API_ROUTES.REPORTS_DASHBOARD, {
+        method: 'GET',
+      });
+      // The backend returns { success, data: { overview, recentSales, topProducts } }
+      if (res.success && res.data) {
+        const data  =
+          {
+            lowStockProducts:res.data.lowStockProducts,
+            outOfStockProducts:res.data.outOfStockProducts
+          }
+        
+        return {
+          ...res.data.overview,
+          recentSales: res.data.recentSales,
+          topProducts: res.data.topProducts,
+          data
+        };
+      } else {
+        throw new Error('Failed to fetch dashboard metrics');
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard metrics:', error);
+      throw error;
+    }
   },
 
   // Change Password

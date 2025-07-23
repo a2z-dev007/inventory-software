@@ -1,5 +1,5 @@
 export interface User {
-  id: string;
+  _id: string;
   username: string;
   role: 'admin' | 'manager' | 'staff';
   name: string;
@@ -8,7 +8,7 @@ export interface User {
 }
 
 export interface Product {
-  id: number;
+  _id: string;
   name: string;
   sku: string;
   purchaseRate: number;
@@ -61,7 +61,7 @@ export interface Sale {
 }
 
 export interface Purchase {
-  id: number;
+  _id: number;
   receiptNumber: string;
   supplier: string;
   purchaseDate: string;
@@ -72,7 +72,7 @@ export interface Purchase {
 }
 
 export interface Supplier {
-  id: number;
+  _id: number;
   name: string;
   contact: string;
   email: string;
@@ -81,7 +81,7 @@ export interface Supplier {
 }
 
 export interface Customer {
-  id: number;
+  _id: number;
   name: string;
   contact: string;
   email: string;
@@ -89,13 +89,108 @@ export interface Customer {
   address: string;
 }
 
+export interface TopProduct {
+  id: string;
+  name: string;
+  sku: string;
+  salesCount: number;
+  totalRevenue: number;
+}
+
 export interface DashboardMetrics {
-  todaySales: number;
-  todayPurchases: number;
-  lowStockItems: number;
   totalProducts: number;
+  lowStockProducts: number;
+  outOfStockProducts: number;
+  totalSales: number;
+  totalRevenue: number;
+  totalPurchases: number;
+  totalSpent: number;
   totalCustomers: number;
-  totalSuppliers: number;
-  pendingOrders: number;
-  overdueInvoices: number;
+  totalVendors: number;
+  recentSales: Sale[];
+  topProducts: TopProduct[];
+}
+
+
+export interface Welcome {
+    overview:           Overview;
+    lowStockProducts:   LowStockProduct[];
+    outOfStockProducts: any[];
+    recentSales:        any[];
+    topProducts:        any[];
+}
+
+export interface LowStockProduct {
+    _id:           string;
+    name:          string;
+    image:         string;
+    sku:           string;
+    purchaseRate:  number;
+    salesRate:     number;
+    currentStock:  number;
+    category:      string;
+    vendor:        string;
+    description:   string;
+    minStockLevel: number;
+    isActive:      boolean;
+    createdBy:     string;
+    createdAt:     Date;
+    updatedAt:     Date;
+    __v:           number;
+}
+
+export interface Overview {
+    totalProducts:      number;
+    lowStockProducts:   number;
+    outOfStockProducts: number;
+    totalSales:         number;
+    totalRevenue:       number;
+    totalPurchases:     number;
+    totalSpent:         number;
+    totalCustomers:     number;
+    totalVendors:       number;
+}
+
+export interface DashboardStats {
+  success: boolean;
+  data:    Data;
+}
+
+export interface Data {
+  overview:           Overview;
+  lowStockProducts:   LowStockProduct[];
+  outOfStockProducts: any[];
+  recentSales:        any[];
+  topProducts:        any[];
+}
+
+export interface LowStockProduct {
+  _id:           string;
+  name:          string;
+  image:         string;
+  sku:           string;
+  purchaseRate:  number;
+  salesRate:     number;
+  currentStock:  number;
+  category:      string;
+  vendor:        string;
+  description:   string;
+  minStockLevel: number;
+  isActive:      boolean;
+  createdBy:     string;
+  createdAt:     Date;
+  updatedAt:     Date;
+  __v:           number;
+}
+
+export interface Overview {
+  totalProducts:      number;
+  lowStockProducts:   number;
+  outOfStockProducts: number;
+  totalSales:         number;
+  totalRevenue:       number;
+  totalPurchases:     number;
+  totalSpent:         number;
+  totalCustomers:     number;
+  totalVendors:       number;
 }

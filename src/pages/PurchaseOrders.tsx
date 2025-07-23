@@ -15,6 +15,7 @@ import { formatCurrency } from '../utils/constants';
 import { useDebounce } from '../hooks/useDebounce';
 import { usePagination } from '../hooks/usePagination';
 import { DetailModal } from '../components/common/DetailModal';
+import { Product, Supplier } from '../types';
 
 const poItemSchema = z.object({
   productId: z.string().min(1, 'Product is required'),
@@ -24,7 +25,7 @@ const poItemSchema = z.object({
 
 const purchaseOrderSchema = z.object({
   vendor: z.string().min(1, 'Vendor is required'),
-  status: z.enum(['draft', 'approved', 'delivered', 'cancelled']),
+  status: z.enum(['draft','pending', 'approved', 'delivered', 'cancelled']),
   items: z.array(poItemSchema).min(1, 'At least one item is required'),
 });
 
@@ -40,18 +41,22 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
   const queryClient = useQueryClient();
   const isEditing = !!purchaseOrder;
 
+  // Add state for server-side error
+  const [serverError, setServerError] = useState<string | null>(null);
+
   const { data: productsData } = useQuery({
     queryKey: ['products'],
     queryFn: () => apiService.getProducts({}),
   });
   const products: Product[] = Array.isArray(productsData?.products) ? productsData.products : Array.isArray(productsData) ? productsData : [];
-
+  console.log(products);
   const { data: suppliersData } = useQuery({
     queryKey: ['suppliers'],
     queryFn: () => apiService.getSuppliers({}),
   });
   const suppliers: { vendors?: Supplier[] } = suppliersData || {};
 
+  // Fix defaultValues to ensure items are always of the correct type (productId: number)
   const {
     register,
     handleSubmit,
@@ -59,10 +64,19 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
     watch,
     formState: { errors },
     reset,
+    setValue,
   } = useForm<PurchaseOrderFormData>({
     resolver: zodResolver(purchaseOrderSchema),
     defaultValues: purchaseOrder
-      ? { ...purchaseOrder, vendor: purchaseOrder.vendor || '', status: purchaseOrder.status || 'draft', items: purchaseOrder.items || [] }
+      ? {
+          vendor: purchaseOrder.vendor || '',
+          status: purchaseOrder.status || 'draft',
+          items: purchaseOrder.items.map((item: any) => ({
+            productId: String(item.productId),
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+          })) || [],
+        }
       : { vendor: '', status: 'draft', items: [{ productId: '', quantity: 1, unitPrice: 0 }] },
   });
 
@@ -73,12 +87,36 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
 
   const watchedItems = watch('items');
 
+  // Add useEffect to autofill unitPrice when productId changes
+  useEffect(() => {
+    watchedItems.forEach((item, idx) => {
+      if (item.productId) {
+        const product = products.find((p: Product) => p._id === item.productId);
+        if (product && (!item.unitPrice || item.unitPrice === 0)) {
+          setValue(`items.${idx}.unitPrice`, product.purchaseRate);
+        }
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchedItems.map(i => i.productId).join(','), products]);
+
   const createMutation = useMutation({
     mutationFn: apiService.createPurchaseOrder,
     onSuccess: () => {
-      queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'purchase-orders' });
-      onClose();
+      queryClient.invalidateQueries({ queryKey: ['purchase-orders'], exact: false });
+      setServerError(null);
+      onClose(); // Modal only closes on success
       reset();
+    },
+    onError: (error: any) => {
+      // Show error, do NOT close modal
+      let msg = error?.message || 'Failed to create purchase order';
+      if (error?.response?.data?.message) {
+        msg = error.response.data.message;
+      } else if (typeof error === 'string') {
+        msg = error;
+      }
+      setServerError(msg);
     },
   });
 
@@ -86,8 +124,8 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
     mutationFn: ({ id, data }: { id: string; data: PurchaseOrderFormData }) =>
       apiService.updatePurchaseOrder(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'purchase-orders' });
-      onClose();
+      queryClient.invalidateQueries({ queryKey: ['purchase-orders'], exact: false });
+      onClose(); // Modal only closes on success
       reset();
     },
   });
@@ -107,11 +145,11 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
       poNumber: isEditing ? purchaseOrder.poNumber : `PO-${Date.now()}`,
       orderDate: isEditing ? purchaseOrder.orderDate : new Date().toISOString(),
       items: data.items.map(item => {
-        const product = products.find((p: Product) => String(p.id ?? p._id) === item.productId);
+        const product = products.find((p: Product) => p._id === item.productId);
         return {
-          ...item,
-          productName: product?.name || '',
-          total: item.quantity * item.unitPrice,
+          productId: String(item.productId),
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
         };
       }),
       subtotal,
@@ -164,6 +202,12 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
             {isEditing ? 'Edit Purchase Order' : 'Create Purchase Order'}
           </h2>
 
+          {serverError && (
+            <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
+              {serverError}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <SelectField<PurchaseOrderFormData>
@@ -183,6 +227,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
                 name="status"
                 options={[
                   { value: 'draft', label: 'Draft' },
+                  {value:'pending',label:'Pending'},
                   { value: 'approved', label: 'Approved' },
                   { value: 'delivered', label: 'Delivered' },
                   { value: 'cancelled', label: 'Cancelled' },
@@ -202,7 +247,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
                   variant="outline"
                   size="sm"
                   icon={Plus}
-                  onClick={() => append({ productId: '', quantity: 1, unitPrice: 0 })}
+                  onClick={() => append({ productId: '', quantity: 1, unitPrice: 0 })} // Default productId is ''
                 >
                   Add Item
                 </Button>
@@ -215,10 +260,13 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
                       <SelectField<PurchaseOrderFormData>
                         label="Product"
                         name={`items.${index}.productId`}
-                        options={products.map((product: Product) => ({
-                          value: String(product.id ?? product._id),
-                          label: `${product.name} (${product.sku})`,
-                        })) || []}
+                        options={[
+                          { value: '', label: 'Select a product' },
+                          ...products.map((product: Product) => ({
+                            value: product._id,
+                            label: `${product.name} (${product.sku})`,
+                          }))
+                        ]}
                         control={control}
                         error={errors.items?.[index]?.productId}
                         required
@@ -296,17 +344,6 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
 };
 
 // Add types for Product, Supplier, PurchaseOrder
-interface Product {
-  id?: string | number;
-  _id?: string | number;
-  name: string;
-  sku: string;
-}
-
-interface Supplier {
-  name: string;
-}
-
 interface PurchaseOrderItem {
   productId: string;
   quantity: number;
@@ -325,6 +362,7 @@ interface PurchaseOrder {
   items: PurchaseOrderItem[];
   subtotal: number;
   total: number;
+  ref_no: string;
 }
 
 export const PurchaseOrders: React.FC = () => {
@@ -337,6 +375,8 @@ export const PurchaseOrders: React.FC = () => {
   const { page, handleNext, handlePrev, resetPage } = usePagination(1);
   const limit = 10;
   const queryClient = useQueryClient();
+  // Add state for server-side error
+  const [serverError, setServerError] = useState<string | null>(null);
 
   const {
     data: poResponse = { purchaseOrders: [], pagination: { page: 1, pages: 1, total: 0, limit } },
@@ -353,7 +393,7 @@ export const PurchaseOrders: React.FC = () => {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiService.deletePurchaseOrder(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ predicate: (query) => query.queryKey[0] === 'purchase-orders' });
+      queryClient.invalidateQueries({ queryKey: ['purchase-orders'], exact: false });
     },
   });
 
@@ -408,6 +448,7 @@ export const PurchaseOrders: React.FC = () => {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingPO(null);
+    setServerError(null);
   };
 
   const getStatusColor = (status: string) => {
@@ -433,7 +474,7 @@ export const PurchaseOrders: React.FC = () => {
           action={
             <Button
               icon={Plus}
-              onClick={() => setIsModalOpen(true)}
+              onClick={() => { setIsModalOpen(true); setServerError(null); }}
             >
               Create PO
             </Button>
@@ -466,6 +507,9 @@ export const PurchaseOrders: React.FC = () => {
                   PO Number
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Ref. No.
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Vendor
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -485,6 +529,14 @@ export const PurchaseOrders: React.FC = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredPOs.map((po) => (
                 <tr key={po.id ?? po._id} className="hover:bg-gray-50">
+                   <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      {/* <FileText className="h-5 w-5 text-gray-400 mr-3" /> */}
+                      <div className="text-sm font-medium text-gray-900">
+                        {po.ref_no || '--'}
+                      </div>
+                    </div>
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <FileText className="h-5 w-5 text-gray-400 mr-3" />
@@ -492,6 +544,11 @@ export const PurchaseOrders: React.FC = () => {
                         {po.poNumber}
                       </div>
                     </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(po.status)}`}>
+                      {po.status}
+                    </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {po.vendor}
@@ -508,40 +565,54 @@ export const PurchaseOrders: React.FC = () => {
                     {formatCurrency(po.total)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                    <button
-                      onClick={() => generatePDF(po)}
-                      className="text-green-600 hover:text-green-900"
-                      title="Download PDF"
-                    >
-                      <Download className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => handleEdit(po)}
-                      className="text-blue-600 hover:text-blue-900"
-                      title="Edit"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => {
-                        const id = po.id ?? po._id;
-                        if (id && window.confirm('Are you sure you want to delete this purchase order?')) {
-                          deleteMutation.mutate(String(id));
-                        }
-                      }}
-                      className="text-red-600 hover:text-red-900"
-                      title="Delete"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => { setSelectedDetailItem(po); setIsDetailModalOpen(true); }}
-                      className="text-gray-600 hover:text-gray-900"
-                      title="View Details"
-                    >
-                      <span className="sr-only">View Details</span>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                    </button>
+                    <div className="flex space-x-2">
+                      <div className="relative group">
+                        <button
+                          onClick={() => generatePDF(po)}
+                          className="text-green-600 hover:text-green-900"
+                          aria-label="Download PDF"
+                        >
+                          <Download className="h-4 w-4" />
+                        </button>
+                        <span className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none z-10 whitespace-nowrap">Download PDF</span>
+                      </div>
+                      <div className="relative group">
+                        <button
+                          onClick={() => handleEdit(po)}
+                          className="text-blue-600 hover:text-blue-900"
+                          aria-label="Edit"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <span className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none z-10 whitespace-nowrap">Edit</span>
+                      </div>
+                      <div className="relative group">
+                        <button
+                          onClick={() => {
+                            const id = po.id ?? po._id;
+                            if (id && window.confirm('Are you sure you want to delete this purchase order?')) {
+                              deleteMutation.mutate(String(id));
+                            }
+                          }}
+                          className="text-red-600 hover:text-red-900"
+                          aria-label="Delete"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                        <span className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none z-10 whitespace-nowrap">Delete</span>
+                      </div>
+                      <div className="relative group">
+                        <button
+                          onClick={() => { setSelectedDetailItem(po); setIsDetailModalOpen(true); }}
+                          className="text-gray-600 hover:text-gray-900"
+                          aria-label="View Details"
+                        >
+                          <span className="sr-only">View Details</span>
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                        </button>
+                        <span className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none z-10 whitespace-nowrap">View Details</span>
+                      </div>
+                    </div>
                   </td>
                 </tr>
               ))}

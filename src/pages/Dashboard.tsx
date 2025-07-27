@@ -1,9 +1,9 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Package, 
+import {
+  TrendingUp,
+  TrendingDown,
+  Package,
   AlertTriangle,
   Users,
   Truck,
@@ -27,12 +27,12 @@ interface MetricCardProps {
   color: string;
 }
 
-const MetricCard: React.FC<MetricCardProps> = ({ 
-  title, 
-  value, 
-  icon: Icon, 
-  trend, 
-  color 
+const MetricCard: React.FC<MetricCardProps> = ({
+  title,
+  value,
+  icon: Icon,
+  trend,
+  color
 }) => {
   return (
     <Card className="relative overflow-hidden">
@@ -41,9 +41,8 @@ const MetricCard: React.FC<MetricCardProps> = ({
           <p className="text-sm font-medium text-gray-600">{title}</p>
           <p className="text-2xl font-bold text-gray-900">{value}</p>
           {trend && (
-            <div className={`flex items-center mt-1 text-sm ${
-              trend.direction === 'up' ? 'text-green-600' : 'text-red-600'
-            }`}>
+            <div className={`flex items-center mt-1 text-sm ${trend.direction === 'up' ? 'text-green-600' : 'text-red-600'
+              }`}>
               {trend.direction === 'up' ? (
                 <TrendingUp className="h-4 w-4 mr-1" />
               ) : (
@@ -63,7 +62,7 @@ const MetricCard: React.FC<MetricCardProps> = ({
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
-  
+
   const { data: metrics, isLoading } = useQuery({
     queryKey: ['dashboard-metrics'],
     queryFn: apiService.getDashboardMetrics,
@@ -85,7 +84,7 @@ export const Dashboard: React.FC = () => {
     return <LoadingSpinner size="lg" />;
   }
 
-  console.log("metrics",metrics)
+  console.log("metrics", metrics)
   // Use metrics.lowStockProducts for low stock count, and metrics.recentSales for recent sales
   // If you want to show a list of low stock products, you may need to adjust the backend to return them
   // For now, just show the count
@@ -100,11 +99,11 @@ export const Dashboard: React.FC = () => {
           <p className="text-gray-600">Here's what's happening with your business today.</p>
         </div>
         <div className="text-sm text-gray-500 mt-2 sm:mt-0">
-          {new Date().toLocaleDateString('en-US', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
+          {new Date().toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
           })}
         </div>
       </div>
@@ -155,9 +154,9 @@ export const Dashboard: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Low Stock Alert */}
-        <Card>
-          <CardHeader 
-            title="Low Stock Alert" 
+        {/* <Card>
+          <CardHeader
+            title="Low Stock Alert"
             subtitle={`${metrics?.lowStockProducts || 0} items need attention`}
           />
           <div className="space-y-3">
@@ -167,13 +166,13 @@ export const Dashboard: React.FC = () => {
               <div>
                 {metrics?.data?.lowStockProducts?.map((product: any) => (
                   <div key={product.id} className="flex items-center justify-between p-3 bg-amber-50 rounded-lg border border-amber-200 mb-4">
-                  {
-                    product.image ? (
-                      <img src={product.image} alt={product.name} className="w-16 h-16 object-cover rounded-lg mr-4" />
-                    ) : (
-                      <div className="w-16 h-16 bg-gray-200 rounded-lg mr-4"></div>
-                    )
-                  }
+                    {
+                      product.image ? (
+                        <img src={product.image} alt={product.name} className="w-16 h-16 object-cover rounded-lg mr-4" />
+                      ) : (
+                        <div className="w-16 h-16 bg-gray-200 rounded-lg mr-4"></div>
+                      )
+                    }
                     <div>
                       <p className="font-medium text-gray-900">{product.name}</p>
                       <p className="text-sm text-gray-600">{product.description}</p>
@@ -187,12 +186,12 @@ export const Dashboard: React.FC = () => {
               </div>
             )}
           </div>
-        </Card>
+        </Card> */}
 
         {/* Recent Sales */}
-        <Card>
-          <CardHeader 
-            title="Recent Sales" 
+        {/* <Card>
+          <CardHeader
+            title="Recent Sales"
             subtitle="Latest transactions"
           />
           <div className="space-y-3">
@@ -209,11 +208,10 @@ export const Dashboard: React.FC = () => {
                     <p className="text-sm font-medium text-green-600">
                       {formatCurrency(sale.total)}
                     </p>
-                    <p className={`text-xs px-2 py-1 rounded-full ${
-                      sale.status === 'paid' ? 'bg-green-100 text-green-800' :
-                      sale.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-red-100 text-red-800'
-                    }`}>
+                    <p className={`text-xs px-2 py-1 rounded-full ${sale.status === 'paid' ? 'bg-green-100 text-green-800' :
+                        sale.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-red-100 text-red-800'
+                      }`}>
                       {sale.status}
                     </p>
                   </div>
@@ -221,11 +219,11 @@ export const Dashboard: React.FC = () => {
               ))
             )}
           </div>
-        </Card>
+        </Card> */}
       </div>
 
       {/* Top Products Section */}
-      <Card>
+      {/* <Card>
         <CardHeader
           title="Top Products"
           subtitle="Best selling products"
@@ -256,7 +254,7 @@ export const Dashboard: React.FC = () => {
             </table>
           )}
         </div>
-      </Card>
+      </Card> */}
     </div>
   );
 };

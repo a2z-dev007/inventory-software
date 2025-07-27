@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, ChangeEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, FileText, Download, Edit, Trash2, Search } from 'lucide-react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray, FieldError, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import jsPDF from 'jspdf';
@@ -17,16 +17,36 @@ import { usePagination } from '../hooks/usePagination';
 import { DetailModal } from '../components/common/DetailModal';
 import { Product, Supplier } from '../types';
 
-const poItemSchema = z.object({
-  productId: z.string().min(1, 'Product is required'),
-  quantity: z.number().min(1, 'Quantity must be at least 1'),
-  unitPrice: z.number().min(0, 'Unit price must be positive'),
-});
+// Define error types
+interface ApiError {
+  response?: {
+    data?: {
+      message?: string;
+      errors?: Array<{
+        msg: string;
+        path: string;
+        type: string;
+        value: string;
+      }>;
+    };
+  };
+  message?: string;
+}
 
-const purchaseOrderSchema = z.object({
+// Item schema is defined inline in the purchaseOrderSchema below
+
+export const purchaseOrderSchema = z.object({
+  ref_num: z.string().min(1, 'DB Number is required'),
   vendor: z.string().min(1, 'Vendor is required'),
-  status: z.enum(['draft','pending', 'approved', 'delivered', 'cancelled']),
-  items: z.array(poItemSchema).min(1, 'At least one item is required'),
+  status: z.enum(['draft', 'pending', 'approved', 'delivered', 'cancelled']),
+  attachment: z.any().optional(),
+  items: z.array(
+    z.object({
+      productId: z.string().min(1, 'Product is required'),
+      quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
+      unitPrice: z.coerce.number().min(0, 'Unit price must be a number'),
+    })
+  ).min(1, 'At least one item is required'),
 });
 
 type PurchaseOrderFormData = z.infer<typeof purchaseOrderSchema>;
@@ -43,13 +63,14 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
 
   // Add state for server-side error
   const [serverError, setServerError] = useState<string | null>(null);
+  const [attachment, setAttachment] = useState<File | null>(null);
 
   const { data: productsData } = useQuery({
     queryKey: ['products'],
     queryFn: () => apiService.getProducts({}),
   });
   const products: Product[] = Array.isArray(productsData?.products) ? productsData.products : Array.isArray(productsData) ? productsData : [];
-  console.log(products);
+  // console.log(products);
   const { data: suppliersData } = useQuery({
     queryKey: ['suppliers'],
     queryFn: () => apiService.getSuppliers({}),
@@ -69,15 +90,17 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
     resolver: zodResolver(purchaseOrderSchema),
     defaultValues: purchaseOrder
       ? {
-          vendor: purchaseOrder.vendor || '',
-          status: purchaseOrder.status || 'draft',
-          items: purchaseOrder.items.map((item: any) => ({
-            productId: String(item.productId),
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-          })) || [],
-        }
-      : { vendor: '', status: 'draft', items: [{ productId: '', quantity: 1, unitPrice: 0 }] },
+        ref_num: purchaseOrder.ref_num || '',
+        attachment: purchaseOrder.attachment || '',
+        vendor: purchaseOrder.vendor || '',
+        status: purchaseOrder.status || 'draft',
+        items: purchaseOrder.items.map((item: PurchaseOrderItem) => ({
+          productId: String(item.productId),
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+        })) || [],
+      }
+      : { ref_num: '', attachment: '', vendor: '', status: 'draft', items: [{ productId: '', quantity: 1, unitPrice: 0 }] },
   });
 
   const { fields, append, remove } = useFieldArray({
@@ -101,32 +124,50 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
   }, [watchedItems.map(i => i.productId).join(','), products]);
 
   const createMutation = useMutation({
-    mutationFn: apiService.createPurchaseOrder,
+    mutationFn: (data: FormData) => apiService.createPurchaseOrder(data),
+
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['purchase-orders'], exact: false });
+      queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
       setServerError(null);
-      onClose(); // Modal only closes on success
+      onClose();
       reset();
     },
-    onError: (error: any) => {
-      // Show error, do NOT close modal
-      let msg = error?.message || 'Failed to create purchase order';
-      if (error?.response?.data?.message) {
-        msg = error.response.data.message;
-      } else if (typeof error === 'string') {
-        msg = error;
+    onError: (error: ApiError) => {
+      console.error('Create PO error:', error);
+      let msg = error?.response?.data?.message || error?.message || 'Failed to create purchase order';
+
+      // Handle validation errors more specifically
+      if (error?.response?.data?.errors) {
+        const validationErrors = error.response.data.errors;
+        const errorMessages = validationErrors.map((err) => `${err.msg} (${err.path})`).join('\n');
+        msg = `Validation failed:\n${errorMessages}`;
       }
+
       setServerError(msg);
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: PurchaseOrderFormData }) =>
+    mutationFn: ({ id, data }: { id: string; data: FormData }) =>
       apiService.updatePurchaseOrder(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['purchase-orders'], exact: false });
-      onClose(); // Modal only closes on success
+      queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
+      setServerError(null);
+      onClose();
       reset();
+    },
+    onError: (error: ApiError) => {
+      console.error('Update PO error:', error);
+      let msg = error?.response?.data?.message || error?.message || 'Failed to update purchase order';
+
+      // Handle validation errors more specifically
+      if (error?.response?.data?.errors) {
+        const validationErrors = error.response.data.errors;
+        const errorMessages = validationErrors.map((err) => `${err.msg} (${err.path})`).join('\n');
+        msg = `Validation failed:\n${errorMessages}`;
+      }
+
+      setServerError(msg);
     },
   });
 
@@ -136,42 +177,135 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
     }, 0);
   };
 
-  const onSubmit = (data: PurchaseOrderFormData) => {
+  console.log('attachment:', attachment);
+  const fileToBase64 = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  
+  // const onSubmit = async (data: PurchaseOrderFormData) => {
+  //   const subtotal = calculateSubtotal();
+  //   const total = subtotal;
+  
+  //   // Construct items data
+  //   const itemsData = data.items.map((item) => {
+  //     const product = products.find((p) => p._id === item.productId);
+  //     return {
+  //       productId: item.productId,
+  //       productName: product?.name || 'Unknown Product',
+  //       quantity: item.quantity,
+  //       unitPrice: item.unitPrice,
+  //       total: item.quantity * item.unitPrice,
+  //     };
+  //   });
+  
+  //   // 🖼 Convert attachment to base64 if needed
+  //   let base64Attachment: string | null = null;
+  
+  //   if (attachment instanceof File) {
+  //     try {
+  //       base64Attachment = await fileToBase64(attachment);
+  //     } catch (err) {
+  //       console.error("Failed to convert file to base64:", err);
+  //       alert("Failed to upload attachment. Please try again.");
+  //       return;
+  //     }
+  //   }
+  
+  //   const payload = {
+  //     poNumber: isEditing ? purchaseOrder.poNumber : `PO-${Date.now()}`,
+  //     orderDate: isEditing ? purchaseOrder.orderDate : new Date().toISOString(),
+  //     ref_num: data.ref_num,
+  //     vendor: data.vendor,
+  //     status: data.status,
+  //     subtotal,
+  //     total,
+  //     items: itemsData,
+  //     attachment: base64Attachment, // ✅ base64 string or null
+  //   };
+  
+  //   if (isEditing) {
+  //     const id = String(purchaseOrder.id ?? purchaseOrder._id);
+  //     if (!id) {
+  //       alert("Invalid purchase order ID");
+  //       return;
+  //     }
+  
+  //     updateMutation.mutate({ id, data: payload });
+  //   } else {
+  //     createMutation.mutate(payload);
+  //   }
+  // };
+  
+  // Prefill form fields when editing a purchase order
+  const onSubmit = async (data: PurchaseOrderFormData) => {
     const subtotal = calculateSubtotal();
     const total = subtotal;
-
-    const poData = {
-      ...data,
-      poNumber: isEditing ? purchaseOrder.poNumber : `PO-${Date.now()}`,
-      orderDate: isEditing ? purchaseOrder.orderDate : new Date().toISOString(),
-      items: data.items.map(item => {
-        const product = products.find((p: Product) => p._id === item.productId);
-        return {
-          productId: String(item.productId),
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-        };
-      }),
-      subtotal,
-      total,
-    };
-
+  
+    const itemsData = data.items.map((item) => {
+      const product = products.find((p) => p._id === item.productId);
+      return {
+        productId: item.productId,
+        productName: product?.name || 'Unknown Product',
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        total: item.quantity * item.unitPrice,
+      };
+    });
+  
+    const formData = new FormData();
+  
+    formData.append('ref_num', data.ref_num);
+    formData.append('vendor', data.vendor);
+    formData.append('status', data.status);
+    formData.append('subtotal', subtotal.toString());
+    formData.append('total', total.toString());
+  
+    if (attachment instanceof File) {
+      formData.append('attachment', attachment); // 🖼️ Send as file
+    }
+  
+    formData.append('items', JSON.stringify(itemsData));
+  
     if (isEditing) {
       const id = String(purchaseOrder.id ?? purchaseOrder._id);
       if (!id) {
-        alert('Invalid purchase order ID');
+        alert("Invalid purchase order ID");
         return;
       }
-      updateMutation.mutate({ id, data: poData });
+      updateMutation.mutate({ id, data: formData });
     } else {
-      createMutation.mutate(poData);
+      formData.append('poNumber', `PO-${Date.now()}`);
+      formData.append('orderDate', new Date().toISOString());
+      createMutation.mutate(formData);
     }
   };
-
-  // Prefill form fields when editing a purchase order
+  
+ 
   useEffect(() => {
     if (purchaseOrder) {
+      console.log('Prefilling form with purchase order:', purchaseOrder);
+
+      // If editing and there's an existing attachment
+      if (purchaseOrder.attachment) {
+        console.log('Existing attachment found:', purchaseOrder.attachment);
+        // Set the attachment value for validation - use the actual string value
+        setValue('attachment', purchaseOrder.attachment);
+        // We don't need a new file upload since we're using the existing one
+        setAttachment(null);
+      } else {
+        console.log('No existing attachment found');
+        setValue('attachment', null);
+        setAttachment(null);
+      }
+
+      // Reset the form with the purchase order data
       reset({
+        ref_num: purchaseOrder.ref_num || '',
+        attachment: purchaseOrder.attachment || null, // Use null instead of empty string for no attachment
         vendor: purchaseOrder.vendor,
         status: purchaseOrder.status,
         items: purchaseOrder.items.map((item: PurchaseOrderItem) => ({
@@ -181,13 +315,19 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
         })),
       });
     } else {
+      console.log('Creating new purchase order');
+      // Clear the form for a new purchase order
       reset({
+        ref_num: '',
+        attachment: null, // Use null instead of empty string for no attachment
         vendor: '',
         status: 'draft',
         items: [{ productId: '', quantity: 1, unitPrice: 0 }],
       });
+      setValue('attachment', null);
+      setAttachment(null);
     }
-  }, [purchaseOrder, reset]);
+  }, [purchaseOrder, reset, setValue]);
 
   if (!isOpen) return null;
 
@@ -203,12 +343,51 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
           </h2>
 
           {serverError && (
-            <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
+            <div className="mb-4 p-3 bg-red-100 text-red-700 rounded" role="alert">
               {serverError}
             </div>
           )}
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6"  encType='multipart/form-data'>
+            {/* DB Number and Attachment */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                label="DB Number"
+                name="ref_num"
+                placeholder='Enter DB Number'
+                type="text"
+                register={register}
+                error={errors.ref_num}
+                required
+              />
+              <Controller
+                name="attachment"
+                control={control}
+                render={({ field }) => (
+                  <div className="space-y-1">
+                    <label className="block text-sm font-medium text-gray-700">Attachment (optional)</label>
+                    <input
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setAttachment(file);
+                          setValue('attachment', 'file-selected', { shouldValidate: true });
+                        } else {
+                          setAttachment(null);
+                          setValue('attachment', null, { shouldValidate: true });
+                        }
+                      }}
+                    />
+                    {errors.attachment && (
+                      <p className="text-sm text-red-600">{errors.attachment.message}</p>
+                    )}
+                  </div>
+                )}
+              />
+
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <SelectField<PurchaseOrderFormData>
                 label="Vendor"
@@ -227,7 +406,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
                 name="status"
                 options={[
                   { value: 'draft', label: 'Draft' },
-                  {value:'pending',label:'Pending'},
+                  { value: 'pending', label: 'Pending' },
                   { value: 'approved', label: 'Approved' },
                   { value: 'delivered', label: 'Delivered' },
                   { value: 'cancelled', label: 'Cancelled' },
@@ -355,6 +534,8 @@ interface PurchaseOrderItem {
 interface PurchaseOrder {
   id?: string;
   _id?: string;
+  ref_num: string;
+  attachment?: string;
   poNumber: string;
   vendor: string;
   status: 'draft' | 'approved' | 'delivered' | 'cancelled';
@@ -369,13 +550,13 @@ export const PurchaseOrders: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPO, setEditingPO] = useState<PurchaseOrder | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedDetailItem, setSelectedDetailItem] = useState<any>(null);
+  const [selectedDetailItem, setSelectedDetailItem] = useState<PurchaseOrder | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const debouncedSearch = useDebounce(searchTerm, 800);
   const { page, handleNext, handlePrev, resetPage } = usePagination(1);
   const limit = 10;
   const queryClient = useQueryClient();
-  // Add state for server-side error
+  // State for server-side error
   const [serverError, setServerError] = useState<string | null>(null);
 
   const {
@@ -401,32 +582,32 @@ export const PurchaseOrders: React.FC = () => {
 
   const generatePDF = (po: PurchaseOrder) => {
     const doc = new jsPDF();
-    
+
     // Header
     doc.setFontSize(20);
     doc.text('Purchase Order', 20, 30);
-    
+
     doc.setFontSize(12);
     doc.text(`PO Number: ${po.poNumber}`, 20, 50);
     doc.text(`Vendor: ${po.vendor}`, 20, 65);
     doc.text(`Status: ${po.status.toUpperCase()}`, 20, 80);
     doc.text(`Order Date: ${new Date(po.orderDate).toLocaleDateString()}`, 20, 95);
-    
+
     // Items
     doc.text('Items:', 20, 120);
     let yPos = 135;
-    
+
     po.items.forEach((item: PurchaseOrderItem, index: number) => {
       doc.text(`${index + 1}. ${item.productName}`, 25, yPos);
       doc.text(`   Qty: ${item.quantity} × ₹${item.unitPrice} = ₹${item.total}`, 25, yPos + 10);
       yPos += 25;
     });
-    
+
     // Totals
     yPos += 10;
     doc.text(`Subtotal: ₹${po.subtotal.toFixed(2)}`, 20, yPos);
     doc.text(`Total: ₹${po.total.toFixed(2)}`, 20, yPos + 30);
-    
+
     doc.save(`${po.poNumber}.pdf`);
   };
 
@@ -435,7 +616,8 @@ export const PurchaseOrders: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: number | string | undefined) => {
+  // Function to handle deletion of purchase orders
+  const handleDelete = (id: string | undefined) => {
     if (!id) {
       alert('Invalid purchase order ID');
       return;
@@ -504,10 +686,10 @@ export const PurchaseOrders: React.FC = () => {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  PO Number
+                 DB Num
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Ref. No.
+                PO Number
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Vendor
@@ -529,7 +711,7 @@ export const PurchaseOrders: React.FC = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredPOs.map((po) => (
                 <tr key={po.id ?? po._id} className="hover:bg-gray-50">
-                   <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       {/* <FileText className="h-5 w-5 text-gray-400 mr-3" /> */}
                       <div className="text-sm font-medium text-gray-900">
@@ -545,11 +727,6 @@ export const PurchaseOrders: React.FC = () => {
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(po.status)}`}>
-                      {po.status}
-                    </span>
-                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {po.vendor}
                   </td>
@@ -561,6 +738,7 @@ export const PurchaseOrders: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {new Date(po.orderDate).toLocaleDateString()}
                   </td>
+                
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {formatCurrency(po.total)}
                   </td>
@@ -588,12 +766,7 @@ export const PurchaseOrders: React.FC = () => {
                       </div>
                       <div className="relative group">
                         <button
-                          onClick={() => {
-                            const id = po.id ?? po._id;
-                            if (id && window.confirm('Are you sure you want to delete this purchase order?')) {
-                              deleteMutation.mutate(String(id));
-                            }
-                          }}
+                          onClick={() => handleDelete(po.id ?? po._id)}
                           className="text-red-600 hover:text-red-900"
                           aria-label="Delete"
                         >

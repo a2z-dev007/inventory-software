@@ -10,54 +10,51 @@ const getAuthToken = () => {
   return localStorage.getItem('token') || sessionStorage.getItem('token');
 };
 
-const request = async <T>(endpoint: string, options?: Record<string, unknown>): Promise<T> => {
+const request = async <T>(endpoint: string, options: Record<string, any> = {}): Promise<T> => {
   const token = getAuthToken();
+  const isFormData = options.body instanceof FormData;
+
   const headers = {
-    'Content-Type': 'application/json',
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...(options?.headers as Record<string, string> || {})
+    ...(options?.headers || {}),
   };
+
   const url = `${API_BASE_URL}${endpoint}`;
-  // Move params to top-level config for axios
-  const axiosConfig: Record<string, unknown> = {
+
+  const axiosConfig: Record<string, any> = {
     url,
-    method: options?.method || 'GET',
-    data: options?.body ? JSON.parse(options.body as string) : undefined,
+    method: options.method || 'GET',
     headers,
-    ...(options?.params ? { params: options.params } : {}),
+    data: isFormData ? options.body : options.body ? JSON.parse(options.body) : undefined,
+    ...(options.params ? { params: options.params } : {}),
   };
-  
+
   try {
     const response = await axios(axiosConfig);
+
     console.log(`API Request: ${url}`, {
       method: axiosConfig.method,
       params: axiosConfig.params,
       body: axiosConfig.data,
       headers,
-      response: (response as unknown as Record<string, unknown>).data,
+      response: response.data,
     });
-    return (response as unknown as Record<string, unknown>).data as T;
-  } catch (error: unknown) {
-    if (
-      typeof error === 'object' &&
-      error !== null &&
-      'response' in error &&
-      (error as Record<string, unknown>).response &&
-      (error as Record<string, any>).response.data &&
-      (error as Record<string, any>).response.data.message
-    ) {
-      return (error as Record<string, any>).response.data;
+
+    return response.data as T;
+  } catch (error: any) {
+    if (error.response?.data?.message) {
+      return error.response.data;
     }
-    if (
-      typeof error === 'object' &&
-      error !== null &&
-      'response' in error
-    ) {
-      throw new Error(`API Error: ${(error as Record<string, any>).response.status}`);
+
+    if (error.response) {
+      throw new Error(`API Error: ${error.response.status}`);
     }
+
     throw error;
   }
-};
+}
+
 
 export const apiService = {
   // Authentication
@@ -156,46 +153,53 @@ export const apiService = {
     }
   },
 
-  createPurchaseOrder: async (po: Omit<any, 'id'>) => {
-    try {
-      const res = await request<any>(API_ROUTES.PURCHASE_ORDERS, {
-        method: 'POST',
-        body: JSON.stringify(po),
-      });
-      if (res.success === false) {
-        throw new Error(res.message || 'Failed to create purchase order');
-        return
-      }
-      if(res.success){
-        toast.success(res.message || 'Purchase order created successfully');
-        return res;
-      }
-  
-    } catch (error: any) {
-      toast.error(error?.response?.data?.message || error.message || 'Failed to create purchase order');
-      throw error;
-    }
-  },
+createPurchaseOrder: async (po: Omit<any, 'id'> | FormData) => {
+  try {
+    const isFormData = po instanceof FormData;
 
-  updatePurchaseOrder: async (id: string, po: Partial<any>) => {
-    try {
-      const res = await request<any>(API_ROUTES.PURCHASE_ORDER(id), {
-        method: 'PUT',
-        body: JSON.stringify(po),
-      });
-      if (res.success === false) {
-        throw new Error(res.message || 'Failed to update purchase order');
-        return
-      }
-      if(res.success){
-        toast.success(res.message || 'Purchase order updated successfully');
-        return res;
-      }
-    } catch (error: any) {
-      toast.error(error?.response?.data?.message || error.message || 'Failed to update purchase order');
-      throw error;
+    const res = await request<any>(API_ROUTES.PURCHASE_ORDERS, {
+      method: 'POST',
+      body: isFormData ? po : JSON.stringify(po),
+      headers: isFormData ? undefined : { 'Content-Type': 'application/json' },
+    });
+
+    if (res.success === false) {
+      throw new Error(res.message || 'Failed to create purchase order');
     }
-  },
+
+    if (res.success) {
+      toast.success(res.message || 'Purchase order created successfully');
+      return res;
+    }
+  } catch (error: any) {
+    toast.error(error?.response?.data?.message || error.message || 'Failed to create purchase order');
+    throw error;
+  }
+},
+
+updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
+  try {
+    const isFormData = po instanceof FormData;
+
+    const res = await request<any>(API_ROUTES.PURCHASE_ORDER(id), {
+      method: 'PUT',
+      body: isFormData ? po : JSON.stringify(po),
+      headers: isFormData ? undefined : { 'Content-Type': 'application/json' },
+    });
+
+    if (res.success === false) {
+      throw new Error(res.message || 'Failed to update purchase order');
+    }
+
+    if (res.success) {
+      toast.success(res.message || 'Purchase order updated successfully');
+      return res;
+    }
+  } catch (error: any) {
+    toast.error(error?.response?.data?.message || error.message || 'Failed to update purchase order');
+    throw error;
+  }
+},
 
   deletePurchaseOrder: async (id: string) => {
     try {

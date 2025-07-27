@@ -1,38 +1,32 @@
+// ControlledFormField.tsx
 import React from 'react';
-import { UseFormRegister, FieldError } from 'react-hook-form';
+import { FieldError } from 'react-hook-form';
 
-interface FormFieldProps {
+interface ControlledFormFieldProps {
   label: string;
   name: string;
   type?: string;
   placeholder?: string;
-  register: UseFormRegister<any>;
   error?: FieldError;
   required?: boolean;
   disabled?: boolean;
   className?: string;
-  inputProps?: React.InputHTMLAttributes<HTMLInputElement>;
+  value: any;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-export const FormField: React.FC<FormFieldProps> = ({
+export const ControlledFormField: React.FC<ControlledFormFieldProps> = ({
   label,
   name,
   type = 'text',
   placeholder,
-  register,
   error,
   disabled = false,
   required = false,
   className = '',
-  inputProps = {},
+  value,
+  onChange,
 }) => {
-  const registerOptions =
-    type === 'number'
-      ? { valueAsNumber: true }
-      : type === 'file'
-      ? {}
-      : undefined;
-
   return (
     <div className={className}>
       <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-1">
@@ -42,13 +36,15 @@ export const FormField: React.FC<FormFieldProps> = ({
       <input
         id={name}
         type={type}
+        name={name}
+        value={value ?? ''}
+        onChange={onChange}
         disabled={disabled}
         placeholder={placeholder}
+        required={required}
         className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
           error ? 'border-red-300' : 'border-gray-300'
         }`}
-        {...register(name, registerOptions)}
-        {...inputProps}
       />
       {error && (
         <p className="mt-1 text-sm text-red-600">{error.message}</p>

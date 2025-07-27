@@ -7,17 +7,46 @@ export interface User {
   lastLogin?: string;
 }
 
+// export interface Product {
+//   _id: string;
+//   name: string;
+//   sku: string;
+
+//   purchaseRate: number;
+//   salesRate: number;
+//   currentStock: number;
+//   category: string;
+//   supplier: string;
+//   createdAt: string;
+// }
+
 export interface Product {
-  _id: string;
-  name: string;
-  sku: string;
-  purchaseRate: number;
-  salesRate: number;
-  currentStock: number;
-  category: string;
-  supplier: string;
-  createdAt: string;
+  _id:           string;
+  name:          string;
+  image:         string;
+  sku:           string;
+  purchaseRate:  number;
+  salesRate:     number;
+  currentStock:  number;
+  category:      string;
+  categoryName:  string;
+  unitType:      string;
+  vendor:        string;
+  description:   string;
+  minStockLevel: number;
+  isActive:      boolean;
+  createdBy:     string;
+  createdAt:     Date;
+  updatedAt:     Date;
+  __v:           number;
 }
+
+export interface Category {
+  _id:      string;
+  name:     string;
+  unitType: string;
+}
+
 
 export interface PurchaseOrderItem {
   productId: number;

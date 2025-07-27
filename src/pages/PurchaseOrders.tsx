@@ -45,6 +45,7 @@ export const purchaseOrderSchema = z.object({
       productId: z.string().min(1, 'Product is required'),
       quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
       unitPrice: z.coerce.number().min(0, 'Unit price must be a number'),
+      unitType: z.string().min(1, 'Unit type is required'),
     })
   ).min(1, 'At least one item is required'),
 });
@@ -98,9 +99,10 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
           productId: String(item.productId),
           quantity: item.quantity,
           unitPrice: item.unitPrice,
+          unitType: item.unitType
         })) || [],
       }
-      : { ref_num: '', attachment: '', vendor: '', status: 'draft', items: [{ productId: '', quantity: 1, unitPrice: 0 }] },
+      : { ref_num: '', attachment: '', vendor: '', status: 'draft', items: [{ productId: '', quantity: 1, unitPrice: 0 , unitType: ''}] },
   });
 
   const { fields, append, remove } = useFieldArray({
@@ -115,13 +117,13 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
     watchedItems.forEach((item, idx) => {
       if (item.productId) {
         const product = products.find((p: Product) => p._id === item.productId);
-        if (product && (!item.unitPrice || item.unitPrice === 0)) {
+        if (product) {
           setValue(`items.${idx}.unitPrice`, product.purchaseRate);
+          setValue(`items.${idx}.unitType`, product.unitType); // <-- Add this
         }
       }
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [watchedItems.map(i => i.productId).join(','), products]);
+  }, [watchedItems.map(i => i.productId).join(','), products, setValue]);
 
   const createMutation = useMutation({
     mutationFn: (data: FormData) => apiService.createPurchaseOrder(data),
@@ -186,59 +188,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
       reader.readAsDataURL(file);
     });
   
-  // const onSubmit = async (data: PurchaseOrderFormData) => {
-  //   const subtotal = calculateSubtotal();
-  //   const total = subtotal;
   
-  //   // Construct items data
-  //   const itemsData = data.items.map((item) => {
-  //     const product = products.find((p) => p._id === item.productId);
-  //     return {
-  //       productId: item.productId,
-  //       productName: product?.name || 'Unknown Product',
-  //       quantity: item.quantity,
-  //       unitPrice: item.unitPrice,
-  //       total: item.quantity * item.unitPrice,
-  //     };
-  //   });
-  
-  //   // 🖼 Convert attachment to base64 if needed
-  //   let base64Attachment: string | null = null;
-  
-  //   if (attachment instanceof File) {
-  //     try {
-  //       base64Attachment = await fileToBase64(attachment);
-  //     } catch (err) {
-  //       console.error("Failed to convert file to base64:", err);
-  //       alert("Failed to upload attachment. Please try again.");
-  //       return;
-  //     }
-  //   }
-  
-  //   const payload = {
-  //     poNumber: isEditing ? purchaseOrder.poNumber : `PO-${Date.now()}`,
-  //     orderDate: isEditing ? purchaseOrder.orderDate : new Date().toISOString(),
-  //     ref_num: data.ref_num,
-  //     vendor: data.vendor,
-  //     status: data.status,
-  //     subtotal,
-  //     total,
-  //     items: itemsData,
-  //     attachment: base64Attachment, // ✅ base64 string or null
-  //   };
-  
-  //   if (isEditing) {
-  //     const id = String(purchaseOrder.id ?? purchaseOrder._id);
-  //     if (!id) {
-  //       alert("Invalid purchase order ID");
-  //       return;
-  //     }
-  
-  //     updateMutation.mutate({ id, data: payload });
-  //   } else {
-  //     createMutation.mutate(payload);
-  //   }
-  // };
   
   // Prefill form fields when editing a purchase order
   const onSubmit = async (data: PurchaseOrderFormData) => {
@@ -252,6 +202,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
         productName: product?.name || 'Unknown Product',
         quantity: item.quantity,
         unitPrice: item.unitPrice,
+        unitType: item.unitType,
         total: item.quantity * item.unitPrice,
       };
     });
@@ -466,9 +417,21 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
                       name={`items.${index}.unitPrice`}
                       type="number"
                       register={register}
+                      disabled={true}
                       error={errors.items?.[index]?.unitPrice}
                       required
                     />
+
+                      <FormField
+                        label="Unit Type"
+                        placeholder='Enter Unit Type'
+                        name={`items.${index}.unitType`}
+                        type="text"
+                        register={register}
+                        // readOnly
+                        disabled={true}
+                        required
+                      />
 
                     <div className="flex items-end">
                       <Button
@@ -529,6 +492,7 @@ interface PurchaseOrderItem {
   unitPrice: number;
   productName?: string;
   total?: number;
+  unitType?:string
 }
 
 interface PurchaseOrder {
@@ -715,7 +679,7 @@ export const PurchaseOrders: React.FC = () => {
                     <div className="flex items-center">
                       {/* <FileText className="h-5 w-5 text-gray-400 mr-3" /> */}
                       <div className="text-sm font-medium text-gray-900">
-                        {po.ref_no || '--'}
+                        {po.ref_num || '--'}
                       </div>
                     </div>
                   </td>
@@ -727,6 +691,7 @@ export const PurchaseOrders: React.FC = () => {
                       </div>
                     </div>
                   </td>
+                  
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {po.vendor}
                   </td>

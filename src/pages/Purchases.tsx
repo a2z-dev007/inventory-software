@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Receipt, Download, Search, Trash2, Edit } from 'lucide-react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { Plus, Receipt, Download, Search, Trash2, Edit, Link } from 'lucide-react';
+import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import jsPDF from 'jspdf';
@@ -15,22 +15,26 @@ import { formatCurrency } from '../utils/constants';
 import { usePagination } from '../hooks/usePagination';
 import { useDebounce } from '../hooks/useDebounce';
 import { DetailModal } from '../components/common/DetailModal';
+import { PurchaseOrder } from './PurchaseOrders';
 
 const purchaseItemSchema = z.object({
   productId: z.string().min(1, 'Product is required'),
   quantity: z.number().min(1, 'Quantity must be at least 1'),
   unitPrice: z.number().min(0, 'Unit price must be positive'),
+  unitType: z.string().min(1, 'Unit type is required'),
 });
 
 const purchaseSchema = z.object({
+  ref_num: z.string().min(1, 'DB Number is required'),
   supplier: z.string().min(1, 'Supplier is required'),
   items: z.array(purchaseItemSchema).min(1, 'At least one item is required'),
   invoiceFile: z.any().optional(),
 });
 
 type PurchaseFormData = {
+  ref_num: string;
   supplier: string;
-  items: { productId: number; quantity: number; unitPrice: number }[];
+  items: { productId: number; quantity: number; unitPrice: number, unitType: string }[];
   invoiceFile: FileList;
   // add other fields as needed
 };
@@ -63,6 +67,9 @@ interface Purchase {
   _id: string;
   receiptNumber: string;
   supplier: string;
+  ref_num: string;
+  createdBy: string;
+  vendor?: string;
   purchaseDate: string;
   invoiceFile?: string;
   total: number;
@@ -88,6 +95,13 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
     queryKey: ['products'],
     queryFn: () => apiService.getProducts(),
   });
+  const { data: purchaseOrderData, refetch } = useQuery({
+    queryKey: ['purchaseOrderData'],
+    queryFn: () => apiService.getPurchaseOrders({ limit: 100 }),
+  });
+
+
+
   const products = Array.isArray(productsData?.products) ? productsData.products : Array.isArray(productsData) ? productsData : [];
 
   const { data: suppliers } = useQuery<SuppliersApiResponse>({
@@ -103,37 +117,95 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
     watch,
     formState: { errors },
     reset,
+    setValue,
   } = useForm<PurchaseFormData>({
     resolver: zodResolver(purchaseSchema),
     defaultValues: purchase ? {
+      ref_num: purchase.ref_num,
       supplier: purchase.vendor || purchase.supplier || '',
       items: purchase.items.map((item: any) => ({
         productId: String(item.productId),
         quantity: item.quantity,
         unitPrice: item.unitPrice,
+        unitType: item.unitType
+
       })),
       invoiceFile: purchase.invoiceFile,
     } : {
+      ref_num: '',
       supplier: '',
-      items: [{ productId: '', quantity: 1, unitPrice: 0 }],
+      items: [{ productId: '', quantity: 1, unitPrice: 0, unitType: '' }],
       invoiceFile: '',
     },
   });
+  const selectedRefNum = watch('ref_num');
+  const [attachment, setAttachment] = useState<File | null>(null);
+
+
+  // refetch the purchase order data when purchase order data get updated 
+
 
   // Reset form when editing
-  React.useEffect(() => {
-    if (isEditing && purchase) {
-      reset({
-        supplier: purchase.vendor || purchase.supplier || '',
-        items: purchase.items.map((item: any) => ({
+  // React.useEffect(() => {
+  //   if (isEditing && purchase) {
+  //     reset({
+  //       ref_num: purchase.ref_num,
+  //       supplier: purchase.vendor || purchase.supplier || '',
+  //       items: purchase.items.map((item: any) => ({
+  //         productId: String(item.productId),
+  //         quantity: item.quantity,
+  //         unitPrice: item.unitPrice,
+  //       })),
+  //       invoiceFile: purchase.invoiceFile,
+  //     });
+  //   }
+  // }, [isEditing, purchase, reset]);
+  useEffect(() => {
+    if (!selectedRefNum || !purchaseOrderData?.purchaseOrders?.length) return;
+
+    const matchedPO = purchaseOrderData.purchaseOrders.find(
+      (po: any) => po.ref_num === selectedRefNum
+    );
+
+    if (matchedPO) {
+      // If editing and there's an existing attachment
+      if (matchedPO.attachment) {
+        console.log('Existing attachment found:', matchedPO.attachment);
+        // Set the attachment value for validation - use the actual string value
+        setValue('invoiceFile', matchedPO.attachment);
+        // We don't need a new file upload since we're using the existing one
+        setAttachment(null);
+      } else {
+        console.log('No existing attachment found');
+        setValue('invoiceFile', null);
+        setAttachment(null);
+      }
+      reset((prevValues) => ({
+        ...prevValues,
+        ref_num: matchedPO.ref_num,
+        supplier: matchedPO.vendor,
+        items: matchedPO.items.map((item: any) => ({
           productId: String(item.productId),
           quantity: item.quantity,
           unitPrice: item.unitPrice,
+          unitType: item.unitType
         })),
-        invoiceFile: purchase.invoiceFile,
-      });
+        // Keep invoiceFile untouched
+        invoiceFile: prevValues.invoiceFile,
+      }));
+    } else {
+      reset({
+        ref_num: '',
+        supplier: '',
+        items: [{ productId: 0, quantity: 1, unitPrice: 0, unitType: '' }],
+        invoiceFile: '',
+
+      })
+      setValue('invoiceFile', '');
+      setAttachment(null);
+
     }
-  }, [isEditing, purchase, reset]);
+  }, [selectedRefNum, purchaseOrderData, reset]);
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -143,29 +215,74 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
   const watchedItems = watch('items');
 
   const createMutation = useMutation({
-    mutationFn: (payload: PurchaseFormData) => {
-      // Prepare payload for backend
-      const backendPayload = {
-        receiptNumber: isEditing && purchase ? purchase.receiptNumber : generateReceiptNumber(),
-        vendor: payload.supplier, // vendor is the supplier name
-        purchaseDate: isEditing && purchase ? purchase.purchaseDate : new Date().toISOString(),
-        items: payload.items.map(item => ({
-          productId: String(item.productId),
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-        })),
-        subtotal: calculateSubtotal(),
-        // Removed tax
-        total: calculateSubtotal(),
-        invoiceFile: payload.invoiceFile?.[0]?.name || '',
-        supplier: payload.supplier, // add supplier for type compatibility
-      };
+    // mutationFn: (payload: PurchaseFormData) => {
+    //   // Prepare payload for backend
+    //   const backendPayload = {
+    //     ref_num: payload.ref_num,
+    //     receiptNumber: isEditing && purchase ? purchase.receiptNumber : generateReceiptNumber(),
+    //     vendor: payload.supplier, // vendor is the supplier name
+    //     purchaseDate: isEditing && purchase ? purchase.purchaseDate : new Date().toISOString(),
+    //     items: payload.items.map(item => ({
+    //       productId: String(item.productId),
+    //       quantity: item.quantity,
+    //       unitPrice: item.unitPrice,
+    //       unitType:item.unitType
+    //     })),
+    //     subtotal: calculateSubtotal(),
+    //     // Removed tax
+    //     total: calculateSubtotal(),
+    //     invoiceFile: payload.invoiceFile?.[0]?.name || '',
+    //     // supplier: payload.supplier, // add supplier for type compatibility
+    //   };
+    //   console.log('Backend payload--------:', backendPayload);
+    //   if (isEditing && purchase && purchase._id) {
+    //     return apiService.updatePurchase(purchase._id, backendPayload);
+    //   } else {
+    //     return apiService.createPurchase(backendPayload);
+    //   }
+    // },
+    mutationFn: async (payload: PurchaseFormData) => {
+      const formData = new FormData();
+
+      // Add all basic fields
+      formData.append("ref_num", payload.ref_num);
+      formData.append(
+        "receiptNumber",
+        isEditing && purchase ? purchase.receiptNumber : generateReceiptNumber()
+      );
+      formData.append(
+        "vendor",
+        payload.supplier
+      );
+      formData.append(
+        "purchaseDate",
+        isEditing && purchase ? purchase.purchaseDate : new Date().toISOString()
+      );
+
+      formData.append("subtotal", String(calculateSubtotal()));
+      formData.append("total", String(calculateSubtotal()));
+
+      // Append file
+      if (attachment instanceof File) {
+        formData.append("invoiceFile", attachment); // Must match backend's multer fieldName
+      }
+
+      // Append items as a JSON string
+      formData.append("items", JSON.stringify(payload.items.map(item => ({
+        productId: String(item.productId),
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        unitType: item.unitType
+      }))));
+
+      // POST or PUT to API
       if (isEditing && purchase && purchase._id) {
-        return apiService.updatePurchase(purchase._id, backendPayload);
+        return apiService.updatePurchase(purchase._id, formData);
       } else {
-        return apiService.createPurchase(backendPayload);
+        return apiService.createPurchase(formData);
       }
     },
+
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchases'] });
       onClose();
@@ -183,19 +300,21 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
 
   const generateReceiptNumber = () => {
     const now = new Date();
-    return `PUR-${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}-${now.getHours().toString().padStart(2,'0')}${now.getMinutes().toString().padStart(2,'0')}${now.getSeconds().toString().padStart(2,'0')}`;
+    return `PUR-${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}-${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}${now.getSeconds().toString().padStart(2, '0')}`;
   };
 
   const onSubmit = async (data: PurchaseFormData) => {
     const payload = {
-      receiptNumber: isEditing && purchase ? purchase.receiptNumber : generateReceiptNumber(),
+      ref_num: data.ref_num,
+      // receiptNumber: isEditing && purchase ? purchase.receiptNumber : generateReceiptNumber(),
       vendor: data.supplier,
-      purchaseDate: isEditing && purchase ? purchase.purchaseDate : new Date().toISOString(),
+      // purchaseDate: isEditing && purchase ? purchase.purchaseDate : new Date().toISOString(),
       items: data.items.map(item => ({
         productId: String(item.productId),
         productName: products.find((p: any) => String(p._id) === String(item.productId))?.name || '',
         quantity: item.quantity,
         unitPrice: item.unitPrice,
+        unitType: item.unitType,
         total: item.quantity * item.unitPrice,
       })),
       subtotal: calculateSubtotal(),
@@ -221,8 +340,20 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
             {isEditing ? 'Edit Purchase' : 'Record Purchase'}
           </h2>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" encType='multipart/form-data'>
+            <SelectField<PurchaseFormData>
+              label="DB Number"
+              name="ref_num"
+              options={purchaseOrderData?.purchaseOrders?.map((po: PurchaseOrder) => ({
+                value: po.ref_num, // vendor is po name
+                label: po.ref_num,
+              })) || []}
+              control={control}
+              error={errors.supplier}
+              required
+            />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
               <SelectField<PurchaseFormData>
                 label="Supplier"
                 name="supplier"
@@ -235,14 +366,42 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
                 required
               />
 
-              <FormField
+              {/* <FormField
                 label="Invoice File"
                 name="invoiceFile"
                 type="file"
                 register={register}
                 error={errors.invoiceFile}
                 inputProps={{ accept: '.pdf,.jpg,.jpeg,.png' }}
+              /> */}
+              <Controller
+                name="invoiceFile"
+                control={control}
+                render={({ field }) => (
+                  <div className="space-y-1">
+                    <label className="block text-sm font-medium text-gray-700">Invoice</label>
+                    <input
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png"
+
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setAttachment(file);
+                          setValue('invoiceFile', 'file-selected', { shouldValidate: true });
+                        } else {
+                          setAttachment(null);
+                          setValue('invoiceFile', null, { shouldValidate: true });
+                        }
+                      }}
+                    />
+                    {errors.invoiceFile && (
+                      <p className="text-sm text-red-600">{errors.invoiceFile.message}</p>
+                    )}
+                  </div>
+                )}
               />
+
             </div>
 
             {/* Items */}
@@ -330,7 +489,15 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
               <Button
                 type="button"
                 variant="outline"
-                onClick={onClose}
+                onClick={() => {
+                  reset({
+                    ref_num: '',
+                    supplier: '',
+                    items: [{ productId: 0, quantity: 1, unitPrice: 0, unitType: '' }],
+                    invoiceFile: undefined,
+                  });
+                  onClose();
+                }}
               >
                 Cancel
               </Button>
@@ -367,14 +534,14 @@ export const Purchases: React.FC = () => {
   const pagination = purchasesData?.pagination || { page: 1, pages: 1, total: 0, limit: 10 };
 
   const filteredPurchases = purchases;
-
+  console.log("filteredPurchases", filteredPurchases)
   const generateReceiptPDF = (purchase: any) => {
     const doc = new jsPDF();
-    
+
     // Header
     doc.setFontSize(20);
     doc.text('PURCHASE RECEIPT', 20, 30);
-    
+
     doc.setFontSize(12);
     doc.text(`Receipt #: ${purchase.receiptNumber}`, 20, 50);
     doc.text(`Supplier: ${purchase.supplier}`, 20, 65);
@@ -382,23 +549,23 @@ export const Purchases: React.FC = () => {
     if (purchase.invoiceFile) {
       doc.text(`Invoice File: ${purchase.invoiceFile}`, 20, 95);
     }
-    
+
     // Items
     doc.text('Items:', 20, 120);
     let yPos = 135;
-    
+
     purchase.items.forEach((item: any, index: number) => {
       doc.text(`${index + 1}. ${item.productName}`, 25, yPos);
       doc.text(`   Qty: ${item.quantity} × ₹${item.unitPrice} = ₹${item.total}`, 25, yPos + 10);
       yPos += 25;
     });
-    
+
     // Totals
     yPos += 10;
     doc.text(`Subtotal: ₹${purchase.subtotal.toFixed(2)}`, 20, yPos);
     // Removed Tax line
     doc.text(`Total: ₹${purchase.total.toFixed(2)}`, 20, yPos + 30);
-    
+
     doc.save(`${purchase.receiptNumber}.pdf`);
   };
 
@@ -422,6 +589,7 @@ export const Purchases: React.FC = () => {
           action={
             <Button
               icon={Plus}
+              className='gradient-btn'
               onClick={() => setIsModalOpen(true)}
             >
               Record Purchase
@@ -482,14 +650,16 @@ export const Purchases: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {purchase.supplier}
+                    {purchase.vendor}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {new Date(purchase.purchaseDate).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {purchase.invoiceFile ? (
-                      <span className="text-sm text-blue-600">{purchase.invoiceFile}</span>
+                      <span className="text-sm text-blue-600">
+                        <a href={purchase.invoiceFile} target="_blank" download>Download</a>
+                      </span>
                     ) : (
                       <span className="text-sm text-gray-400">No file</span>
                     )}
@@ -498,13 +668,13 @@ export const Purchases: React.FC = () => {
                     {formatCurrency(purchase.total)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                    <button
+                    {/* <button
                       onClick={() => generateReceiptPDF(purchase)}
                       className="text-green-600 hover:text-green-900"
                       title="Download Receipt"
                     >
                       <Download className="h-4 w-4" />
-                    </button>
+                    </button> */}
                     <button
                       onClick={() => { setSelectedDetailItem(purchase); setIsDetailModalOpen(true); }}
                       className="text-gray-600 hover:text-gray-900"

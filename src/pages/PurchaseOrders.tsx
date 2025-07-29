@@ -16,6 +16,7 @@ import { useDebounce } from '../hooks/useDebounce';
 import { usePagination } from '../hooks/usePagination';
 import { DetailModal } from '../components/common/DetailModal';
 import { Product, Supplier } from '../types';
+import { Badge } from '../components/common/Badge';
 
 // Define error types
 interface ApiError {
@@ -37,7 +38,7 @@ interface ApiError {
 
 export const purchaseOrderSchema = z.object({
   ref_num: z.string().min(1, 'DB Number is required'),
-  vendor: z.string().min(1, 'Vendor is required'),
+  vendor: z.string().min(1, 'Supplier is required'),
   status: z.enum(['draft', 'pending', 'approved', 'delivered', 'cancelled']),
   attachment: z.any().optional(),
   items: z.array(
@@ -300,6 +301,9 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
           )}
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6"  encType='multipart/form-data'>
+            <div>
+              
+            </div>
             {/* DB Number and Attachment */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
@@ -316,10 +320,11 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
                 control={control}
                 render={({ field }) => (
                   <div className="space-y-1">
-                    <label className="block text-sm font-medium text-gray-700">Attachment (optional)</label>
+                    <label className="block text-sm font-medium text-gray-700">Attachment</label>
                     <input
                       type="file"
                       accept=".pdf,.jpg,.jpeg,.png"
+                      
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
@@ -341,7 +346,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <SelectField<PurchaseOrderFormData>
-                label="Vendor"
+                label="Supplier"
                 name="vendor"
                 options={suppliers?.vendors?.map((supplier: Supplier) => ({
                   value: supplier.name,
@@ -377,7 +382,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
                   variant="outline"
                   size="sm"
                   icon={Plus}
-                  onClick={() => append({ productId: '', quantity: 1, unitPrice: 0 })} // Default productId is ''
+                  onClick={() => append({ productId: '', quantity: 1, unitPrice: 0,unitType:'nos' })} // Default productId is ''
                 >
                   Add Item
                 </Button>
@@ -394,7 +399,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
                           { value: '', label: 'Select a product' },
                           ...products.map((product: Product) => ({
                             value: product._id,
-                            label: `${product.name} (${product.sku})`,
+                            label: `${product.name} - (${product.unitType})`,
                           }))
                         ]}
                         control={control}
@@ -424,7 +429,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
 
                       <FormField
                         label="Unit Type"
-                        placeholder='Enter Unit Type'
+                        placeholder='Nos'
                         name={`items.${index}.unitType`}
                         type="text"
                         register={register}
@@ -495,7 +500,7 @@ interface PurchaseOrderItem {
   unitType?:string
 }
 
-interface PurchaseOrder {
+ export interface PurchaseOrder {
   id?: string;
   _id?: string;
   ref_num: string;
@@ -678,9 +683,10 @@ export const PurchaseOrders: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       {/* <FileText className="h-5 w-5 text-gray-400 mr-3" /> */}
-                      <div className="text-sm font-medium text-gray-900">
-                        {po.ref_num || '--'}
-                      </div>
+                      {/* <Badge variant="green" bordered size="sm" radius="full"> {po.ref_num || '--'}</Badge> */}
+                      <span className={`px-2 py-1 text-sm  font-medium rounded-md ${getStatusColor('delivered')}`}>
+                      {po.ref_num || '--'}
+                    </span>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">

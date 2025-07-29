@@ -13,7 +13,7 @@ export const API_ROUTES = {
   USER: (id: string) => `/users/${id}`,
   USER_TOGGLE_STATUS: (id: string) => `/users/${id}/toggle-status`,
   USER_STATS: '/users/stats',
-
+  CATEGORIES: '/categories?limit=100',
   PRODUCTS: '/products',
   PRODUCT: (id: string) => `/products/${id}`,
   PRODUCT_STOCK: (id: string) => `/products/${id}/stock`,

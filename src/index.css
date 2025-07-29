@@ -1,3 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.gradient-btn{
+  background-image: linear-gradient(to left, #00c6fb 0%, #005bea 100%)!important;
+}

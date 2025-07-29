@@ -18,13 +18,13 @@ import { DetailModal } from '../components/common/DetailModal';
 
 const productSchema = z.object({
   name: z.string().min(1, 'Product name is required'),
-  sku: z.string().min(1, 'SKU is required'),
+  // sku: z.string().min(1, 'SKU is required'),
   // unitType:z.string(),
   purchaseRate: z.number().min(0, 'Purchase rate must be positive'),
-  salesRate: z.number().min(0, 'Sales rate must be positive'),
+  // salesRate: z.number().min(0, 'Sales rate must be positive'),
   currentStock: z.number().min(0, 'Current stock must be positive'),
   category: z.string().min(1, 'Category is required'),
-  supplier: z.string().min(1, 'Supplier is required'),
+  // supplier: z.string().min(1, 'Supplier is required'),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -44,9 +44,12 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
     queryKey: ['suppliers'],
     queryFn: () => apiService.getSuppliers({ page: 1, limit: 100 }),
   });
+
+  const {
+    data: categoriesData,} = useQuery({ queryKey: ['categories'], queryFn: () => apiService.getAllCategories(),staleTime: 0,});
   type Supplier = { id?: string; _id?: string; name: string };
   const suppliers: Supplier[] = suppliersData?.vendors || [];
-
+  console.log("categoriesData",categoriesData?.data?.categories)
   const {
     register,
     handleSubmit,
@@ -56,42 +59,42 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
   } = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
     defaultValues: product
-      ? { ...product, supplier: product.supplier || '' }
-      : { name: '', sku: '', category: '', purchaseRate: 0, salesRate: 0, currentStock: 0, supplier: '' },
+      ? { ...product,  }
+      : { name: '', category: '', purchaseRate: 0,  currentStock: 0, },
   });
 
   // Prefill form fields with correct supplier ID after suppliers load
-  useEffect(() => {
-    if (isOpen && product && suppliers.length > 0) {
-      let supplierId = '';
-      if (typeof product.supplier === 'object' && product.supplier !== null) {
-        supplierId = String((product.supplier as Record<string, unknown>).id ?? (product.supplier as Record<string, unknown>)._id);
-      } else if (typeof product.supplier === 'string') {
-        const found = suppliers.find(s => s.name === product.supplier);
-        supplierId = found ? String(found.id ?? found._id) : '';
-      }
-      reset({
-        name: product.name,
-        sku: product.sku,
-        purchaseRate: product.purchaseRate,
-        salesRate: product.salesRate,
-        currentStock: product.currentStock,
-        category: product.category,
-        supplier: supplierId,
-      });
-    }
-  }, [isOpen, product, suppliers, reset]);
+  // useEffect(() => {
+  //   if (isOpen && product && suppliers.length > 0) {
+  //     let supplierId = '';
+  //     if (typeof product.supplier === 'object' && product.supplier !== null) {
+  //       supplierId = String((product.supplier as Record<string, unknown>).id ?? (product.supplier as Record<string, unknown>)._id);
+  //     } else if (typeof product.supplier === 'string') {
+  //       const found = suppliers.find(s => s.name === product.supplier);
+  //       supplierId = found ? String(found.id ?? found._id) : '';
+  //     }
+  //     reset({
+  //       name: product.name,
+  //       sku: product.sku,
+  //       purchaseRate: product.purchaseRate,
+  //       salesRate: product.salesRate,
+  //       currentStock: product.currentStock,
+  //       category: product.category,
+  //       supplier: supplierId,
+  //     });
+  //   }
+  // }, [isOpen, product, suppliers, reset]);
 
   useEffect(() => {
     if (isOpen && !product) {
       reset({
         name: '',
-        sku: '',
+        // sku: '',
         purchaseRate: 0,
-        salesRate: 0,
+        // salesRate: 0,
         currentStock: 0,
         category: '',
-        supplier: '',
+        // supplier: '',
       });
     }
   }, [isOpen, product, reset]);
@@ -134,8 +137,9 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
   
   const onSubmit = (data: ProductFormData) => {
     // Find the supplier name by ID
-    const selectedSupplier = suppliers.find(s => String(s.id ?? s._id) === data.supplier);
-    const payload = { ...data, vendor: selectedSupplier ? selectedSupplier.name : '', createdAt: new Date().toISOString() };
+    // const selectedSupplier = suppliers.find(s => String(s.id ?? s._id) === data.supplier);
+    // const payload = { ...data, vendor: selectedSupplier ? selectedSupplier.name : '', createdAt: new Date().toISOString() };
+    const payload = { ...data };
     delete (payload as Record<string, unknown>).supplier;
     if (isEditing) {
       const id = (product?.id ?? '').toString();
@@ -170,17 +174,17 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
                 required
               />
 
-              <FormField
+              {/* <FormField
                 label="SKU"
                 name="sku"
                 placeholder="Enter SKU"
                 register={register}
                 error={errors.sku}
                 required
-              />
+              /> */}
 
               <FormField
-                label="Purchase Rate"
+                label="Rate"
                 name="purchaseRate"
                 type="number"
                 placeholder="Enter purchase rate"
@@ -189,7 +193,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
                 required
               />
 
-              <FormField
+              {/* <FormField
                 label="Sales Rate"
                 name="salesRate"
                 type="number"
@@ -197,7 +201,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
                 register={register}
                 error={errors.salesRate}
                 required
-              />
+              /> */}
 
               <FormField
                 label="Current Stock"
@@ -209,19 +213,33 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
                 required
               />
 
-              <FormField
+              {/* <FormField
                 label="Category"
                 name="category"
                 placeholder="Enter category"
                 register={register}
                 error={errors.category}
                 required
-              />
+              /> */}
+                 <SelectField<ProductFormData>
+              label="Category"
+              name="category"
+              options={categoriesData?.data?.categories?.map((category) => ({
+                value: String(category.id ?? category._id),
+                label: category.name,
+              }))}
+              placeholder='Select Category'
+              control={control}
+              error={errors.category}
+              required
+            />
+               
             </div>
-
-            <SelectField<ProductFormData>
+         
+            {/* <SelectField<ProductFormData>
               label="Supplier"
               name="supplier"
+              placeholder='Select Supplier'
               options={suppliers.map((supplier) => ({
                 value: String(supplier.id ?? supplier._id),
                 label: supplier.name,
@@ -229,7 +247,8 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
               control={control}
               error={errors.supplier}
               required
-            />
+            /> */}
+             
 
             <div className="flex justify-end space-x-3 pt-4">
               <Button
@@ -272,6 +291,7 @@ export const Products: React.FC = () => {
     queryFn: () => apiService.getProducts({ page, limit, search: debouncedSearch }),
     staleTime: 0,
   });
+
 
   const products = Array.isArray(productResponse?.products)
     ? productResponse.products.map((p: Product) => {
@@ -355,18 +375,18 @@ export const Products: React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Product
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   SKU
-                </th>
+                </th> */}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Category
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Purchase Rate
+                Product Price
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Sales Rate
-                </th>
+                </th> */}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Stock
                 </th>
@@ -377,7 +397,7 @@ export const Products: React.FC = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredProducts.map((product: Product) => (
-                <tr key={product.id} className="hover:bg-gray-50">
+                <tr key={product._id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-8 w-8">
@@ -395,9 +415,9 @@ export const Products: React.FC = () => {
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {product.sku}
-                  </td>
+                  </td> */}
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
                       {product?.name} - ({product?.unitType})
@@ -406,9 +426,9 @@ export const Products: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {formatCurrency(product.purchaseRate)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {formatCurrency(product.salesRate)}
-                  </td>
+                  </td> */}
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                       product.currentStock < 10

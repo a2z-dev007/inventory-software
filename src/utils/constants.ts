@@ -1,4 +1,5 @@
 export const API_BASE_URL = 'http://localhost:8080/api';
+import { moment } from 'moment';
 
 // Currency configuration
 export const CURRENCY_CONFIG = {
@@ -44,3 +45,7 @@ export const unitTypes =  [
 
 
 ]
+
+// export function formatDate(dateString, formatPattern = 'MMMM Do YYYY, h:mm:ss A') {
+//   return moment(dateString).format(formatPattern);
+// }

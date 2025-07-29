@@ -41,6 +41,9 @@ export const purchaseOrderSchema = z.object({
   vendor: z.string().min(1, 'Supplier is required'),
   status: z.enum(['draft', 'pending', 'approved', 'delivered', 'cancelled']),
   attachment: z.any().optional(),
+  remarks: z.string().max(1000, 'Remarks cannot exceed 1000 characters').optional(),
+  site_incharge: z.string().optional(),
+  contractor: z.string().optional(),
   items: z.array(
     z.object({
       productId: z.string().min(1, 'Product is required'),
@@ -96,14 +99,26 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
         attachment: purchaseOrder.attachment || '',
         vendor: purchaseOrder.vendor || '',
         status: purchaseOrder.status || 'draft',
+        remarks: purchaseOrder.remarks || '',
+        site_incharge: purchaseOrder.site_incharge || '',
+        contractor: purchaseOrder.contractor || '',
         items: purchaseOrder.items.map((item: PurchaseOrderItem) => ({
           productId: String(item.productId),
           quantity: item.quantity,
           unitPrice: item.unitPrice,
-          unitType: item.unitType
+          unitType: item.unitType,
         })) || [],
       }
-      : { ref_num: '', attachment: '', vendor: '', status: 'draft', items: [{ productId: '', quantity: 1, unitPrice: 0 , unitType: ''}] },
+      : {
+        ref_num: '',
+        attachment: '',
+        vendor: '',
+        status: 'draft',
+        remarks: '',
+        site_incharge: '',
+        contractor: '',
+        items: [{ productId: '', quantity: 1, unitPrice: 0, unitType: '' }],
+      },
   });
 
   const { fields, append, remove } = useFieldArray({
@@ -188,14 +203,14 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
-  
-  
-  
+
+
+
   // Prefill form fields when editing a purchase order
   const onSubmit = async (data: PurchaseOrderFormData) => {
     const subtotal = calculateSubtotal();
     const total = subtotal;
-  
+
     const itemsData = data.items.map((item) => {
       const product = products.find((p) => p._id === item.productId);
       return {
@@ -207,21 +222,24 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
         total: item.quantity * item.unitPrice,
       };
     });
-  
+
     const formData = new FormData();
-  
+
     formData.append('ref_num', data.ref_num);
     formData.append('vendor', data.vendor);
     formData.append('status', data.status);
     formData.append('subtotal', subtotal.toString());
     formData.append('total', total.toString());
-  
+    formData.append('remarks', data.remarks || '');
+    formData.append('site_incharge', data.site_incharge || '');
+    formData.append('contractor', data.contractor || '');
+
     if (attachment instanceof File) {
       formData.append('attachment', attachment); // 🖼️ Send as file
     }
-  
+
     formData.append('items', JSON.stringify(itemsData));
-  
+
     if (isEditing) {
       const id = String(purchaseOrder.id ?? purchaseOrder._id);
       if (!id) {
@@ -235,8 +253,8 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
       createMutation.mutate(formData);
     }
   };
-  
- 
+
+
   useEffect(() => {
     if (purchaseOrder) {
       console.log('Prefilling form with purchase order:', purchaseOrder);
@@ -300,9 +318,9 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
             </div>
           )}
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6"  encType='multipart/form-data'>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" encType='multipart/form-data'>
             <div>
-              
+
             </div>
             {/* DB Number and Attachment */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -324,7 +342,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
                     <input
                       type="file"
                       accept=".pdf,.jpg,.jpeg,.png"
-                      
+
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
@@ -383,7 +401,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
                   size="sm"
                   className='gradient-btn text-white'
                   icon={Plus}
-                  onClick={() => append({ productId: '', quantity: 1, unitPrice: 0,unitType:'nos' })} // Default productId is ''
+                  onClick={() => append({ productId: '', quantity: 1, unitPrice: 0, unitType: 'nos' })} // Default productId is ''
                 >
                   Add Item
                 </Button>
@@ -428,16 +446,16 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
                       required
                     />
 
-                      <FormField
-                        label="Unit Type"
-                        placeholder='Nos'
-                        name={`items.${index}.unitType`}
-                        type="text"
-                        register={register}
-                        // readOnly
-                        disabled={true}
-                        required
-                      />
+                    <FormField
+                      label="Unit Type"
+                      placeholder='Nos'
+                      name={`items.${index}.unitType`}
+                      type="text"
+                      register={register}
+                      // readOnly
+                      disabled={true}
+                      required
+                    />
 
                     <div className="flex items-end">
                       <Button
@@ -453,8 +471,35 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
                   </div>
                 ))}
               </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+
+                <FormField
+                  label="Site Incharge"
+                  name="site_incharge"
+                  placeholder="Enter Site Incharge Name"
+                  type="text"
+                  register={register}
+                  error={errors.site_incharge}
+                />
+                <FormField
+                  label="Contractor"
+                  name="contractor"
+                  placeholder="Enter Contractor Name"
+                  type="text"
+                  register={register}
+                  error={errors.contractor}
+                />
+              </div>
             </div>
 
+            <FormField
+              label="Remarks"
+              name="remarks"
+              type="textarea"
+              placeholder="Enter remarks (optional)"
+              register={register}
+              error={errors.remarks}
+            />
             {/* Totals */}
             <div className="bg-gray-50 p-4 rounded-lg">
               <div className="space-y-2">
@@ -499,10 +544,10 @@ interface PurchaseOrderItem {
   unitPrice: number;
   productName?: string;
   total?: number;
-  unitType?:string
+  unitType?: string
 }
 
- export interface PurchaseOrder {
+export interface PurchaseOrder {
   id?: string;
   _id?: string;
   ref_num: string;
@@ -515,6 +560,9 @@ interface PurchaseOrderItem {
   subtotal: number;
   total: number;
   ref_no: string;
+  remarks?: string;
+  site_incharge?: string;
+  contractor?: string;
 }
 
 export const PurchaseOrders: React.FC = () => {
@@ -658,13 +706,13 @@ export const PurchaseOrders: React.FC = () => {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                 DB Num
+                  DB Num
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                PO Number
+                  PO Number
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Vendor
+                  Supplier
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
@@ -688,8 +736,8 @@ export const PurchaseOrders: React.FC = () => {
                       {/* <FileText className="h-5 w-5 text-gray-400 mr-3" /> */}
                       {/* <Badge variant="green" bordered size="sm" radius="full"> {po.ref_num || '--'}</Badge> */}
                       <span className={`px-2 py-1 text-sm  font-medium rounded-md ${getStatusColor('delivered')}`}>
-                      {po.ref_num || '--'}
-                    </span>
+                        {po.ref_num || '--'}
+                      </span>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -700,7 +748,7 @@ export const PurchaseOrders: React.FC = () => {
                       </div>
                     </div>
                   </td>
-                  
+
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {po.vendor}
                   </td>
@@ -712,7 +760,7 @@ export const PurchaseOrders: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {new Date(po.orderDate).toLocaleDateString()}
                   </td>
-                
+
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {formatCurrency(po.total)}
                   </td>

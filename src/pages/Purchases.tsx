@@ -110,6 +110,34 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
   });
   const suppliersList = suppliers?.vendors || [];
 
+  // const {
+  //   register,
+  //   handleSubmit,
+  //   control,
+  //   watch,
+  //   formState: { errors },
+  //   reset,
+  //   setValue,
+  // } = useForm<PurchaseFormData>({
+  //   resolver: zodResolver(purchaseSchema),
+  //   defaultValues: purchase ? {
+  //     ref_num: purchase.ref_num,
+  //     supplier: purchase.vendor || purchase.supplier || '',
+  //     items: purchase.items.map((item: any) => ({
+  //       productId: String(item.productId),
+  //       quantity: item.quantity,
+  //       unitPrice: item.unitPrice,
+  //       unitType: item.unitType
+
+  //     })),
+  //     invoiceFile: purchase.invoiceFile,
+  //   } : {
+  //     ref_num: '',
+  //     supplier: '',
+  //     items: [{ productId: '', quantity: 1, unitPrice: 0, unitType: '' }],
+  //     invoiceFile: '',
+  //   },
+  // });
   const {
     register,
     handleSubmit,
@@ -120,21 +148,10 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
     setValue,
   } = useForm<PurchaseFormData>({
     resolver: zodResolver(purchaseSchema),
-    defaultValues: purchase ? {
-      ref_num: purchase.ref_num,
-      supplier: purchase.vendor || purchase.supplier || '',
-      items: purchase.items.map((item: any) => ({
-        productId: String(item.productId),
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        unitType: item.unitType
-
-      })),
-      invoiceFile: purchase.invoiceFile,
-    } : {
+    defaultValues: {
       ref_num: '',
       supplier: '',
-      items: [{ productId: '', quantity: 1, unitPrice: 0, unitType: '' }],
+      items: [{ productId: 0, quantity: 1, unitPrice: 0, unitType: '' }],
       invoiceFile: '',
     },
   });
@@ -160,6 +177,29 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
   //     });
   //   }
   // }, [isEditing, purchase, reset]);
+
+  useEffect(() => {
+    if (isEditing && purchase) {
+      reset({
+        ref_num: purchase.ref_num,
+        supplier: purchase.vendor || purchase.supplier || '',
+        items: purchase.items.map((item: any) => ({
+          productId: String(item.productId),
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          unitType: item.unitType,
+        })),
+        invoiceFile: purchase.invoiceFile || '',
+      });
+  
+      // If there's an attachment
+      if (purchase.invoiceFile && typeof purchase.invoiceFile === 'string') {
+        setValue('invoiceFile', purchase.invoiceFile);
+        setAttachment(null); // prevent unnecessary upload again
+      }
+    }
+  }, [isEditing, purchase, reset, setValue]);
+  
   useEffect(() => {
     if (!selectedRefNum || !purchaseOrderData?.purchaseOrders?.length) return;
 

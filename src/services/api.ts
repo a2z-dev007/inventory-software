@@ -324,14 +324,22 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
 
   updatePurchase: async (id: string, purchase: Partial<any>) => {
     try {
+      const isFormData = purchase instanceof FormData;
+
       const res = await request<any>(API_ROUTES.PURCHASE(id), {
         method: 'PUT',
-        body: JSON.stringify(purchase),
+        body: isFormData ? purchase : JSON.stringify(purchase),
+        headers: isFormData ? undefined : { 'Content-Type': 'application/json' },
       });
       if(res.success){
         toast.success(res.message || 'Purchase updated successfully');
+        return res;
       }
-      return res;
+      if(res.success === false){
+        throw new Error(res.message || 'Failed to update purchase');
+        return
+      }
+      
     } catch (error: any) {
       toast.error(error?.response?.data?.message || error.message || 'Failed to update purchase');
       throw error;

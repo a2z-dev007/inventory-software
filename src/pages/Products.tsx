@@ -260,6 +260,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
               </Button>
               <Button
                 type="submit"
+                className='gradient-btn'
                 loading={createMutation.isPending || updateMutation.isPending}
               >
                 {isEditing ? 'Update Product' : 'Add Product'}
@@ -343,6 +344,7 @@ export const Products: React.FC = () => {
           action={
             <Button
               icon={Plus}
+              className='gradient-btn'
               onClick={() => setIsModalOpen(true)}
             >
               Add Product

@@ -381,6 +381,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
                   type="button"
                   variant="outline"
                   size="sm"
+                  className='gradient-btn text-white'
                   icon={Plus}
                   onClick={() => append({ productId: '', quantity: 1, unitPrice: 0,unitType:'nos' })} // Default productId is ''
                 >
@@ -478,6 +479,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
               </Button>
               <Button
                 type="submit"
+                className='gradient-btn'
                 loading={createMutation.isPending || updateMutation.isPending}
               >
                 {isEditing ? 'Update PO' : 'Create PO'}
@@ -625,6 +627,7 @@ export const PurchaseOrders: React.FC = () => {
           action={
             <Button
               icon={Plus}
+              className='gradient-btn'
               onClick={() => { setIsModalOpen(true); setServerError(null); }}
             >
               Create PO

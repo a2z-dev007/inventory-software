@@ -161,7 +161,7 @@ const SupplierModal: React.FC<SupplierModalProps> = ({ isOpen, onClose, supplier
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
-              <Button type="submit" loading={createMutation.isPending}>
+              <Button type="submit" className='gradient-btn' loading={createMutation.isPending}>
                 {isEditing ? 'Update Supplier' : 'Add Supplier'}
               </Button>
             </div>
@@ -232,7 +232,7 @@ export const Suppliers: React.FC = () => {
           title="Suppliers"
           subtitle="Manage your supplier network"
           action={
-            <Button icon={Plus} onClick={() => setIsModalOpen(true)}>
+            <Button icon={Plus} className='gradient-btn' onClick={() => setIsModalOpen(true)}>
               Add Supplier
             </Button>
           }

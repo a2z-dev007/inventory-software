@@ -159,6 +159,7 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ isOpen, onClose, customer
               </Button>
               <Button
                 type="submit"
+                className='gradient-btn'
                 loading={createMutation.isPending || updateMutation.isPending}
               >
                 {isEditing ? 'Update Customer' : 'Add Customer'}
@@ -271,6 +272,7 @@ export const Customers: React.FC = () => {
           action={
             <Button
               icon={Plus}
+              className='gradient-btn'
               onClick={() => setIsModalOpen(true)}
             >
               Add Customer

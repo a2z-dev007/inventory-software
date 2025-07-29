@@ -543,6 +543,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
               </Button>
               <Button
                 type="submit"
+                className='gradient-btn'
                 loading={createMutation.isPending}
               >
                 {isEditing ? 'Update Purchase' : 'Record Purchase'}

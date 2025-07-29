@@ -102,7 +102,12 @@ export const apiService = {
         method: 'POST',
         body: JSON.stringify(product),
       });
-      toast.success(res.message || 'Product created successfully');
+      if(res.success === false) {
+        throw new Error(res.message);
+      }
+      if (res.success) {
+        toast.success(res.message || 'Product created successfully');
+      }
       return res;
     } catch (error: any) {
       toast.error(error?.response?.data?.message || error.message || 'Failed to create product');
@@ -149,6 +154,16 @@ export const apiService = {
       return res.data; // { purchaseOrders, pagination }
     } catch (error) {
       console.error('Error fetching purchase orders:', error);
+      throw error;
+    }
+  },
+
+  getPurchaseOrderById: async (id: string) => {
+    try {
+      const res = await request<any>(API_ROUTES.PURCHASE_ORDER(id));
+      return res.data; // { purchaseOrder }
+    } catch (error) {
+      console.error('Error fetching purchase order:', error);
       throw error;
     }
   },
@@ -285,13 +300,21 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
     }
   },
 
-  createPurchase: async (purchase: Omit<any, 'id'>) => {
+  createPurchase: async (purchase:Omit<any, 'id'> | FormData) => {
     try {
+      const isFormData = purchase instanceof FormData;
       const res = await request<any>(API_ROUTES.PURCHASES, {
         method: 'POST',
-        body: JSON.stringify(purchase),
+        body: isFormData ? purchase : JSON.stringify(purchase),
+        headers: isFormData ? undefined : { 'Content-Type': 'application/json' },
       });
+     if(res.success){
       toast.success(res.message || 'Purchase created successfully');
+     }
+     if(res.success === false){
+      throw new Error(res.message || 'Failed to create purchase');
+     }
+
       return res;
     } catch (error: any) {
       toast.error(error?.response?.data?.message || error.message || 'Failed to create purchase');
@@ -305,7 +328,9 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
         method: 'PUT',
         body: JSON.stringify(purchase),
       });
-      toast.success(res.message || 'Purchase updated successfully');
+      if(res.success){
+        toast.success(res.message || 'Purchase updated successfully');
+      }
       return res;
     } catch (error: any) {
       toast.error(error?.response?.data?.message || error.message || 'Failed to update purchase');
@@ -363,7 +388,7 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
         method: 'POST',
         body: JSON.stringify(supplier),
       });
-      toast.success(res.message || 'Vendor created successfully');
+      toast.success(res.message || 'Supplier created successfully');
       return res;
     } catch (error: any) {
       toast.error(error?.response?.data?.message || error.message || 'Failed to create vendor');
@@ -377,7 +402,7 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
         method: 'PUT',
         body: JSON.stringify(supplier),
       });
-      toast.success(res.message || 'Vendor updated successfully');
+      toast.success(res.message || 'Supplier updated successfully');
       return res;
     } catch (error: any) {
       toast.error(error?.response?.data?.message || error.message || 'Failed to update vendor');
@@ -390,7 +415,7 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
       const res = await request<any>(API_ROUTES.VENDOR(id), {
         method: 'DELETE',
       });
-      toast.success(res.message || 'Vendor deleted successfully');
+      toast.success(res.message || 'Supplier deleted successfully');
       return res;
     } catch (error: any) {
       toast.error(error?.response?.data?.message || error.message || 'Failed to delete vendor');
@@ -513,6 +538,17 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
       return res;
     } catch (error: any) {
       toast.error(error?.response?.data?.message || error.message || 'Failed to change password');
+      throw error;
+    }
+  },
+  getAllCategories: async () => {
+    try {
+      const res = await request<any>(API_ROUTES.CATEGORIES, {
+        method: 'GET',
+      });
+      return res;
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to get categories');
       throw error;
     }
   },

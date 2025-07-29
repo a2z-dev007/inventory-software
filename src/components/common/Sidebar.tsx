@@ -24,11 +24,11 @@ const navigation: NavItem[] = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard, roles: ['admin', 'manager', 'staff'] },
   { name: 'Products', href: '/products', icon: Package, roles: ['admin', 'manager', 'staff'] },
   { name: 'Purchase Orders', href: '/purchase-orders', icon: FileText, roles: ['admin', 'manager'] },
-  { name: 'Sales', href: '/sales', icon: ShoppingCart, roles: ['admin', 'manager', 'staff'] },
   { name: 'Purchases', href: '/purchases', icon: Receipt, roles: ['admin', 'manager'] },
+  { name: 'Sales', href: '/sales', icon: ShoppingCart, roles: ['admin', 'manager', 'staff'] },
   { name: 'Suppliers', href: '/suppliers', icon: Truck, roles: ['admin', 'manager'] },
   { name: 'Customers', href: '/customers', icon: Users, roles: ['admin', 'manager', 'staff'] },
-  { name: 'Reports', href: '/reports', icon: TrendingUp, roles: ['admin', 'manager'] },
+  // { name: 'Reports', href: '/reports', icon: TrendingUp, roles: ['admin', 'manager'] },
   { name: 'Settings', href: '/settings', icon: Settings, roles: ['admin'] },
 ];
 

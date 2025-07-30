@@ -20,6 +20,7 @@ import { Badge } from '../components/common/Badge';
 import autoTable from 'jspdf-autotable';
 import logo from '../assets/images/logo.png'; // static image import
 import { format } from 'date-fns/format';
+import { useAuth } from '../hooks/useAuth';
 // Define error types
 interface ApiError {
   response?: {
@@ -651,6 +652,7 @@ export const PurchaseOrders: React.FC = () => {
   const queryClient = useQueryClient();
   // State for server-side error
   const [serverError, setServerError] = useState<string | null>(null);
+  const { isAdmin } = useAuth();
 
   const {
     data: poResponse = { purchaseOrders: [], pagination: { page: 1, pages: 1, total: 0, limit } },
@@ -963,26 +965,30 @@ export const PurchaseOrders: React.FC = () => {
                         </button>
                         <span className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none z-10 whitespace-nowrap">Download PDF</span>
                       </div>
-                      <div className="relative group">
-                        <button
-                          onClick={() => handleEdit(po)}
-                          className="text-blue-600 hover:text-blue-900"
-                          aria-label="Edit"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <span className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none z-10 whitespace-nowrap">Edit</span>
-                      </div>
-                      <div className="relative group">
-                        <button
-                          onClick={() => handleDelete(po.id ?? po._id)}
-                          className="text-red-600 hover:text-red-900"
-                          aria-label="Delete"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                        <span className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none z-10 whitespace-nowrap">Delete</span>
-                      </div>
+                      {isAdmin() && (
+                        <div className="relative group">
+                          <button
+                            onClick={() => handleEdit(po)}
+                            className="text-blue-600 hover:text-blue-900"
+                            aria-label="Edit"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <span className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none z-10 whitespace-nowrap">Edit</span>
+                        </div>
+                      )}
+                      {isAdmin() && (
+                        <div className="relative group">
+                          <button
+                            onClick={() => handleDelete(po.id ?? po._id)}
+                            className="text-red-600 hover:text-red-900"
+                            aria-label="Delete"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                          <span className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none z-10 whitespace-nowrap">Delete</span>
+                        </div>
+                      )}
                       <div className="relative group">
                         <button
                           onClick={() => { setSelectedDetailItem(po); setIsDetailModalOpen(true); }}

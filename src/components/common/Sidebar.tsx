@@ -11,6 +11,8 @@ import {
   Truck,
   ReceiptIndianRupee,
   Receipt,
+  MapPinnedIcon,
+  
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import logo from "../../assets/images/logo.png"
@@ -26,7 +28,7 @@ const navigation: NavItem[] = [
   { name: 'Purchase Orders', href: '/purchase-orders', icon: FileText, roles: ['admin', 'manager'] },
   { name: 'Products', href: '/products', icon: Package, roles: ['admin', 'manager', 'staff'] },
   { name: 'Purchases', href: '/purchases', icon: ReceiptIndianRupee, roles: ['admin', 'manager'] },
-  { name: 'Site', href: '/site', icon: ShoppingCart, roles: ['admin', 'manager', 'staff'] },
+  { name: 'Site', href: '/site', icon: MapPinnedIcon, roles: ['admin', 'manager', 'staff'] },
   { name: 'Suppliers', href: '/suppliers', icon: Truck, roles: ['admin', 'manager'] },
   { name: 'Client', href: '/client', icon: Users, roles: ['admin', 'manager', 'staff'] },
   // { name: 'Reports', href: '/reports', icon: TrendingUp, roles: ['admin', 'manager'] },

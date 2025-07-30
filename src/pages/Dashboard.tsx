@@ -98,18 +98,18 @@ export const Dashboard: React.FC = () => {
           </h1>
           <p className="text-gray-600">Here's what's happening with your business today.</p>
         </div>
-        <div className="text-sm text-gray-500 mt-2 sm:mt-0">
+        {/* <div className="text-sm text-gray-500 mt-2 sm:mt-0">
           {new Date().toLocaleDateString('en-US', {
             weekday: 'long',
             year: 'numeric',
             month: 'long',
             day: 'numeric'
           })}
-        </div>
+        </div> */}
       </div>
 
       {/* Metrics Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
           title="Total Sales"
           value={formatCurrency(metrics?.totalSales || 0)}
@@ -134,9 +134,9 @@ export const Dashboard: React.FC = () => {
           icon={Package}
           color="bg-purple-500"
         />
-      </div>
+      </div> */}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <MetricCard
           title="Total Customers"
           value={metrics?.totalCustomers || 0}
@@ -149,8 +149,7 @@ export const Dashboard: React.FC = () => {
           icon={Truck}
           color="bg-cyan-500"
         />
-        {/* You can add more metrics here if needed */}
-      </div>
+      </div> */}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Low Stock Alert */}

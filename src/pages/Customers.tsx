@@ -12,6 +12,7 @@ import { FormField } from '../components/forms/FormField';
 import { useDebounce } from '../hooks/useDebounce';
 import { usePagination } from '../hooks/usePagination';
 import { DetailModal } from '../components/common/DetailModal';
+import { useAuth } from '../hooks/useAuth';
 
 const customerSchema = z.object({
   name: z.string().min(1, 'Customer name is required'),
@@ -199,6 +200,7 @@ export const Customers: React.FC = () => {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const debouncedSearch = useDebounce(searchTerm, 800); 
   const queryClient = useQueryClient();
+  const { isAdmin } = useAuth();
   const {
   page,
   setPage,
@@ -315,12 +317,15 @@ export const Customers: React.FC = () => {
                     </div>
                   </div>
                   <div className="flex space-x-2">
-                    <button
-                      onClick={() => handleEdit(customer)}
-                      className="text-blue-600 hover:text-blue-900"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </button>
+                    {isAdmin() && (
+                      <button
+                        onClick={() => handleEdit(customer)}
+                        className="text-blue-600 hover:text-blue-900"
+                        title="Edit"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </button>
+                    )}
                     <button
                       onClick={() => { setSelectedDetailItem(customer); setIsDetailModalOpen(true); }}
                       className="text-gray-600 hover:text-gray-900"
@@ -329,17 +334,19 @@ export const Customers: React.FC = () => {
                       <span className="sr-only">View Details</span>
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                     </button>
-                    <button
-                      onClick={() => {
-                        if (window.confirm('Are you sure you want to delete this customer?')) {
-                          deleteMutation.mutate(customer._id || customer.id);
-                        }
-                      }}
-                      className="text-red-600 hover:text-red-900"
-                      title="Delete"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    {isAdmin() && (
+                      <button
+                        onClick={() => {
+                          if (window.confirm('Are you sure you want to delete this customer?')) {
+                            deleteMutation.mutate(customer._id || customer.id);
+                          }
+                        }}
+                        className="text-red-600 hover:text-red-900"
+                        title="Delete"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
 

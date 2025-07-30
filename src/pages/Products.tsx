@@ -15,6 +15,7 @@ import { Product } from '../types';
 import { useDebounce } from '../hooks/useDebounce';
 import { usePagination } from '../hooks/usePagination';
 import { DetailModal } from '../components/common/DetailModal';
+import { useAuth } from '../hooks/useAuth';
 
 const productSchema = z.object({
   name: z.string().min(1, 'Product name is required'),
@@ -283,6 +284,7 @@ export const Products: React.FC = () => {
   const { page, handleNext, handlePrev, resetPage } = usePagination(1);
   const limit = 10;
   const queryClient = useQueryClient();
+  const { isAdmin } = useAuth();
 
   const {
     data: productResponse = { products: [], pagination: { page: 1, pages: 1, total: 0, limit } },
@@ -443,23 +445,28 @@ export const Products: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                    <button
-                      onClick={() => handleEdit(product)}
-                      className="text-blue-600 hover:text-blue-900"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (window.confirm('Are you sure you want to delete this product?')) {
-                          deleteMutation.mutate(product._id);
-                        }
-                      }}
-                      className="text-red-600 hover:text-red-900"
-                      title="Delete"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    {isAdmin() && (
+                      <button
+                        onClick={() => handleEdit(product)}
+                        className="text-blue-600 hover:text-blue-900"
+                        title="Edit"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </button>
+                    )}
+                    {isAdmin() && (
+                      <button
+                        onClick={() => {
+                          if (window.confirm('Are you sure you want to delete this product?')) {
+                            deleteMutation.mutate(product._id);
+                          }
+                        }}
+                        className="text-red-600 hover:text-red-900"
+                        title="Delete"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
                     <button
                       onClick={() => { setSelectedDetailItem(product); setIsDetailModalOpen(true); }}
                       className="text-gray-600 hover:text-gray-900"

@@ -54,6 +54,10 @@ export const useAuth = () => {
     return user ? roles.includes(user.role) : false;
   };
 
+  const isAdmin = () => {
+    return user?.role === 'admin';
+  };
+
   return {
     user,
     isAuthenticated,
@@ -62,5 +66,6 @@ export const useAuth = () => {
     logout: signOut,
     hasRole,
     hasAnyRole,
+    isAdmin,
   };
 };

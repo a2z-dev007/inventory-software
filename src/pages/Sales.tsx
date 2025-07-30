@@ -16,17 +16,22 @@ import { useDebounce } from '../hooks/useDebounce';
 import { usePagination } from '../hooks/usePagination';
 import { DetailModal } from '../components/common/DetailModal';
 
+// --- SCHEMA & TYPES ---
 const saleItemSchema = z.object({
   productId: z.string().min(1, 'Product is required'),
   quantity: z.number().min(1, 'Quantity must be at least 1'),
   unitPrice: z.number().min(0, 'Unit price must be positive'),
+  unitType:z.string()
 });
 
 const saleSchema = z.object({
   customerName: z.string().min(1, 'Customer name is required'),
-  customerEmail: z.string().email('Valid email is required'),
-  status: z.enum(['paid', 'pending', 'overdue']),
+  address: z.string().min(1, 'address is required'),
+  phone: z.string().min(1, 'Phone is required'),
+  ref_num: z.string().min(1, 'DB Number is required'),
   items: z.array(saleItemSchema).min(1, 'At least one item is required'),
+  saleDate:z.string().min(1, 'Sale date is required'),
+  
 });
 
 type SaleFormData = z.infer<typeof saleSchema>;
@@ -40,6 +45,7 @@ interface SaleModalProps {
 const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
   const queryClient = useQueryClient();
   const isEditing = !!sale;
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const { data: productsData } = useQuery<{ products: any[] }>({
     queryKey: ['products'],
@@ -52,6 +58,14 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
     queryFn: () => apiService.getCustomers(),
   });
   const customers: any[] = customerResponse?.customers || [];
+
+  // --- PURCHASE ORDERS (DB Numbers) ---
+  const { data: purchaseOrderData } = useQuery({
+    queryKey: ['purchaseOrders'],
+    queryFn: () => apiService.getPurchaseOrders({ limit: 100 }),
+  });
+  const purchaseOrders = purchaseOrderData?.purchaseOrders || [];
+
   const {
     register,
     handleSubmit,
@@ -62,21 +76,6 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
     reset,
   } = useForm<SaleFormData>({
     resolver: zodResolver(saleSchema),
-    defaultValues: sale ? {
-      customerName: sale.customerName,
-      customerEmail: sale.customerEmail,
-      status: sale.status,
-      items: sale.items.map((item: any) => ({
-        productId: String(item.productId ?? item.id ?? item._id),
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-      })),
-    } : {
-      customerName: '',
-      customerEmail: '',
-      status: 'pending',
-      items: [{ productId: '', quantity: 1, unitPrice: 0 }],
-    },
   });
 
   const { fields, append, remove } = useFieldArray({
@@ -86,56 +85,94 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
 
   const watchedItems = watch('items');
   const watchedCustomerName = watch('customerName');
+  const watchedref_num = watch('ref_num');
 
-  // Auto-fill customer email when customerName changes
+  // --- AUTO-FILL address AND PHONE WHEN CUSTOMER SELECTED ---
   useEffect(() => {
-    if (!watchedCustomerName) return;
+    if (!watchedCustomerName || isEditing || !isInitialized) return;
     const customer = customers?.find((c: any) => c.name === watchedCustomerName);
     if (customer) {
-      setValue('customerEmail', customer.email, { shouldValidate: true });
+      setValue('address', customer.address, { shouldValidate: true });
+      setValue('phone', customer.phone || '', { shouldValidate: true });
     }
-  }, [watchedCustomerName, customers, setValue]);
+  }, [watchedCustomerName, customers, setValue, isEditing, isInitialized]);
 
-  // Auto-fill unit price when product changes
+  // --- AUTO-FILL ITEMS WHEN DB NUMBER SELECTED ---
   useEffect(() => {
+    if (!watchedref_num || !purchaseOrders.length || isEditing || !isInitialized) return;
+    const matchedPO = purchaseOrders.find((po: any) => po.ref_num === watchedref_num);
+    if (matchedPO && matchedPO.items) {
+      reset((prev) => ({
+        ...prev,
+        ref_num: matchedPO.ref_num,
+        items: (matchedPO.items || []).map((item: any) => ({
+          productId: String(item.productId),
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          unitType:item.unitType
+        })),
+      }));
+    }
+  }, [watchedref_num, purchaseOrders, reset, isEditing, isInitialized]);
+
+  // --- AUTO-FILL UNIT PRICE WHEN PRODUCT CHANGES ---
+  useEffect(() => {
+    if (!watchedItems) return;
     watchedItems.forEach((item, idx) => {
       if (!item.productId) return;
       const product = products?.find((p: any) => String(p.id ?? p._id) === item.productId);
-      if (product && item.unitPrice !== product.salesRate) {
+      if (product && (!item.unitPrice || item.unitPrice === 0)) {
         setValue(`items.${idx}.unitPrice`, product.salesRate, { shouldValidate: true });
       }
     });
   }, [watchedItems, products, setValue]);
 
-  // Prefill form fields when editing a sale
+  // --- PREFILL FORM FIELDS WHEN EDITING ---
   useEffect(() => {
-    if (sale) {
+    if (sale && isOpen) {
       reset({
         customerName: sale.customerName,
-        customerEmail: sale.customerEmail,
-        status: sale.status,
-        items: sale.items.map((item: any) => ({
+        address: sale.address,
+        phone: sale.phone || '',
+        ref_num: sale.ref_num,
+        saleDate: sale.saleDate ? sale.saleDate.slice(0, 10) : new Date().toISOString().slice(0, 10),
+        items: (sale.items || []).map((item: any) => ({
           productId: String(item.productId ?? item.id ?? item._id),
           quantity: item.quantity,
           unitPrice: item.unitPrice,
+          unitType:item.unitType
         })),
       });
-    } else {
+      setIsInitialized(true);
+    } else if (!sale && isOpen) {
       reset({
         customerName: '',
-        customerEmail: '',
-        status: 'pending',
-        items: [{ productId: '', quantity: 1, unitPrice: 0 }],
+        address: '',
+        phone: '',
+        ref_num: '',
+        saleDate: new Date().toISOString().slice(0, 10),
+        items: [{ productId: '', quantity: 1, unitPrice: 0,unitType:'' }],
       });
+      setIsInitialized(true);
+    } else if (!isOpen) {
+      setIsInitialized(false);
     }
-  }, [sale, reset]);
+  }, [sale, isOpen, reset]);
 
   const createMutation = useMutation({
     mutationFn: apiService.createSale,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales'] });
       onClose();
-      reset();
+      setIsInitialized(false);
+      reset({
+        customerName: '',
+        address: '',
+        phone: '',
+        ref_num: '',
+        saleDate: new Date().toISOString().slice(0, 10),
+        items: [{ productId: '', quantity: 1, unitPrice: 0,unitType:'' }],
+      });
     },
   });
 
@@ -146,58 +183,53 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
       await queryClient.invalidateQueries({ queryKey: ['sales'] });
       await queryClient.refetchQueries({ queryKey: ['sales'] });
       onClose();
-      reset();
+      setIsInitialized(false);
+      reset({
+        customerName: '',
+        address: '',
+        phone: '',
+        ref_num: '',
+        saleDate: new Date().toISOString().slice(0, 10),
+        items: [{ productId: '', quantity: 1, unitPrice: 0,unitType:'' }],
+      });
     },
   });
 
   const calculateSubtotal = () => {
+    if (!watchedItems) return 0;
     return watchedItems.reduce((sum, item) => {
       return sum + (item.quantity * item.unitPrice);
     }, 0);
   };
 
-  const handleCustomerSelect = (customerName: string) => {
-    const customer = customers?.find(c => c.name === customerName);
-    if (customer) {
-      setValue('customerEmail', customer.email);
-    }
-  };
-
-  const handleProductSelect = (index: number, productId: number) => {
-    const product = products?.find(p => p.id === productId);
-    if (product) {
-      setValue(`items.${index}.unitPrice`, product.salesRate);
-    }
-  };
-
   const onSubmit = (data: SaleFormData) => {
     const subtotal = calculateSubtotal();
     const total = subtotal;
-
     const saleData = {
       ...data,
       invoiceNumber: isEditing ? sale.invoiceNumber : `INV-${Date.now()}`,
       saleDate: isEditing ? sale.saleDate : new Date().toISOString(),
-      items: data.items.map(item => {
+      items: (data.items || []).map(item => {
         const product = products?.find(p => p.id === Number(item.productId));
         return {
           ...item,
           productName: product?.name || '',
           total: item.quantity * item.unitPrice,
+          unitType:item.unitType
+
         };
       }),
       subtotal,
       total,
+      ref_num: data.ref_num,
+      address: data.address,
     };
-
     if (isEditing) {
       updateMutation.mutate({ id: sale.id, data: saleData });
     } else {
       createMutation.mutate(saleData);
     }
   };
-  console.log('customers data:', customers);
-
 
   if (!isOpen) return null;
 
@@ -213,8 +245,19 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
           </h2>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
+            <div className="">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4" >
+              <SelectField<SaleFormData>
+                label="DB Number"
+                name="ref_num"
+                options={purchaseOrders?.map((po: any) => ({
+                  value: po.ref_num,
+                  label: po.ref_num,
+                })) || []}
+                control={control}
+                error={errors.ref_num}
+                required
+              />
                 <SelectField<SaleFormData>
                   label="Customer"
                   name="customerName"
@@ -227,30 +270,36 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
                   required
                 />
               </div>
-
-              <FormField
-                label="Customer Email"
-                name="customerEmail"
-                type="email"
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4" >
+             <FormField
+                label="Address"
+                name="address"
+                placeholder='Address'
+                type="text"
                 register={register}
-                error={errors.customerEmail}
+                error={errors.address}
                 required
               />
-
-              <SelectField<SaleFormData>
-                label="Status"
-                name="status"
-                options={[
-                  { value: 'pending', label: 'Pending' },
-                  { value: 'paid', label: 'Paid' },
-                  { value: 'overdue', label: 'Overdue' },
-                ]}
-                control={control}
-                error={errors.status}
+              <FormField
+                label="Phone"
+                name="phone"
+                placeholder='Phone'
+                type="text"
+                register={register}
+                error={errors.phone}
                 required
               />
+             </div>
+              <FormField
+                label="Sale Date"
+                name="saleDate"
+                type="date"
+                register={register}
+                error={errors.saleDate}
+                required
+              />
+            
             </div>
-
             {/* Items */}
             <div>
               <div className="flex items-center justify-between mb-4">
@@ -260,12 +309,11 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
                   variant="outline"
                   size="sm"
                   icon={Plus}
-                  onClick={() => append({ productId: '', quantity: 1, unitPrice: 0 })}
+                  onClick={() => append({ productId: '', quantity: 1, unitPrice: 0, unitType: '' })}
                 >
                   Add Item
                 </Button>
               </div>
-
               <div className="space-y-4">
                 {fields.map((field, index) => (
                   <div key={field.id} className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 border border-gray-200 rounded-lg">
@@ -282,7 +330,6 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
                         required
                       />
                     </div>
-
                     <FormField
                       label="Quantity"
                       name={`items.${index}.quantity`}
@@ -291,7 +338,6 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
                       error={errors.items?.[index]?.quantity}
                       required
                     />
-
                     <FormField
                       label="Unit Price"
                       name={`items.${index}.unitPrice`}
@@ -300,7 +346,14 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
                       error={errors.items?.[index]?.unitPrice}
                       required
                     />
-
+                       <FormField
+                      label="Unit Type"
+                      name={`items.${index}.unitType`}
+                      type="string"
+                      register={register}
+                      error={errors.items?.[index]?.unitPrice}
+                      required
+                    />
                     <div className="flex items-end">
                       <Button
                         type="button"
@@ -316,7 +369,6 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
                 ))}
               </div>
             </div>
-
             {/* Totals */}
             <div className="bg-gray-50 p-4 rounded-lg">
               <div className="space-y-2">
@@ -330,12 +382,22 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
                 </div>
               </div>
             </div>
-
             <div className="flex justify-end space-x-3">
               <Button
                 type="button"
                 variant="outline"
-                onClick={onClose}
+                onClick={()=>{
+                  onClose()
+                  setIsInitialized(false);
+                  reset({
+                    customerName: '',
+                    address: '',
+                    phone: '',
+                    ref_num: '',
+                    saleDate: new Date().toISOString().slice(0, 10),
+                    items: [{ productId: '', quantity: 1, unitPrice: 0,unitType:'' }],
+                  });
+                }}
               >
                 Cancel
               </Button>
@@ -396,11 +458,13 @@ export const Sales: React.FC = () => {
     doc.text('Items:', 20, 135);
     let yPos = 150;
     
-    sale.items.forEach((item: any, index: number) => {
-      doc.text(`${index + 1}. ${item.productName}`, 25, yPos);
-      doc.text(`   Qty: ${item.quantity} × ₹${item.unitPrice} = ₹${item.total}`, 25, yPos + 10);
-      yPos += 25;
-    });
+    if (sale.items && Array.isArray(sale.items)) {
+      sale.items.forEach((item: any, index: number) => {
+        doc.text(`${index + 1}. ${item.productName}`, 25, yPos);
+        doc.text(`   Qty: ${item.quantity} × ₹${item.unitPrice} = ₹${item.total}`, 25, yPos + 10);
+        yPos += 25;
+      });
+    }
     
     // Totals
     yPos += 10;
@@ -488,9 +552,9 @@ export const Sales: React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Sale Date
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
-                </th>
+                </th> */}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Total
                 </th>
@@ -512,27 +576,27 @@ export const Sales: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">{sale.customerName}</div>
-                    <div className="text-sm text-gray-500">{sale.customerEmail}</div>
+                    {/* <div className="text-sm text-gray-500">{sale.customerEmail}</div> */}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {new Date(sale.saleDate).toLocaleDateString()}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  {/* <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(sale.status)}`}>
                       {sale.status}
                     </span>
-                  </td>
+                  </td> */}
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {formatCurrency(sale.total)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                    <button
+                    {/* <button
                       onClick={() => generateInvoicePDF(sale)}
                       className="text-green-600 hover:text-green-900"
                       title="Download Invoice"
                     >
                       <Download className="h-4 w-4" />
-                    </button>
+                    </button> */}
                     <button
                       onClick={() => handleEdit(sale)}
                       className="text-blue-600 hover:text-blue-900"

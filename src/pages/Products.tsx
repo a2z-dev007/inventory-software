@@ -21,7 +21,7 @@ const productSchema = z.object({
   // sku: z.string().min(1, 'SKU is required'),
   // unitType:z.string(),
   purchaseRate: z.number().min(0, 'Purchase rate must be positive'),
-  // salesRate: z.number().min(0, 'Sales rate must be positive'),
+  salesRate: z.number().min(0, 'Sales rate must be positive'),
   currentStock: z.number().min(0, 'Current stock must be positive'),
   category: z.string().min(1, 'Category is required'),
   // supplier: z.string().min(1, 'Supplier is required'),
@@ -91,7 +91,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
         name: '',
         // sku: '',
         purchaseRate: 0,
-        // salesRate: 0,
+        salesRate: 0,
         currentStock: 0,
         category: '',
         // supplier: '',
@@ -193,7 +193,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
                 required
               />
 
-              {/* <FormField
+              <FormField
                 label="Sales Rate"
                 name="salesRate"
                 type="number"
@@ -201,7 +201,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
                 register={register}
                 error={errors.salesRate}
                 required
-              /> */}
+              />
 
               <FormField
                 label="Current Stock"
@@ -386,9 +386,9 @@ export const Products: React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Product Price
                 </th>
-                {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Sales Rate
-                </th> */}
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Stock
                 </th>
@@ -428,9 +428,9 @@ export const Products: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {formatCurrency(product.purchaseRate)}
                   </td>
-                  {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {formatCurrency(product.salesRate)}
-                  </td> */}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                       product.currentStock < 10

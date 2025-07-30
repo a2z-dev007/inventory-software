@@ -77,7 +77,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
 
   const { data: productsData } = useQuery({
     queryKey: ['products'],
-    queryFn: () => apiService.getProducts({}),
+    queryFn: () => apiService.getProducts({limit:1000}),
   });
   const products: Product[] = Array.isArray(productsData?.products) ? productsData.products : Array.isArray(productsData) ? productsData : [];
   // console.log(products);
@@ -779,7 +779,6 @@ export const PurchaseOrders: React.FC = () => {
         halign: 'center',
         valign: 'middle',
         cellPadding: 3,
-        
       },
       headStyles: {
         fillColor: [38, 0, 84],

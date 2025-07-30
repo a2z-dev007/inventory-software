@@ -29,6 +29,7 @@ const purchaseSchema = z.object({
   supplier: z.string().min(1, 'Supplier is required'),
   items: z.array(purchaseItemSchema).min(1, 'At least one item is required'),
   invoiceFile: z.any().optional(),
+  remarks:z.string().optional(),
 });
 
 type PurchaseFormData = {
@@ -36,6 +37,7 @@ type PurchaseFormData = {
   supplier: string;
   items: { productId: number; quantity: number; unitPrice: number, unitType: string }[];
   invoiceFile: FileList;
+  remarks: string;
   // add other fields as needed
 };
 
@@ -75,6 +77,7 @@ interface Purchase {
   total: number;
   items: any[];
   subtotal: number;
+  remarks?: string;
   // Removed tax
 }
 interface PurchasesApiResponse {
@@ -110,34 +113,6 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
   });
   const suppliersList = suppliers?.vendors || [];
 
-  // const {
-  //   register,
-  //   handleSubmit,
-  //   control,
-  //   watch,
-  //   formState: { errors },
-  //   reset,
-  //   setValue,
-  // } = useForm<PurchaseFormData>({
-  //   resolver: zodResolver(purchaseSchema),
-  //   defaultValues: purchase ? {
-  //     ref_num: purchase.ref_num,
-  //     supplier: purchase.vendor || purchase.supplier || '',
-  //     items: purchase.items.map((item: any) => ({
-  //       productId: String(item.productId),
-  //       quantity: item.quantity,
-  //       unitPrice: item.unitPrice,
-  //       unitType: item.unitType
-
-  //     })),
-  //     invoiceFile: purchase.invoiceFile,
-  //   } : {
-  //     ref_num: '',
-  //     supplier: '',
-  //     items: [{ productId: '', quantity: 1, unitPrice: 0, unitType: '' }],
-  //     invoiceFile: '',
-  //   },
-  // });
   const {
     register,
     handleSubmit,
@@ -153,30 +128,12 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
       supplier: '',
       items: [{ productId: 0, quantity: 1, unitPrice: 0, unitType: '' }],
       invoiceFile: '',
+      remarks:''
     },
   });
   const selectedRefNum = watch('ref_num');
   const [attachment, setAttachment] = useState<File | null>(null);
 
-
-  // refetch the purchase order data when purchase order data get updated 
-
-
-  // Reset form when editing
-  // React.useEffect(() => {
-  //   if (isEditing && purchase) {
-  //     reset({
-  //       ref_num: purchase.ref_num,
-  //       supplier: purchase.vendor || purchase.supplier || '',
-  //       items: purchase.items.map((item: any) => ({
-  //         productId: String(item.productId),
-  //         quantity: item.quantity,
-  //         unitPrice: item.unitPrice,
-  //       })),
-  //       invoiceFile: purchase.invoiceFile,
-  //     });
-  //   }
-  // }, [isEditing, purchase, reset]);
 
   useEffect(() => {
     if (isEditing && purchase) {
@@ -190,6 +147,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
           unitType: item.unitType,
         })),
         invoiceFile: purchase.invoiceFile || '',
+        remarks: purchase.remarks
       });
   
       // If there's an attachment
@@ -232,6 +190,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
         })),
         // Keep invoiceFile untouched
         invoiceFile: prevValues.invoiceFile,
+        remarks: prevValues.remarks
       }));
     } else {
       reset({
@@ -239,7 +198,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
         supplier: '',
         items: [{ productId: 0, quantity: 1, unitPrice: 0, unitType: '' }],
         invoiceFile: '',
-
+        remarks:''
       })
       setValue('invoiceFile', '');
       setAttachment(null);
@@ -302,6 +261,8 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
       formData.append("subtotal", String(calculateSubtotal()));
       formData.append("total", String(calculateSubtotal()));
 
+      formData.append("remarks", payload.remarks);
+
       // Append file
       if (attachment instanceof File) {
         formData.append("invoiceFile", attachment); // Must match backend's multer fieldName
@@ -362,6 +323,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
       total: calculateSubtotal(),
       invoiceFile: data.invoiceFile?.[0]?.name || '',
       supplier: data.supplier, // add supplier for type compatibility
+      remarks:data.remarks
     };
 
     createMutation.mutate(payload);
@@ -488,9 +450,20 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
                     <FormField
                       label="Unit Price"
                       name={`items.${index}.unitPrice`}
+                      disabled={true}
                       type="number"
                       register={register}
                       error={errors.items?.[index]?.unitPrice}
+                      required
+                    />
+                      <FormField
+                      label="Unit Type"
+                      placeholder='Nos'
+                      name={`items.${index}.unitType`}
+                      type="text"
+                      register={register}
+                      // readOnly
+                      disabled={true}
                       required
                     />
 
@@ -509,7 +482,14 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
                 ))}
               </div>
             </div>
-
+            <FormField
+              label="Remarks"
+              name="remarks"
+              type="textarea"
+              placeholder="Enter remarks (optional)"
+              register={register}
+              error={errors.remarks}
+            />
             {/* Totals */}
             <div className="bg-gray-50 p-4 rounded-lg">
               <div className="space-y-2">
@@ -535,6 +515,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
                     supplier: '',
                     items: [{ productId: 0, quantity: 1, unitPrice: 0, unitType: '' }],
                     invoiceFile: undefined,
+                    remarks: '',
                   });
                   onClose();
                 }}

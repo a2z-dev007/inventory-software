@@ -1,7 +1,6 @@
 import axios from 'axios';
 import { API_ROUTES } from './apiRoutes';
 import { API_BASE_URL } from '../utils/constants';
-import { queryClient } from '../App'; // Adjust the import path if needed
 import { toast } from 'react-toastify';
 import { DashboardStats } from '../types';
 
@@ -73,6 +72,13 @@ export const apiService = {
         method: 'POST',
         body: JSON.stringify({ username, password, rememberMe }),
       });
+
+      if(res.success === false) {
+        throw new Error(res.message);
+      }
+      if (res.success) {
+        toast.success(res.message || 'Login successful');
+      }
       return res;
     } catch (error) {
       console.error('Login failed:', error);
@@ -221,7 +227,13 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
       const res = await request<any>(API_ROUTES.PURCHASE_ORDER(id), {
         method: 'DELETE',
       });
-      toast.success(res.message || 'Purchase order deleted successfully');
+      if(res.success === false) {
+        throw new Error(res.message || 'Failed to delete purchase order');
+        return
+      }
+      if(res.success) {
+        toast.success(res.message || 'Purchase order deleted successfully');
+      }
       return res;
     } catch (error: any) {
       toast.error(error?.response?.data?.message || error.message || 'Failed to delete purchase order');
@@ -251,7 +263,12 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
         method: 'POST',
         body: JSON.stringify(sale),
       });
+      if(res.success){
       toast.success(res.message || 'Sale created successfully');
+      }
+      if(res.success === false){
+        throw new Error(res.message || 'Failed to create sale');
+      }
       return res;
     } catch (error: any) {
       toast.error(error?.response?.data?.message || error.message || 'Failed to create sale');
@@ -265,7 +282,13 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
         method: 'PUT',
         body: JSON.stringify(sale),
       });
+      if(res.success){
       toast.success(res.message || 'Sale updated successfully');
+      }
+      if(res.success === false){
+        throw new Error(res.message || 'Failed to update sale');
+        return
+      }
       return res;
     } catch (error: any) {
       toast.error(error?.response?.data?.message || error.message || 'Failed to update sale');
@@ -278,7 +301,13 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
       const res = await request<any>(API_ROUTES.SALE(id), {
         method: 'DELETE',
       });
+      if(res.success){
       toast.success(res.message || 'Sale deleted successfully');
+      }
+      if(res.success === false){
+        throw new Error(res.message || 'Failed to delete sale');
+        return
+      }
       return res;
     } catch (error: any) {
       toast.error(error?.response?.data?.message || error.message || 'Failed to delete sale');
@@ -338,6 +367,7 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
       if(res.success === false){
         throw new Error(res.message || 'Failed to update purchase');
         return
+
       }
       
     } catch (error: any) {
@@ -351,7 +381,12 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
       const res = await request<any>(API_ROUTES.PURCHASE(id), {
         method: 'DELETE',
       });
-      toast.success(res.message || 'Purchase deleted successfully');
+      if(res.success){
+        toast.success(res.message || 'Purchase deleted successfully');
+      }
+      if(res.success === false){
+        throw new Error(res.message || 'Failed to delete purchase');
+      }
       return res;
     } catch (error: any) {
       toast.error(error?.response?.data?.message || error.message || 'Failed to delete purchase');
@@ -396,7 +431,13 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
         method: 'POST',
         body: JSON.stringify(supplier),
       });
+      if(res.success){
       toast.success(res.message || 'Supplier created successfully');
+      }
+      if(res.success === false){
+        throw new Error(res.message || 'Failed to create vendor');
+        return
+      }
       return res;
     } catch (error: any) {
       toast.error(error?.response?.data?.message || error.message || 'Failed to create vendor');
@@ -410,7 +451,13 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
         method: 'PUT',
         body: JSON.stringify(supplier),
       });
+     if(res.success){
       toast.success(res.message || 'Supplier updated successfully');
+     }
+     if(res.success === false){
+      throw new Error(res.message || 'Failed to update vendor');
+      return
+     }
       return res;
     } catch (error: any) {
       toast.error(error?.response?.data?.message || error.message || 'Failed to update vendor');
@@ -456,7 +503,13 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
         method: 'POST',
         body: JSON.stringify(client),
       });
+      if(res.success){
       toast.success(res.message || 'Customer created successfully');
+      }
+      if(res.success === false){
+        throw new Error(res.message || 'Failed to create customer');
+        return
+      }
       return res;
     } catch (error: any) {
       toast.error(error?.response?.data?.message || error.message || 'Failed to create customer');
@@ -470,7 +523,13 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
         method: 'PUT',
         body: JSON.stringify(client),
       });
+     if(res.success){
       toast.success(res.message || 'Customer updated successfully');
+     }
+     if(res.success === false){
+      throw new Error(res.message || 'Failed to update customer');
+      return
+     }
       return res;
     } catch (error: any) {
       toast.error(error?.response?.data?.message || error.message || 'Failed to update customer');
@@ -483,7 +542,13 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
       const res = await request<any>(API_ROUTES.CUSTOMER(id), {
         method: 'DELETE',
       });
+      if(res.success){
       toast.success(res.message || 'Customer deleted successfully');
+      }
+      if(res.success === false){
+        throw new Error(res.message || 'Failed to delete customer');
+        return
+      }
       return res;
     } catch (error: any) {
       toast.error(error?.response?.data?.message || error.message || 'Failed to delete customer');
@@ -527,6 +592,14 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
         method: 'PUT',
         body: JSON.stringify({ currentPassword, newPassword }),
       });
+
+      if(res.success === false){
+        throw new Error(res.message || 'Failed to change password');
+        return
+      }
+      if(res.success){
+        toast.success(res.message || 'Password changed successfully');
+      }
       // toast.success(res.message || 'Password changed successfully');
       return res;
     } catch (error: any) {
@@ -543,6 +616,13 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
         body: JSON.stringify({ email, newPassword }),
       });
       // toast.success(res.message || 'Password changed successfully');
+      if(res.success){
+        toast.success(res.message || 'Password changed successfully');
+      }
+      if(res.success === false){
+        throw new Error(res.message || 'Failed to change password');
+        return
+      }
       return res;
     } catch (error: any) {
       toast.error(error?.response?.data?.message || error.message || 'Failed to change password');
@@ -557,6 +637,24 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
       return res;
     } catch (error: any) {
       toast.error(error?.response?.data?.message || error.message || 'Failed to get categories');
+      throw error;
+    }
+  },
+  getAllPurposes: async ({ page = 1, limit = 10, search = '' }) => {
+    try {
+      const res = await request<any>(API_ROUTES.PURPOSES, {
+        method: 'GET',
+        params: {
+          page,
+          limit,
+          search,
+        },
+      });
+      
+      // Your backend sends response as: { success, data: { vendors, pagination } }
+      return res.data; // ✅ Return vendors + pagination
+    } catch (error) {
+      console.error('Error fetching vendors:', error);
       throw error;
     }
   },

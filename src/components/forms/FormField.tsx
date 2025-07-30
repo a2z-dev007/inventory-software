@@ -11,7 +11,7 @@ interface FormFieldProps {
   required?: boolean;
   disabled?: boolean;
   className?: string;
-  inputProps?: React.InputHTMLAttributes<HTMLInputElement>;
+  inputProps?: React.InputHTMLAttributes<HTMLInputElement> & React.TextareaHTMLAttributes<HTMLTextAreaElement>;
 }
 
 export const FormField: React.FC<FormFieldProps> = ({
@@ -33,23 +33,30 @@ export const FormField: React.FC<FormFieldProps> = ({
       ? {}
       : undefined;
 
+  const commonProps = {
+    id: name,
+    placeholder,
+    disabled,
+    className: `w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+      error ? 'border-red-300' : 'border-gray-300'
+    }`,
+    ...register(name, registerOptions),
+    ...inputProps,
+  };
+
   return (
     <div className={className}>
       <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-1">
         {label}
         {required && <span className="text-red-500 ml-1">*</span>}
       </label>
-      <input
-        id={name}
-        type={type}
-        disabled={disabled}
-        placeholder={placeholder}
-        className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-          error ? 'border-red-300' : 'border-gray-300'
-        }`}
-        {...register(name, registerOptions)}
-        {...inputProps}
-      />
+
+      {type === 'textarea' ? (
+        <textarea rows={4} {...commonProps} />
+      ) : (
+        <input type={type} {...commonProps} />
+      )}
+
       {error && (
         <p className="mt-1 text-sm text-red-600">{error.message}</p>
       )}

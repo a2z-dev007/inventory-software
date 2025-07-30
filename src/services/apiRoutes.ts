@@ -18,7 +18,7 @@ export const API_ROUTES = {
   PRODUCT: (id: string) => `/products/${id}`,
   PRODUCT_STOCK: (id: string) => `/products/${id}/stock`,
   PRODUCT_CATEGORIES: '/products/categories',
-
+  PURPOSES: '/purposes',
   VENDORS: '/vendors',
   VENDOR: (id: string) => `/vendors/${id}`,
 

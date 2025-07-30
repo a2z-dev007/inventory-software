@@ -49,3 +49,25 @@ export const unitTypes =  [
 // export function formatDate(dateString, formatPattern = 'MMMM Do YYYY, h:mm:ss A') {
 //   return moment(dateString).format(formatPattern);
 // }
+
+export const getBase64 = (imgPath:string) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    fetch(imgPath)
+      .then(res => res.blob())
+      .then(blob => {
+        reader.readAsDataURL(blob);
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = reject;
+      });
+  });
+
+
+  export function formatINRCurrency(amount, { withSymbol = true, fraction = true } = {}) {
+    return new Intl.NumberFormat("en-IN", {
+      style: withSymbol ? "currency" : "decimal",
+      currency: "INR",
+      minimumFractionDigits: fraction ? 2 : 0,
+      maximumFractionDigits: fraction ? 2 : 0,
+    }).format(amount);
+  }

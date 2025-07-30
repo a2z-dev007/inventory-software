@@ -640,4 +640,22 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
       throw error;
     }
   },
+  getAllPurposes: async ({ page = 1, limit = 10, search = '' }) => {
+    try {
+      const res = await request<any>(API_ROUTES.PURPOSES, {
+        method: 'GET',
+        params: {
+          page,
+          limit,
+          search,
+        },
+      });
+      
+      // Your backend sends response as: { success, data: { vendors, pagination } }
+      return res.data; // ✅ Return vendors + pagination
+    } catch (error) {
+      console.error('Error fetching vendors:', error);
+      throw error;
+    }
+  },
 };

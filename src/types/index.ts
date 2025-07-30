@@ -140,6 +140,11 @@ export interface DashboardMetrics {
   topProducts: TopProduct[];
 }
 
+export interface Purposes {
+  _id: string;
+  title: string;
+}
+
 
 export interface Welcome {
     overview:           Overview;

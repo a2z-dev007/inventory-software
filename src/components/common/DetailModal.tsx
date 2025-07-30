@@ -212,7 +212,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({ isOpen, onClose, item,
 
   return (
     <div style={{ marginTop: 0 }} className="fixed top-0 inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fadeIn">
-      <div className="relative w-full max-w-2xl bg-white/80 shadow-2xl rounded-2xl border border-blue-200 animate-scaleIn overflow-hidden" style={{ backdropFilter: 'blur(8px)' }}>
+      <div className="relative max-h-[80vh] overflow-auto w-full max-w-2xl bg-white/80 shadow-2xl rounded-2xl border border-blue-200 animate-scaleIn " style={{ backdropFilter: 'blur(8px)' }}>
         {/* Accent Bar */}
         <div className="h-2 w-full bg-gradient-to-r from-blue-500 to-emerald-400" />
         {/* Header */}

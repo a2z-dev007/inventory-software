@@ -359,7 +359,7 @@ export const Customers: React.FC = () => {
                 </div>
 
                 {/* Customer Stats */}
-                <div className="border-t pt-4">
+                {/* <div className="border-t pt-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-xs text-gray-500">Total Sales</p>
@@ -382,7 +382,7 @@ export const Customers: React.FC = () => {
                       </p>
                     </div>
                   )}
-                </div>
+                </div> */}
               </Card>
             );
           })}

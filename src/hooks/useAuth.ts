@@ -24,7 +24,9 @@ export const useAuth = () => {
       }
       
       const { user, token } = response.data;
-      toast.success(response.message || 'Login successful');
+      // if(response.success){
+      //   toast.success(response.message || 'Login successful');
+      // }
       // Store token in localStorage/sessionStorage for persistence
       if (remember) {
         localStorage.setItem('token', token);

@@ -7,7 +7,7 @@ import { Package, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/common/Button';
 import { FormField } from '../components/forms/FormField';
-
+import logo from "../assets/images/logo.png"
 const loginSchema = z.object({
   username: z.string().min(1, 'Username is required'),
   password: z.string().min(1, 'Password is required'),
@@ -47,18 +47,21 @@ export const Login: React.FC = () => {
   };
 
   if (isAuthenticated) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/purchase-orders" replace />;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br  flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
-          <div className="flex justify-center">
+          {/* <div className="flex justify-center">
             <Package className="h-12 w-12 text-blue-600" />
+          </div> */}
+          <div>
+          <img src={logo} className='' />
           </div>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            Inventory Management System
+          Wings Stock Management System
           </h2>
           <p className="mt-2 text-sm text-gray-600">
             Sign in to access your dashboard

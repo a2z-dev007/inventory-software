@@ -36,7 +36,7 @@ const AppRoutes: React.FC = () => {
     <Routes>
       <Route 
         path="/login" 
-        element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} 
+        element={isAuthenticated ? <Navigate to="/purchase-orders" replace /> : <Login />} 
       />
       <Route 
         path="/forgot-password" 
@@ -55,7 +55,7 @@ const AppRoutes: React.FC = () => {
             <PurchaseOrders />
           </ProtectedRoute>
         } />
-        <Route path="sales" element={<Sales />} />
+        <Route path="site" element={<Sales />} />
         <Route path="purchases" element={
           <ProtectedRoute requiredRoles={['admin', 'manager']}>
             <Purchases />
@@ -66,7 +66,7 @@ const AppRoutes: React.FC = () => {
             <Suppliers />
           </ProtectedRoute>
         } />
-        <Route path="customers" element={<Customers />} />
+        <Route path="client" element={<Customers />} />
         <Route path="reports" element={
           <ProtectedRoute requiredRoles={['admin', 'manager']}>
             <Reports />

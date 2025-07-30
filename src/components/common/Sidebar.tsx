@@ -9,10 +9,11 @@ import {
   TrendingUp,
   Settings,
   Truck,
+  ReceiptIndianRupee,
   Receipt,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-
+import logo from "../../assets/images/logo.png"
 interface NavItem {
   name: string;
   href: string;
@@ -21,13 +22,13 @@ interface NavItem {
 }
 
 const navigation: NavItem[] = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard, roles: ['admin', 'manager', 'staff'] },
-  { name: 'Products', href: '/products', icon: Package, roles: ['admin', 'manager', 'staff'] },
+  // { name: 'Dashboard', href: '/', icon: LayoutDashboard, roles: ['admin', 'manager', 'staff'] },
   { name: 'Purchase Orders', href: '/purchase-orders', icon: FileText, roles: ['admin', 'manager'] },
-  { name: 'Purchases', href: '/purchases', icon: Receipt, roles: ['admin', 'manager'] },
-  { name: 'Sales', href: '/sales', icon: ShoppingCart, roles: ['admin', 'manager', 'staff'] },
+  { name: 'Products', href: '/products', icon: Package, roles: ['admin', 'manager', 'staff'] },
+  { name: 'Purchases', href: '/purchases', icon: ReceiptIndianRupee, roles: ['admin', 'manager'] },
+  { name: 'Site', href: '/site', icon: ShoppingCart, roles: ['admin', 'manager', 'staff'] },
   { name: 'Suppliers', href: '/suppliers', icon: Truck, roles: ['admin', 'manager'] },
-  { name: 'Customers', href: '/customers', icon: Users, roles: ['admin', 'manager', 'staff'] },
+  { name: 'Client', href: '/client', icon: Users, roles: ['admin', 'manager', 'staff'] },
   // { name: 'Reports', href: '/reports', icon: TrendingUp, roles: ['admin', 'manager'] },
   { name: 'Settings', href: '/settings', icon: Settings, roles: ['admin'] },
 ];
@@ -44,7 +45,7 @@ export const Sidebar: React.FC = () => {
       <div className="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto bg-white border-r border-gray-200">
         <div className="flex items-center flex-shrink-0 px-4">
           <Package className="h-8 w-8 text-blue-600" />
-          <span className="ml-2 text-lg font-bold text-gray-900">InventoryPro</span>
+        <img src={logo} className='px-3' />
         </div>
         
         <nav className="mt-8 flex-1 px-2 space-y-1">

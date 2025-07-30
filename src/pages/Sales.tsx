@@ -508,8 +508,8 @@ export const Sales: React.FC = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader
-          title="Sales & Invoices"
-          subtitle="Manage your sales transactions"
+          title="Sites"
+          subtitle="Manage your sites transactions"
           action={
             <Button
               icon={Plus}

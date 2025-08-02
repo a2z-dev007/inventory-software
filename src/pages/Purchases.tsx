@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Receipt, Download, Search, Trash2, Edit, Link } from 'lucide-react';
+import { Plus, Receipt, Download, Search, Trash2, Edit, Link, IndianRupeeIcon, ReceiptIndianRupeeIcon, ReceiptIndianRupee } from 'lucide-react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -97,11 +97,11 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
 
   const { data: productsData } = useQuery({
     queryKey: ['products'],
-    queryFn: () => apiService.getProducts(),
+    queryFn: () => apiService.getProducts({all:true}),
   });
-  const { data: purchaseOrderData, refetch } = useQuery({
+  const { data: purchaseOrderData } = useQuery({
     queryKey: ['purchaseOrderData'],
-    queryFn: () => apiService.getPurchaseOrders({ limit: 100 }),
+    queryFn: () => apiService.getPurchaseOrders({ all:true}),
   });
 
 
@@ -110,7 +110,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
 
   const { data: suppliers } = useQuery<SuppliersApiResponse>({
     queryKey: ['suppliers'],
-    queryFn: () => apiService.getSuppliers({ page: 1, limit: 100 }),
+    queryFn: () => apiService.getSuppliers({ all:true }),
   });
   const suppliersList = suppliers?.vendors || [];
 
@@ -608,7 +608,7 @@ export const Purchases: React.FC = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader
-          title="Purchases"
+          title={`Purchases (${purchasesData?.pagination?.total || 0})`}
           subtitle="Record and manage your purchases"
           action={
             <Button
@@ -764,7 +764,7 @@ export const Purchases: React.FC = () => {
 
         {filteredPurchases.length === 0 && (
           <div className="text-center py-8">
-            <Receipt className="mx-auto h-12 w-12 text-gray-400" />
+            <ReceiptIndianRupee className="mx-auto h-12 w-12 text-gray-400" />
             <h3 className="mt-2 text-sm font-medium text-gray-900">No purchases found</h3>
             <p className="mt-1 text-sm text-gray-500">
               Get started by recording your first purchase.

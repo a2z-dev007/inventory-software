@@ -78,18 +78,18 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
 
   const { data: productsData } = useQuery({
     queryKey: ['products'],
-    queryFn: () => apiService.getProducts({limit:1000}),
+    queryFn: () => apiService.getProducts({all:true}),
   });
   const products: Product[] = Array.isArray(productsData?.products) ? productsData.products : Array.isArray(productsData) ? productsData : [];
   // console.log(products);
   const { data: suppliersData } = useQuery({
     queryKey: ['suppliers'],
-    queryFn: () => apiService.getSuppliers({}),
+    queryFn: () => apiService.getSuppliers({all:true}),
   });
   const suppliers: { vendors?: Supplier[] } = suppliersData || {};
   const { data: purposesData } = useQuery({
     queryKey: ['purposes'],
-    queryFn: () => apiService.getAllPurposes({limit:100}),
+    queryFn: () => apiService.getAllPurposes({all:true}),
   });
   const purposes: { purposes?: Purposes[] } = purposesData || {};
   console.log("purposesData",purposesData)
@@ -859,7 +859,7 @@ export const PurchaseOrders: React.FC = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader
-          title="Purchase Orders"
+          title={`Purchase Orders (${poResponse.pagination.total && poResponse.pagination.total})`}
           subtitle="Manage your purchase orders"
           action={
             <Button

@@ -266,10 +266,10 @@ export const Customers: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 border border-red-500 pb-6">
       <Card>
         <CardHeader
-          title="Customers"
+          title={`Customers (${customerResponse?.pagination?.total || 0})`}
           subtitle="Manage your customer base"
           action={
             <Button
@@ -281,7 +281,6 @@ export const Customers: React.FC = () => {
             </Button>
           }
         />
-
         {/* Search */}
         <div className="mb-6">
           <div className="relative">
@@ -291,15 +290,13 @@ export const Customers: React.FC = () => {
               placeholder="Search customers..."
               className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               value={searchTerm}
-             onChange={(e) => {
-  setSearchTerm(e.target.value);
-  resetPage();
-}}
-
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                resetPage();
+              }}
             />
           </div>
         </div>
-
         {/* Customers Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {customers.map((customer: any) => {
@@ -349,7 +346,6 @@ export const Customers: React.FC = () => {
                     )}
                   </div>
                 </div>
-
                 <div className="space-y-2 mb-4">
                   <div className="flex items-center text-sm text-gray-600">
                     <Mail className="h-4 w-4 mr-2" />
@@ -364,7 +360,6 @@ export const Customers: React.FC = () => {
                     <span className="line-clamp-2">{customer.address}</span>
                   </div>
                 </div>
-
                 {/* Customer Stats */}
                 {/* <div className="border-t pt-4">
                   <div className="grid grid-cols-2 gap-4">
@@ -394,7 +389,6 @@ export const Customers: React.FC = () => {
             );
           })}
         </div>
-
         {customers.length === 0 && (
           <div className="text-center py-12">
             <Users className="mx-auto h-12 w-12 text-gray-400" />
@@ -404,30 +398,27 @@ export const Customers: React.FC = () => {
             </p>
           </div>
         )}
-
         {/* Pagination Controls */}
-        <div className="flex justify-center items-center space-x-2 mt-6">
+        <div className="flex justify-center items-center space-x-2 mt-6 mb-6">
           <Button
-  type="button"
-  variant="outline"
-  disabled={pagination.page <= 1}
-  onClick={handlePrev}
->
-  Previous
-</Button>
-<span className="px-2">Page {pagination.page} of {pagination.pages}</span>
-<Button
-  type="button"
-  variant="outline"
-  disabled={pagination.page >= pagination.pages}
-  onClick={() => handleNext(pagination)}
->
-  Next
-</Button>
-
+            type="button"
+            variant="outline"
+            disabled={pagination.page <= 1}
+            onClick={handlePrev}
+          >
+            Previous
+          </Button>
+          <span className="px-2">Page {pagination.page} of {pagination.pages}</span>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={pagination.page >= pagination.pages}
+            onClick={() => handleNext(pagination)}
+          >
+            Next
+          </Button>
         </div>
       </Card>
-
       <CustomerModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}

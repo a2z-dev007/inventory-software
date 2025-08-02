@@ -43,14 +43,14 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
   // Fetch suppliers for dropdown
   const { data: suppliersData } = useQuery({
     queryKey: ['suppliers'],
-    queryFn: () => apiService.getSuppliers({ page: 1, limit: 100 }),
+    queryFn: () => apiService.getSuppliers({ all:true }),
   });
 
   const {
     data: categoriesData,} = useQuery({ queryKey: ['categories'], queryFn: () => apiService.getAllCategories(),staleTime: 0,});
   type Supplier = { id?: string; _id?: string; name: string };
   const suppliers: Supplier[] = suppliersData?.vendors || [];
-  console.log("categoriesData",categoriesData?.data?.categories)
+
   const {
     register,
     handleSubmit,
@@ -341,7 +341,7 @@ export const Products: React.FC = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader
-          title="Products"
+          title={`Products (${productResponse?.pagination?.total || 0})`}
           subtitle="Manage your product inventory"
           action={
             <Button

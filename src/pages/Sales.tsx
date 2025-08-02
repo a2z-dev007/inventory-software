@@ -50,20 +50,20 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
 
   const { data: productsData } = useQuery<{ products: any[] }>({
     queryKey: ['products'],
-    queryFn: () => apiService.getProducts(),
+    queryFn: () => apiService.getProducts({all:true}),
   });
   const products: any[] = Array.isArray(productsData?.products) ? productsData.products : Array.isArray(productsData) ? productsData : [];
 
   const { data: customerResponse } = useQuery<{ customers: any[] }>({
     queryKey: ['customers'],
-    queryFn: () => apiService.getCustomers(),
+    queryFn: () => apiService.getCustomers({all:true}),
   });
   const customers: any[] = customerResponse?.customers || [];
 
   // --- PURCHASE ORDERS (DB Numbers) ---
   const { data: purchaseOrderData } = useQuery({
     queryKey: ['purchaseOrders'],
-    queryFn: () => apiService.getPurchaseOrders({ limit: 100 }),
+    queryFn: () => apiService.getPurchaseOrders({ all:true }),
   });
   const purchaseOrders = purchaseOrderData?.purchaseOrders || [];
 
@@ -510,7 +510,7 @@ export const Sales: React.FC = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader
-          title="Sites"
+          title={`Sites (${salesResponse?.pagination?.total || 0})`}
           subtitle="Manage your sites transactions"
           action={
             <Button

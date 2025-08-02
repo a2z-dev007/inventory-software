@@ -26,6 +26,7 @@
     "react-redux": "^9.0.4",
     "react-router-dom": "^6.20.1",
     "react-select": "^5.10.2",
+    "react-shimmer-effects": "^1.0.4",
     "react-toastify": "^11.0.5",
     "zod": "^3.22.4"
   },

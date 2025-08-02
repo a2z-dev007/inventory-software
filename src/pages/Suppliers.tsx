@@ -231,7 +231,7 @@ export const Suppliers: React.FC = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader
-          title="Suppliers"
+          title={`Suppliers (${data?.pagination?.total || 0})`}
           subtitle="Manage your supplier network"
           action={
             <Button icon={Plus} className='gradient-btn' onClick={() => setIsModalOpen(true)}>

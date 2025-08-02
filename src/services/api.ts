@@ -87,12 +87,13 @@ export const apiService = {
   },
 
   // Products
-  getProducts: async (params: { page?: number; limit?: number; search?: string } = {}) => {
+  getProducts: async (params: { page?: number; limit?: number; search?: string; all?: boolean } = { all: false }) => {
     try {
       const query = new URLSearchParams({
         page: params.page?.toString() || '1',
         limit: params.limit?.toString() || '10',
         search: params.search || '',
+        all:params.all?.toString() || 'false',
       }).toString();
       const res = await request<any>(`${API_ROUTES.PRODUCTS}?${query}`);
       return res.data; // { products, pagination }
@@ -149,12 +150,13 @@ export const apiService = {
   },
 
   // Purchase Orders
-  getPurchaseOrders: async (params: { page?: number; limit?: number; search?: string } = {}) => {
+  getPurchaseOrders: async (params: { page?: number; limit?: number; search?: string; all?: boolean } = { all: false }) => {
     try {
       const query = new URLSearchParams({
         page: params.page?.toString() || '1',
         limit: params.limit?.toString() || '10',
         search: params.search || '',
+        all:params.all?.toString() || 'false',
       }).toString();
       const res = await request<any>(`${API_ROUTES.PURCHASE_ORDERS}?${query}`);
       return res.data; // { purchaseOrders, pagination }
@@ -242,12 +244,13 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
   },
 
   // Sales
-  getSales: async (params: { page?: number; limit?: number; search?: string } = {}) => {
+  getSales: async (params: { page?: number; limit?: number; search?: string; all?: boolean } = { all: false }) => {
     try {
       const query = new URLSearchParams({
         page: params.page?.toString() || '1',
         limit: params.limit?.toString() || '10',
         search: params.search || '',
+        all:params.all?.toString() || 'false',
       }).toString();
       const res = await request<any>(`${API_ROUTES.SALES}?${query}`);
       return res.data; // { sales, pagination }
@@ -316,7 +319,7 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
   },
 
   // Purchases
-  getPurchases: async (params: { page?: number; limit?: number; search?: string } = {}) => {
+  getPurchases: async (params: { page?: number; limit?: number; search?: string,all?:boolean } = {}) => {
     try {
       const res = await request<any>(API_ROUTES.PURCHASES, {
         method: 'GET',
@@ -405,7 +408,7 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
   //   }
   // },
 
-  getSuppliers: async ({ page = 1, limit = 10, search = '' }) => {
+  getSuppliers: async ({ page = 1, limit = 10, search = '',all=false }) => {
   try {
     const res = await request<any>(API_ROUTES.VENDORS, {
       method: 'GET',
@@ -413,6 +416,7 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
         page,
         limit,
         search,
+        all,
       },
     });
 
@@ -479,7 +483,7 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
   },
 
   // Customers
-  getCustomers: async (params: { page?: number; limit?: number; search?: string; sortBy?: string; sortOrder?: string } = {}) => {
+  getCustomers: async (params: { page?: number; limit?: number; search?: string; sortBy?: string; sortOrder?: string ,all?:boolean} = {all:false}) => {
     try {
       const query = new URLSearchParams({
         page: params.page?.toString() || '1',
@@ -487,6 +491,7 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
         search: params.search || '',
         sortBy: params.sortBy || 'name',
         sortOrder: params.sortOrder || 'asc',
+        all: params.all?.toString() || 'false'
       }).toString();
       const res = await request<any>(`${API_ROUTES.CUSTOMERS}?${query}`);
       // Return only the data property
@@ -640,7 +645,7 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
       throw error;
     }
   },
-  getAllPurposes: async ({ page = 1, limit = 10, search = '' }) => {
+  getAllPurposes: async ({ page = 1, limit = 10, search = '',all=false }) => {
     try {
       const res = await request<any>(API_ROUTES.PURPOSES, {
         method: 'GET',
@@ -648,6 +653,7 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
           page,
           limit,
           search,
+          all
         },
       });
       

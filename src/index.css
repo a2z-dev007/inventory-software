@@ -5,3 +5,18 @@
 .gradient-btn{
   background-image: linear-gradient(to left, #00c6fb 0%, #005bea 100%)!important;
 }
+.gradient{
+  background-image: linear-gradient(to left, #00c6fb 0%, #005bea 100%)!important;
+}
+
+.gradient-text {
+  background: -webkit-linear-gradient(#00c6fb, #005bea);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+
+
+body{
+  overflow-x: hidden;
+}

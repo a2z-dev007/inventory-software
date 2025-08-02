@@ -14,9 +14,9 @@ export const Header: React.FC = () => {
         </div>
         
         <div className="flex items-center space-x-4">
-          <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
+          {/* <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
             <Bell className="h-5 w-5" />
-          </button>
+          </button> */}
           
           <div className="flex items-center space-x-3">
             <div className="flex items-center space-x-2">

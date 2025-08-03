@@ -103,6 +103,16 @@ export const apiService = {
     }
   },
 
+  getProductById: async (id: string) => {
+    try {
+      const res = await request<any>(API_ROUTES.PRODUCT(id));
+      return res.data?.product;
+    } catch (error) {
+      console.error('Error fetching product:', error);
+      throw error;
+    }
+  },
+
   createProduct: async (product: Omit<any, 'id'>) => {
     try {
       const res = await request<any>(API_ROUTES.PRODUCTS, {
@@ -169,7 +179,7 @@ export const apiService = {
   getPurchaseOrderById: async (id: string) => {
     try {
       const res = await request<any>(API_ROUTES.PURCHASE_ORDER(id));
-      return res.data; // { purchaseOrder }
+      return res.data?.purchaseOrder;
     } catch (error) {
       console.error('Error fetching purchase order:', error);
       throw error;
@@ -260,6 +270,16 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
     }
   },
 
+  getSaleById: async (id: string) => {
+    try {
+      const res = await request<any>(API_ROUTES.SALE(id));
+      return res.data?.sale;
+    } catch (error) {
+      console.error('Error fetching sale:', error);
+      throw error;
+    }
+  },
+
   createSale: async (sale: Omit<any, 'id'>) => {
     try {
       const res = await request<any>(API_ROUTES.SALES, {
@@ -321,13 +341,25 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
   // Purchases
   getPurchases: async (params: { page?: number; limit?: number; search?: string,all?:boolean } = {}) => {
     try {
-      const res = await request<any>(API_ROUTES.PURCHASES, {
-        method: 'GET',
-        params,
-      });
-      return res.data; // Should include { purchases, pagination }
+      const query = new URLSearchParams({
+        page: params.page?.toString() || '1',
+        limit: params.limit?.toString() || '10',
+        search: params.search || '',
+      }).toString();
+      const res = await request<any>(`${API_ROUTES.PURCHASES}?${query}`);
+      return res.data;
     } catch (error) {
       console.error('Error fetching purchases:', error);
+      throw error;
+    }
+  },
+
+  getPurchaseById: async (id: string) => {
+    try {
+      const res = await request<any>(API_ROUTES.PURCHASE(id));
+      return res.data?.purchase;
+    } catch (error) {
+      console.error('Error fetching purchase:', error);
       throw error;
     }
   },
@@ -397,37 +429,31 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
     }
   },
 
-  // Vendors
-  // getSuppliers: async () => {
-  //   try {
-  //     const res = await request<any>(API_ROUTES.VENDORS);
-  //     return res.data.vendors;
-  //   } catch (error) {
-  //     console.error('Error fetching vendors:', error);
-  //     throw error;
-  //   }
-  // },
+  // Vendors/Suppliers
+  getSuppliers: async (params: { page?: number; limit?: number; search?: string } = {}) => {
+    try {
+      const query = new URLSearchParams({
+        page: params.page?.toString() || '1',
+        limit: params.limit?.toString() || '10',
+        search: params.search || '',
+      }).toString();
+      const res = await request<any>(`${API_ROUTES.VENDORS}?${query}`);
+      return res.data;
+    } catch (error) {
+      console.error('Error fetching suppliers:', error);
+      throw error;
+    }
+  },
 
-  getSuppliers: async ({ page = 1, limit = 10, search = '',all=false }) => {
-  try {
-    const res = await request<any>(API_ROUTES.VENDORS, {
-      method: 'GET',
-      params: {
-        page,
-        limit,
-        search,
-        all,
-      },
-    });
-
-    // Your backend sends response as: { success, data: { vendors, pagination } }
-    return res.data; // ✅ Return vendors + pagination
-  } catch (error) {
-    console.error('Error fetching vendors:', error);
-    throw error;
-  }
-},
-
+  getSupplierById: async (id: string) => {
+    try {
+      const res = await request<any>(API_ROUTES.VENDOR(id));
+      return res.data?.vendor;
+    } catch (error) {
+      console.error('Error fetching supplier:', error);
+      throw error;
+    }
+  },
 
   createSupplier: async (supplier: Omit<any, 'id'>) => {
     try {
@@ -498,6 +524,16 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
       return res.data;
     } catch (error) {
       console.error('Error fetching customers:', error);
+      throw error;
+    }
+  },
+
+  getCustomerById: async (id: string) => {
+    try {
+      const res = await request<any>(API_ROUTES.CUSTOMER(id));
+      return res.data?.customer;
+    } catch (error) {
+      console.error('Error fetching customer:', error);
       throw error;
     }
   },

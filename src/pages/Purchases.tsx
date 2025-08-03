@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Receipt, Download, Search, Trash2, Edit, Link, IndianRupeeIcon, ReceiptIndianRupeeIcon, ReceiptIndianRupee } from 'lucide-react';
+import { Plus, Receipt, Download, Search, Trash2, Edit, Link, IndianRupeeIcon, ReceiptIndianRupeeIcon, ReceiptIndianRupee, Eye } from 'lucide-react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useNavigate } from 'react-router-dom';
 import jsPDF from 'jspdf';
 import { apiService } from '../services/api';
 import { Card, CardHeader } from '../components/common/Card';
@@ -14,7 +15,6 @@ import { SelectField } from '../components/forms/SelectField';
 import { formatCurrency } from '../utils/constants';
 import { usePagination } from '../hooks/usePagination';
 import { useDebounce } from '../hooks/useDebounce';
-import { DetailModal } from '../components/common/DetailModal';
 import { PurchaseOrder } from './PurchaseOrders';
 import { useAuth } from '../hooks/useAuth';
 
@@ -540,10 +540,9 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
 
 export const Purchases: React.FC = () => {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedDetailItem, setSelectedDetailItem] = useState<any>(null);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedEditPurchase, setSelectedEditPurchase] = useState<Purchase | null>(null); // <-- New state
   const debouncedSearch = useDebounce(searchTerm, 800);
   const { page, handleNext, handlePrev } = usePagination(1);
@@ -700,12 +699,11 @@ export const Purchases: React.FC = () => {
                       <Download className="h-4 w-4" />
                     </button> */}
                     <button
-                      onClick={() => { setSelectedDetailItem(purchase); setIsDetailModalOpen(true); }}
+                      onClick={() => navigate(`/purchases/${purchase._id || purchase.id}`)}
                       className="text-gray-600 hover:text-gray-900"
                       title="View Details"
                     >
-                      <span className="sr-only">View Details</span>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                      <Eye className="h-4 w-4" />
                     </button>
                     {isAdmin() && (
                       <button
@@ -778,12 +776,7 @@ export const Purchases: React.FC = () => {
         onClose={() => { setIsModalOpen(false); setSelectedEditPurchase(null); }}
         purchase={selectedEditPurchase}
       />
-      <DetailModal
-        isOpen={isDetailModalOpen}
-        onClose={() => setIsDetailModalOpen(false)}
-        item={selectedDetailItem}
-        title="Purchase Details"
-      />
+
     </div>
   );
 };

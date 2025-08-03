@@ -1,9 +1,10 @@
 import React, { useState, useEffect, ChangeEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, FileText, Download, Edit, Trash2, Search } from 'lucide-react';
+import { Plus, FileText, Download, Edit, Trash2, Search, Eye } from 'lucide-react';
 import { useForm, useFieldArray, FieldError, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useNavigate } from 'react-router-dom';
 import jsPDF from 'jspdf';
 import { apiService } from '../services/api';
 import { Card, CardHeader } from '../components/common/Card';
@@ -14,7 +15,6 @@ import { SelectField } from '../components/forms/SelectField';
 import { formatCurrency, formatINRCurrency, getBase64 } from '../utils/constants';
 import { useDebounce } from '../hooks/useDebounce';
 import { usePagination } from '../hooks/usePagination';
-import { DetailModal } from '../components/common/DetailModal';
 import { Product, Purposes, Supplier } from '../types';
 import { Badge } from '../components/common/Badge';
 import autoTable from 'jspdf-autotable';
@@ -642,11 +642,10 @@ export interface PurchaseOrder {
 }
 
 export const PurchaseOrders: React.FC = () => {
+  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPO, setEditingPO] = useState<PurchaseOrder | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedDetailItem, setSelectedDetailItem] = useState<PurchaseOrder | null>(null);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const debouncedSearch = useDebounce(searchTerm, 800);
   const { page, handleNext, handlePrev, resetPage } = usePagination(1);
   const limit = 10;
@@ -992,12 +991,11 @@ export const PurchaseOrders: React.FC = () => {
                       )}
                       <div className="relative group">
                         <button
-                          onClick={() => { setSelectedDetailItem(po); setIsDetailModalOpen(true); }}
+                          onClick={() => navigate(`/purchase-orders/${po._id || po.id}`)}
                           className="text-gray-600 hover:text-gray-900"
                           aria-label="View Details"
                         >
-                          <span className="sr-only">View Details</span>
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                          <Eye className="h-4 w-4" />
                         </button>
                         <span className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none z-10 whitespace-nowrap">View Details</span>
                       </div>
@@ -1046,12 +1044,7 @@ export const PurchaseOrders: React.FC = () => {
         onClose={handleCloseModal}
         purchaseOrder={editingPO || undefined}
       />
-      <DetailModal
-        isOpen={isDetailModalOpen}
-        onClose={() => setIsDetailModalOpen(false)}
-        item={selectedDetailItem}
-        title="Purchase Order Details"
-      />
+
     </div>
   );
 };

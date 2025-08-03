@@ -113,7 +113,7 @@ const formatValue = (key: string, value: any) => {
 
     return (
       <span
-        className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-bold shadow-sm ${config.bg} ${config.color} border border-white/50`}
+        className={`inline-flex items-center px-4 py-1 rounded-full text-sm font-bold shadow-sm ${config.bg} ${config.color} border border-white/50`}
       >
         <div
           className={`w-2 h-2 rounded-full mr-2 ${config.color.replace(

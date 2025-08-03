@@ -451,6 +451,8 @@ export const Sales: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSale, setEditingSale] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedDetailItem, setSelectedDetailItem] = useState<any>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const debouncedSearch = useDebounce(searchTerm, 800);
   const { page, handleNext, handlePrev, resetPage } = usePagination(1);
   const [confirmToggleId, setConfirmToggleId] = useState<string | null>(null);

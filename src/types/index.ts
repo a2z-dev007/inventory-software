@@ -51,18 +51,18 @@ export interface PurchaseOrderItem {
   total: number;
 }
 
-export interface PurchaseOrder {
-  id: number;
-  poNumber: string;
-  vendor: string;
-  status: 'draft' | 'approved' | 'delivered' | 'cancelled';
-  orderDate: string;
-  deliveryDate?: string;
-  items: PurchaseOrderItem[];
-  subtotal: number;
-  tax: number;
-  total: number;
-}
+// export interface PurchaseOrder {
+//   id: number;
+//   poNumber: string;
+//   vendor: string;
+//   status: 'draft' | 'approved' | 'delivered' | 'cancelled';
+//   orderDate: string;
+//   deliveryDate?: string;
+//   items: PurchaseOrderItem[];
+//   subtotal: number;
+//   tax: number;
+//   total: number;
+// }
 
 export interface SaleItem {
   productId: number;
@@ -222,4 +222,44 @@ export interface Overview {
   totalSpent:         number;
   totalCustomers:     number;
   totalVendors:       number;
+}
+
+export interface PurchaseOrder {
+  _id:           string;
+  ref_num:       string;
+  attachment:    null;
+  poNumber:      string;
+  vendor:        string;
+  status:        string;
+  orderDate:     Date;
+  deliveryDate:  Date;
+  items:         Item[];
+  subtotal:      number;
+  total:         number;
+  createdBy:     CreatedBy;
+  orderedBy:     string;
+  isDeleted:     boolean;
+  remarks:       null;
+  site_incharge: string;
+  contractor:    string;
+  purpose:       string;
+  createdAt:     Date;
+  updatedAt:     Date;
+  __v:           number;
+}
+
+export interface CreatedBy {
+  _id:      string;
+  username: string;
+  name:     string;
+}
+
+export interface Item {
+  productId:   string;
+  productName: string;
+  quantity:    number;
+  unitPrice:   number;
+  unitType:    string;
+  total:       number;
+  _id:         string;
 }

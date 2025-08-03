@@ -16,6 +16,7 @@ import { useDebounce } from '../hooks/useDebounce';
 import { usePagination } from '../hooks/usePagination';
 import { DetailModal } from '../components/common/DetailModal';
 import { useAuth } from '../hooks/useAuth';
+import Switch from '../components/common/Switch';
 
 // --- SCHEMA & TYPES ---
 const saleItemSchema = z.object({
@@ -32,8 +33,10 @@ const saleSchema = z.object({
   ref_num: z.string().min(1, 'DB Number is required'),
   items: z.array(saleItemSchema).min(1, 'At least one item is required'),
   saleDate:z.string().min(1, 'Sale date is required'),
-  
+  receivedBy:z.string().min(1, 'Received by is required'),      
+  remarks:z.string().optional(),
 });
+
 
 type SaleFormData = z.infer<typeof saleSchema>;
 
@@ -136,6 +139,8 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
         address: sale.address,
         phone: sale.phone || '',
         ref_num: sale.ref_num,
+        receivedBy: sale.receivedBy,
+        remarks: sale.remarks,
         saleDate: sale.saleDate ? sale.saleDate.slice(0, 10) : new Date().toISOString().slice(0, 10),
         items: (sale.items || []).map((item: any) => ({
           productId: String(item.productId ?? item.id ?? item._id),
@@ -242,7 +247,7 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
       <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">
-            {isEditing ? 'Edit Sale' : 'Create Sale Invoice'}
+            {isEditing ? 'Edit Delivery' : 'Create Delivery'}
           </h2>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -291,14 +296,27 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
                 required
               />
              </div>
-              <FormField
-                label="Sale Date"
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4" >
+           <FormField
+                label="Delivery Date"
                 name="saleDate"
+                placeholder='Delivery Date'
                 type="date"
                 register={register}
                 error={errors.saleDate}
                 required
               />
+               <FormField
+                label="Received By"
+                name="receivedBy"
+                placeholder='Received By'
+                type="text"
+                register={register}
+                error={errors.receivedBy}
+                required
+              />
+           </div>
+
             
             </div>
             {/* Items */}
@@ -323,8 +341,8 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
                         label="Product"
                         name={`items.${index}.productId`}
                         options={products?.map(product => ({
-                          value: String(product.id ?? product._id),
-                          label: `${product.name} (Stock: ${product.currentStock})`,
+                          value: String(product._id ?? product._id),
+                          label: `${product.name}`,
                         })) || []}
                         control={control}
                         error={errors.items?.[index]?.productId}
@@ -370,6 +388,16 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
                 ))}
               </div>
             </div>
+            <div className="" >
+              <FormField
+              label="Remarks"
+              name="remarks"
+              type="textarea"
+              placeholder="Enter remarks (optional)"
+              register={register}
+              error={errors.remarks}
+            />
+            </div>
             {/* Totals */}
             <div className="bg-gray-50 p-4 rounded-lg">
               <div className="space-y-2">
@@ -407,7 +435,7 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
                 className='gradient-btn'
                 loading={createMutation.isPending || updateMutation.isPending}
               >
-                {isEditing ? 'Update Sale' : 'Create Sale'}
+                  {isEditing ? 'Update Delivery' : 'Create Delivery'}
               </Button>
             </div>
           </form>
@@ -425,10 +453,33 @@ export const Sales: React.FC = () => {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const debouncedSearch = useDebounce(searchTerm, 800);
   const { page, handleNext, handlePrev, resetPage } = usePagination(1);
+  const [confirmToggleId, setConfirmToggleId] = useState<string | null>(null);
+const [confirmToggleValue, setConfirmToggleValue] = useState<boolean>(false);
   const limit = 10;
   const queryClient = useQueryClient();
   const { isAdmin } = useAuth();
+  const { handleSubmit, control,watch } = useForm({
+    defaultValues: {
+      isActive: false,
+    },
+  });
 
+  const toggleIsActiveMutation = async({ id, isActive }:{id:string,isActive:boolean})=>{
+    try {
+        const res = await apiService.toggleSaleActiveStatus({ id, isActive })
+        console.log("res",res)
+            // ✅ Invalidate and refetch the sales list
+    queryClient.invalidateQueries({ queryKey: ['sales'] });
+
+    } catch (error) {
+      console.log("Error",error)
+    }
+  }
+  const isActive = watch('isActive');
+
+  const onActiveChange = (data: any) => {
+    console.log('Form Data:', data);
+  };
   const {
     data: salesResponse = { sales: [], pagination: { page: 1, pages: 1, total: 0, limit } },
     isLoading,
@@ -495,6 +546,8 @@ export const Sales: React.FC = () => {
     }
   };
 
+  
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiService.deleteSale(id),
     onSuccess: () => {
@@ -518,7 +571,7 @@ export const Sales: React.FC = () => {
               className='gradient-btn'
               onClick={() => setIsModalOpen(true)}
             >
-              Create Sale
+              Create Delivery
             </Button>
           }
         />
@@ -552,11 +605,16 @@ export const Sales: React.FC = () => {
                   Customer
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Sale Date
+                  Delivery Date
                 </th>
-                {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th> */}
+                {
+                  isAdmin() && (
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                   Site Status
+                  </th>
+                  )
+                }
+            
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Total
                 </th>
@@ -570,10 +628,10 @@ export const Sales: React.FC = () => {
                 <tr key={sale.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <Receipt className="h-5 w-5 text-gray-400 mr-3" />
-                      <div className="text-sm font-medium text-gray-900">
+                      {/* <Receipt className="h-5 w-5 text-gray-400 mr-3" /> */}
+                      <span className={`px-2 py-1 text-sm  font-medium rounded-full ${getStatusColor('delivered')}`}>
                         {sale.invoiceNumber}
-                      </div>
+                      </span>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -583,11 +641,25 @@ export const Sales: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {new Date(sale.saleDate).toLocaleDateString()}
                   </td>
-                  {/* <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(sale.status)}`}>
-                      {sale.status}
-                    </span>
-                  </td> */}
+                  {
+                    isAdmin() && (  <td className="px-6 py-4 whitespace-nowrap">
+                      {/* <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(sale.status)}`}>
+                        {sale.status}
+                      </span> */}
+                      {/* Add swtich when isActive is true show active else show inactive */}
+                      <Switch
+                      name={`isActive-${sale._id}`}
+                      checked={sale.isActive}
+                      label={sale.isActive ? 'Active' : 'Inactive'}
+                      onChange={(val) => {
+                        setConfirmToggleId(sale._id);
+                        setConfirmToggleValue(val);
+                      }}
+                    
+                    />
+                    </td>)
+                  }
+                
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {formatCurrency(sale.total)}
                   </td>
@@ -639,9 +711,9 @@ export const Sales: React.FC = () => {
         {filteredSales.length === 0 && (
           <div className="text-center py-8">
             <ShoppingCart className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No sales found</h3>
+            <h3 className="mt-2 text-sm font-medium text-gray-900">No deliveries found</h3>
             <p className="mt-1 text-sm text-gray-500">
-              Get started by creating your first sale.
+              Get started by creating your first delivery.
             </p>
           </div>
         )}
@@ -679,6 +751,39 @@ export const Sales: React.FC = () => {
         item={selectedDetailItem}
         title="Sale Details"
       />
+      {confirmToggleId && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+    <div className="bg-white p-6 rounded-lg w-full max-w-md">
+      <h2 className="text-lg font-semibold text-gray-800 mb-4">
+        Are you sure you want to {confirmToggleValue ? 'activate' : 'deactivate'} this site?
+      </h2>
+      <p className="text-sm text-gray-600 mb-6">
+        This will mark the site as {confirmToggleValue ? 'active' : 'inactive'} in the system.
+      </p>
+      <div className="flex justify-end gap-3">
+        <Button
+          variant="outline"
+          onClick={() => setConfirmToggleId(null)}
+        >
+          Cancel
+        </Button>
+        <Button
+          className="gradient-btn"
+          onClick={() =>{
+            toggleIsActiveMutation({id:confirmToggleId,isActive:confirmToggleValue})
+            setConfirmToggleId(null)
+          }
+
+
+          }
+        >
+          Yes, {confirmToggleValue ? 'Activate' : 'Deactivate'}
+        </Button>
+      </div>
+    </div>
+  </div>
+)}
+
     </div>
   );
 };

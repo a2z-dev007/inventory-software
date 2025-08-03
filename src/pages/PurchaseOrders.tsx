@@ -1,6 +1,6 @@
 import React, { useState, useEffect, ChangeEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, FileText, Download, Edit, Trash2, Search } from 'lucide-react';
+import { Plus, FileText, Download, Edit, Trash2, Search, Link2Icon, X } from 'lucide-react';
 import { useForm, useFieldArray, FieldError, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,7 +11,7 @@ import { Button } from '../components/common/Button';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { FormField } from '../components/forms/FormField';
 import { SelectField } from '../components/forms/SelectField';
-import { formatCurrency, formatINRCurrency, getBase64 } from '../utils/constants';
+import { formatCurrency, formatINRCurrency, getBase64, getStatusColor } from '../utils/constants';
 import { useDebounce } from '../hooks/useDebounce';
 import { usePagination } from '../hooks/usePagination';
 import { DetailModal } from '../components/common/DetailModal';
@@ -21,6 +21,8 @@ import autoTable from 'jspdf-autotable';
 import logo from '../assets/images/logo.png'; // static image import
 import { format } from 'date-fns/format';
 import { useAuth } from '../hooks/useAuth';
+import OffCanvas from '../components/common/OffCanvas';
+import { PODetailModal } from '../components/PO/PODetailModal';
 // Define error types
 interface ApiError {
   response?: {
@@ -43,8 +45,12 @@ export const purchaseOrderSchema = z.object({
   ref_num: z.string().min(1, 'DB Number is required'),
   vendor: z.string().min(1, 'Supplier is required'),
   status: z.enum(['draft', 'pending', 'approved', 'delivered', 'cancelled']),
-  attachment: z.any().optional(),
-  remarks: z.string().max(1000, 'Remarks cannot exceed 1000 characters').optional(),
+  attachment: z.union([z.instanceof(File), z.string(), z.null()]).optional(),
+  remarks: z.union([
+    z.string().max(1000, 'Remarks cannot exceed 1000 characters'),
+    z.literal(''),
+    z.null(),
+  ]).optional(),
   site_incharge: z.string().optional(),
   orderedBy:z.string().optional(),
   deliveryDate:z.string().optional(),
@@ -339,12 +345,22 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
   const total = subtotal;
 
   return (
-    <div style={{marginTop:0}} className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">
+    <div style={{marginTop:0}} className="fixed inset-0 bg-black bg-opacity-50 flex items-center backdrop-blur-sm justify-center p-4 z-50">
+
+      <div className="bg-white rounded-lg relative max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <header className="py-3 px-6 flex items-center justify-between bg-slate-100 fixed max-w-4xl w-full rounded-lg z-50 ">
+        <h2 className="text-xl font-semibold text-gray-900 ">
             {isEditing ? 'Edit Purchase Order' : 'Create Purchase Order'}
           </h2>
+        <button
+      onClick={onClose}
+      className=" text-white bg-black/30 hover:bg-black/50 rounded-full p-2 z-50"
+    >
+      <X className="h-6 w-6" />
+    </button>
+        </header>
+        <div className="p-6 pt-20">
+         
 
           {serverError && (
             <div className="mb-4 p-3 bg-red-100 text-red-700 rounded" role="alert">
@@ -645,6 +661,7 @@ export const PurchaseOrders: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPO, setEditingPO] = useState<PurchaseOrder | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [open,setOpen] = useState(false)
   const [selectedDetailItem, setSelectedDetailItem] = useState<PurchaseOrder | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const debouncedSearch = useDebounce(searchTerm, 800);
@@ -675,37 +692,6 @@ export const PurchaseOrders: React.FC = () => {
   });
 
   const filteredPOs = purchaseOrders;
-
-  // const generatePDF = (po: PurchaseOrder) => {
-  //   const doc = new jsPDF();
-
-  //   // Header
-  //   doc.setFontSize(20);
-  //   doc.text('Purchase Order', 20, 30);
-
-  //   doc.setFontSize(12);
-  //   doc.text(`PO Number: ${po.poNumber}`, 20, 50);
-  //   doc.text(`Vendor: ${po.vendor}`, 20, 65);
-  //   doc.text(`Status: ${po.status.toUpperCase()}`, 20, 80);
-  //   doc.text(`Order Date: ${new Date(po.orderDate).toLocaleDateString()}`, 20, 95);
-
-  //   // Items
-  //   doc.text('Items:', 20, 120);
-  //   let yPos = 135;
-
-  //   po.items.forEach((item: PurchaseOrderItem, index: number) => {
-  //     doc.text(`${index + 1}. ${item.productName}`, 25, yPos);
-  //     doc.text(`   Qty: ${item.quantity} × ₹${item.unitPrice} = ₹${item.total}`, 25, yPos + 10);
-  //     yPos += 25;
-  //   });
-
-  //   // Totals
-  //   yPos += 10;
-  //   doc.text(`Subtotal: ₹${po.subtotal.toFixed(2)}`, 20, yPos);
-  //   doc.text(`Total: ₹${po.total.toFixed(2)}`, 20, yPos + 30);
-
-  //   doc.save(`${po.poNumber}.pdf`);
-  // };
 
 
   // generating the pdf🧮 
@@ -842,23 +828,15 @@ export const PurchaseOrders: React.FC = () => {
     setServerError(null);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'draft': return 'bg-gray-100 text-gray-800';
-      case 'approved': return 'bg-blue-100 text-blue-800';
-      case 'delivered': return 'bg-green-100 text-green-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
+
 
   if (isLoading) {
     return <LoadingSpinner size="lg" />;
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
+    <div className="">
+      <Card >
         <CardHeader
           title={`Purchase Orders (${poResponse.pagination.total && poResponse.pagination.total})`}
           subtitle="Manage your purchase orders"
@@ -891,7 +869,7 @@ export const PurchaseOrders: React.FC = () => {
         </div>
 
         {/* Purchase Orders Table */}
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto space-y-6">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -911,6 +889,9 @@ export const PurchaseOrders: React.FC = () => {
                   Order Date
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                 Attachments
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Total
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -925,7 +906,7 @@ export const PurchaseOrders: React.FC = () => {
                     <div className="flex items-center">
                       {/* <FileText className="h-5 w-5 text-gray-400 mr-3" /> */}
                       {/* <Badge variant="green" bordered size="sm" radius="full"> {po.ref_num || '--'}</Badge> */}
-                      <span className={`px-2 py-1 text-sm  font-medium rounded-md ${getStatusColor('delivered')}`}>
+                      <span className={`px-2 py-1 text-sm  font-medium rounded-full ${getStatusColor('delivered')}`}>
                         {po.ref_num || '--'}
                       </span>
                     </div>
@@ -950,13 +931,31 @@ export const PurchaseOrders: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {new Date(po.orderDate).toLocaleDateString()}
                   </td>
-
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {
+                        po.attachment && ( <div className="relative group">
+                          
+                        <a
+                          target='_blank'
+                          className="text-white rounded-full p-1 px-2 text-xs  bg-blue-500 hover:text-green-900"
+                         
+                          href={po.attachment}
+                        >
+                          
+                        View File
+                        </a>
+                        
+                      </div>)
+                      }
+                  </td>
+                
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {formatCurrency(po.total)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                     <div className="flex space-x-2">
-                      <div className="relative group">
+                      {
+                        po.attachment && ( <div className="relative group">
                         <button
                           onClick={() => generatePDF(po)}
                           className="text-green-600 hover:text-green-900"
@@ -965,7 +964,9 @@ export const PurchaseOrders: React.FC = () => {
                           <Download className="h-4 w-4" />
                         </button>
                         <span className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none z-10 whitespace-nowrap">Download PDF</span>
-                      </div>
+                      </div>)
+                      }
+                     
                       {isAdmin() && (
                         <div className="relative group">
                           <button
@@ -1040,18 +1041,38 @@ export const PurchaseOrders: React.FC = () => {
           </Button>
         </div>
       </Card>
-
+        {/* <button onClick={()=>setOpen(!open)}>Open </button> */}
       <POModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         purchaseOrder={editingPO || undefined}
       />
-      <DetailModal
+      <PODetailModal
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
         item={selectedDetailItem}
         title="Purchase Order Details"
       />
+
+
+{/* <OffCanvas
+  isOpen={open}
+  onClose={() => setOpen(false)}
+  title="Bottom Drawer"
+  position="bottom"
+  size="lg"
+  footer={
+    <div className="flex justify-end gap-2">
+      <button onClick={() => setOpen(false)} className="px-4 py-2 border rounded">
+        Cancel
+      </button>
+      <button className="px-4 py-2 bg-blue-600 text-white rounded">Submit</button>
+    </div>
+  }
+>
+  <p>This drawer slides from the bottom!</p>
+</OffCanvas> */}
+
     </div>
   );
 };

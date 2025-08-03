@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Receipt, Download, Search, Trash2, Edit, Link, IndianRupeeIcon, ReceiptIndianRupeeIcon, ReceiptIndianRupee } from 'lucide-react';
+import { Plus, Receipt, Download, Search, Trash2, Edit, Link, IndianRupeeIcon, ReceiptIndianRupeeIcon, ReceiptIndianRupee, NotepadTextDashedIcon, BadgeIndianRupeeIcon, NotepadTextIcon } from 'lucide-react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,18 +11,20 @@ import { Button } from '../components/common/Button';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { FormField } from '../components/forms/FormField';
 import { SelectField } from '../components/forms/SelectField';
-import { formatCurrency } from '../utils/constants';
+import { formatCurrency, getStatusColor } from '../utils/constants';
 import { usePagination } from '../hooks/usePagination';
 import { useDebounce } from '../hooks/useDebounce';
 import { DetailModal } from '../components/common/DetailModal';
 import { PurchaseOrder } from './PurchaseOrders';
 import { useAuth } from '../hooks/useAuth';
+import { Badge } from '../components/common/Badge';
 
 const purchaseItemSchema = z.object({
   productId: z.string().min(1, 'Product is required'),
   quantity: z.number().min(1, 'Quantity must be at least 1'),
   unitPrice: z.number().min(0, 'Unit price must be positive'),
   unitType: z.string().min(1, 'Unit type is required'),
+  isCancelled:z.boolean().optional()
 });
 
 const purchaseSchema = z.object({
@@ -36,7 +38,7 @@ const purchaseSchema = z.object({
 type PurchaseFormData = {
   ref_num: string;
   supplier: string;
-  items: { productId: number; quantity: number; unitPrice: number, unitType: string }[];
+  items: { productId: number; quantity: number; unitPrice: number, unitType: string,isCancelled:false }[];
   invoiceFile: FileList;
   remarks: string;
   // add other fields as needed
@@ -127,7 +129,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
     defaultValues: {
       ref_num: '',
       supplier: '',
-      items: [{ productId: 0, quantity: 1, unitPrice: 0, unitType: '' }],
+      items: [{ productId: 0, quantity: 1, unitPrice: 0, unitType: '',isCancelled:false }],
       invoiceFile: '',
       remarks:''
     },
@@ -146,6 +148,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           unitType: item.unitType,
+          isCancelled:item.unitType
         })),
         invoiceFile: purchase.invoiceFile || '',
         remarks: purchase.remarks
@@ -187,7 +190,8 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
           productId: String(item.productId),
           quantity: item.quantity,
           unitPrice: item.unitPrice,
-          unitType: item.unitType
+          unitType: item.unitType,
+          isCancelled:item.isCancelled
         })),
         // Keep invoiceFile untouched
         invoiceFile: prevValues.invoiceFile,
@@ -197,7 +201,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
       reset({
         ref_num: '',
         supplier: '',
-        items: [{ productId: 0, quantity: 1, unitPrice: 0, unitType: '' }],
+        items: [{ productId: 0, quantity: 1, unitPrice: 0, unitType: '',isCancelled:false }],
         invoiceFile: '',
         remarks:''
       })
@@ -274,7 +278,8 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
         productId: String(item.productId),
         quantity: item.quantity,
         unitPrice: item.unitPrice,
-        unitType: item.unitType
+        unitType: item.unitType,
+        isCancelled: item.isCancelled || false
       }))));
 
       // POST or PUT to API
@@ -294,12 +299,18 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
 
   const calculateSubtotal = () => {
     return watchedItems.reduce((sum, item) => {
+      if (item.isCancelled) return sum; // skip cancelled items
       return sum + (item.quantity * item.unitPrice);
     }, 0);
   };
 
   // Removed calculateTax and calculateTotal
-
+  const calculateCancelledTotal = () => {
+    return watchedItems.reduce((sum, item) => {
+      if (!item.isCancelled) return sum;
+      return sum + (item.quantity * item.unitPrice);
+    }, 0);
+  };
   const generateReceiptNumber = () => {
     const now = new Date();
     return `PUR-${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}-${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}${now.getSeconds().toString().padStart(2, '0')}`;
@@ -318,6 +329,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
         unitPrice: item.unitPrice,
         unitType: item.unitType,
         total: item.quantity * item.unitPrice,
+        isCancelled: item.isCancelled || false
       })),
       subtotal: calculateSubtotal(),
       // Removed tax
@@ -424,7 +436,12 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
 
               <div className="space-y-4">
                 {fields.map((field, index) => (
-                  <div key={field.id} className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 border border-gray-200 rounded-lg">
+                <div
+                key={field.id}
+                className={`grid grid-cols-1 md:grid-cols-5 gap-4 p-4 border border-gray-200 rounded-lg ${
+                  watchedItems[index]?.isCancelled ? 'bg-red-100' : ''
+                }`}
+              >
                     <div className="md:col-span-2">
                       <SelectField<PurchaseFormData>
                         label="Product"
@@ -467,6 +484,27 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
                       disabled={true}
                       required
                     />
+                {watchedItems[index]?.productId &&
+                  watchedItems[index]?.quantity > 0 &&
+                    watchedItems[index]?.unitPrice > 0 && (
+                      <div className="flex items-center gap-2">
+                        <label htmlFor={`items.${index}.isCancelled`} className="text-sm font-medium text-gray-700">
+                          Cancelled
+                        </label>
+                        <Controller
+                          control={control}
+                          name={`items.${index}.isCancelled`}
+                          render={({ field }) => (
+                            <input
+                              type="checkbox"
+                              className="w-5 h-5 text-red-600 rounded border-gray-300 focus:ring-red-500"
+                              {...field}
+                            />
+                          )}
+                        />
+                      </div>
+                    )}
+
 
                     <div className="flex items-end">
                       <Button
@@ -494,6 +532,14 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
             {/* Totals */}
             <div className="bg-gray-50 p-4 rounded-lg">
               <div className="space-y-2">
+            
+              {calculateCancelledTotal() > 0 && (
+                  <div className="flex justify-between text-red-500">
+                    <span>Cancelled Total:</span>
+                    <span>{formatCurrency(calculateCancelledTotal())}</span>
+                  </div>
+                )}
+          
                 <div className="flex justify-between">
                   <span>Subtotal:</span>
                   <span>{formatCurrency(subtotal)}</span>
@@ -667,10 +713,13 @@ export const Purchases: React.FC = () => {
                 <tr key={purchase._id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <Receipt className="h-5 w-5 text-gray-400 mr-3" />
-                      <div className="text-sm font-medium text-gray-900">
-                        {purchase.receiptNumber}
-                      </div>
+                      {/* <NotepadTextIcon className="h-5 w-5 text-gray-400 mr-3" /> */}
+                   
+                     <span className={`px-2 py-1 text-sm  font-medium rounded-full ${getStatusColor('delivered')}`}>
+
+                     {purchase.receiptNumber}
+                      </span>
+            
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">

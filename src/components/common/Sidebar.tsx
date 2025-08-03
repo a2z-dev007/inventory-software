@@ -25,7 +25,7 @@ interface NavItem {
 
 const navigation: NavItem[] = [
   // { name: 'Dashboard', href: '/', icon: LayoutDashboard, roles: ['admin', 'manager', 'staff'] },
-  { name: 'Purchase Orders', href: '/purchase-orders', icon: FileText, roles: ['admin', 'manager'] },
+  { name: 'PO', href: '/purchase-orders', icon: FileText, roles: ['admin', 'manager'] },
   { name: 'Purchases', href: '/purchases', icon: ReceiptIndianRupee, roles: ['admin', 'manager'] },
   { name: 'Site', href: '/site', icon: MapPinnedIcon, roles: ['admin', 'manager', 'staff'] },
   { name: 'Suppliers', href: '/suppliers', icon: Truck, roles: ['admin', 'manager'] },

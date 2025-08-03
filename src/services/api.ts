@@ -645,6 +645,28 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
       throw error;
     }
   },
+
+
+  toggleSaleActiveStatus: async ({ id, isActive }:{id:string,isActive:boolean}) => {
+    try {
+      console.log("{ isActive }",{ isActive })
+      const res = await request<any>(API_ROUTES.SALE(id + "/active"), {
+        method: 'PATCH',
+        body: JSON.stringify({ isActive }), // ✅ works with request() function logic
+      });
+      if(res.success){
+      toast.success(res.message || 'Sale updated successfully');
+      }
+      if(res.success === false){
+        throw new Error(res.message || 'Failed to update sale');
+        return
+      }
+      return res;
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to update sale');
+      throw error;
+    }
+  },
   getAllPurposes: async ({ page = 1, limit = 10, search = '',all=false }) => {
     try {
       const res = await request<any>(API_ROUTES.PURPOSES, {
@@ -664,4 +686,44 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
       throw error;
     }
   },
+
+  // Get all the data from universal report export api
+  // exportToExcel: async ({name}:{name:string}) => {
+  //   try {
+  //     const res = await request<any>(API_ROUTES.REPORTS_EXCEL(name));
+
+  //     if(res.success === false){
+  //       throw new Error(res.message || 'Failed to change password');
+  //       return
+  //     }
+  //     if(res.success){
+  //       toast.success(res.message || 'Report Exported successfully');
+  //     }
+  //     // toast.success(res.message || 'Password changed successfully');
+  //     return res;
+  //   } catch (error: any) {
+  //     // toast.error(error?.response?.data?.message || error.message || 'Failed to change password');
+  //     throw error;
+  //   }
+  // },
+
+
+  exportToExcel: async ({ moduleName, startDate, endDate,}:{moduleName:string,startDate:string,endDate:string}) => {
+    try {
+      const res = await request<any>(API_ROUTES.REPORTS_EXCEL(moduleName), {
+        method: 'GET',
+        params: {
+          startDate,
+          endDate,
+        },
+      });
+  
+      // Backend returns: { success: true, data: [...] }
+      return res; // ✅ Return data array for export
+    } catch (error) {
+      console.error(`Error exporting ${moduleName} data:`, error);
+      throw error;
+    }
+  },
+  
 };

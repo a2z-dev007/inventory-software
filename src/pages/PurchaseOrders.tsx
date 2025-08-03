@@ -631,6 +631,7 @@ export interface PurchaseOrder {
   items: PurchaseOrderItem[];
   subtotal: number;
   total: number;
+  isDeleted?: boolean;
   ref_no: string;
   remarks?: string;
   site_incharge?: string;
@@ -662,8 +663,8 @@ export const PurchaseOrders: React.FC = () => {
     // Use a function that ignores the context param for react-query v4 compatibility
     queryFn: () => apiService.getPurchaseOrders({ page, limit, search: debouncedSearch }),
   });
-
-  const purchaseOrders = Array.isArray(poResponse?.purchaseOrders) ? poResponse.purchaseOrders : [];
+  const filteredPurchaseOrders = poResponse?.purchaseOrders.filter((po: PurchaseOrder) => po.isDeleted === false || po.isDeleted !== undefined);
+  const purchaseOrders = Array.isArray(filteredPurchaseOrders) ? filteredPurchaseOrders : [];
   const pagination = poResponse?.pagination || { page: 1, pages: 1, total: 0, limit };
 
   const deleteMutation = useMutation({

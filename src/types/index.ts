@@ -23,22 +23,17 @@ export interface User {
 export interface Product {
   _id:           string;
   name:          string;
-  image:         string;
-  sku:           string;
+  image?:        string;
   purchaseRate:  number;
-  salesRate:     number;
-  currentStock:  number;
-  category:      string;
-  categoryName:  string;
   unitType:      string;
-  vendor:        string;
-  description:   string;
-  minStockLevel: number;
-  isActive:      boolean;
-  createdBy:     string;
-  createdAt:     Date;
-  updatedAt:     Date;
-  __v:           number;
+  vendor?:       string;
+  description?:  string;
+  minStockLevel?: number;
+  isActive?:      boolean;
+  createdBy?:     string;
+  createdAt?:     Date;
+  updatedAt?:     Date;
+  __v?:           number;
 }
 
 export interface Category {

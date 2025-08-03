@@ -266,7 +266,7 @@ export const Customers: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 border border-red-500 pb-6">
+    <div className="space-y-6  pb-6">
       <Card>
         <CardHeader
           title={`Customers (${customerResponse?.pagination?.total || 0})`}

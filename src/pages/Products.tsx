@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Edit, Trash2, Search, Package } from 'lucide-react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { apiService } from '../services/api';
@@ -9,23 +9,38 @@ import { Card, CardHeader } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { FormField } from '../components/forms/FormField';
-import { SelectField } from '../components/forms/SelectField';
 import { formatCurrency } from '../utils/constants';
 import { Product } from '../types';
 import { useDebounce } from '../hooks/useDebounce';
 import { usePagination } from '../hooks/usePagination';
 import { DetailModal } from '../components/common/DetailModal';
 import { useAuth } from '../hooks/useAuth';
+import Select from 'react-select';
+
+const UNIT_TYPE_OPTIONS = [
+  { value: 'Nos', label: 'Nos' },
+  { value: 'kg', label: 'kg' },
+  { value: 'MT', label: 'MT' },
+  { value: 'm²', label: 'm²' },
+  { value: 'm³', label: 'm³' },
+  { value: 'Bag', label: 'Bag' },
+  { value: 'Sheet', label: 'Sheet' },
+  { value: 'Roll', label: 'Roll' },
+  { value: 'Set', label: 'Set' },
+  { value: 'Unit', label: 'Unit' },
+  { value: 'Box', label: 'Box' },
+  { value: 'Packet', label: 'Packet' },
+  { value: 'Can', label: 'Can' },
+  { value: 'Litre', label: 'Litre' },
+  { value: 'Piece', label: 'Piece' },
+  { value: 'Pair', label: 'Pair' },
+  { value: 'Machine Hour', label: 'Machine Hour' },
+];
 
 const productSchema = z.object({
   name: z.string().min(1, 'Product name is required'),
-  // sku: z.string().min(1, 'SKU is required'),
-  // unitType:z.string(),
   purchaseRate: z.number().min(0, 'Purchase rate must be positive'),
-  salesRate: z.number().min(0, 'Sales rate must be positive'),
-  currentStock: z.number().min(0, 'Current stock must be positive'),
-  category: z.string().min(1, 'Category is required'),
-  // supplier: z.string().min(1, 'Supplier is required'),
+  unitType: z.string().min(1, 'Unit type is required'),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -40,62 +55,37 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
   const queryClient = useQueryClient();
   const isEditing = !!product;
 
-  // Fetch suppliers for dropdown
-  const { data: suppliersData } = useQuery({
-    queryKey: ['suppliers'],
-    queryFn: () => apiService.getSuppliers({ all:true }),
-  });
-
-  const {
-    data: categoriesData,} = useQuery({ queryKey: ['categories'], queryFn: () => apiService.getAllCategories(),staleTime: 0,});
-  type Supplier = { id?: string; _id?: string; name: string };
-  const suppliers: Supplier[] = suppliersData?.vendors || [];
-
   const {
     register,
     handleSubmit,
-    control,
     formState: { errors },
     reset,
+    control,
   } = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
     defaultValues: product
-      ? { ...product,  }
-      : { name: '', category: '', purchaseRate: 0,  currentStock: 0, },
+      ? { ...product }
+      : { name: '', purchaseRate: 0, unitType: '' },
   });
 
-  // Prefill form fields with correct supplier ID after suppliers load
-  // useEffect(() => {
-  //   if (isOpen && product && suppliers.length > 0) {
-  //     let supplierId = '';
-  //     if (typeof product.supplier === 'object' && product.supplier !== null) {
-  //       supplierId = String((product.supplier as Record<string, unknown>).id ?? (product.supplier as Record<string, unknown>)._id);
-  //     } else if (typeof product.supplier === 'string') {
-  //       const found = suppliers.find(s => s.name === product.supplier);
-  //       supplierId = found ? String(found.id ?? found._id) : '';
-  //     }
-  //     reset({
-  //       name: product.name,
-  //       sku: product.sku,
-  //       purchaseRate: product.purchaseRate,
-  //       salesRate: product.salesRate,
-  //       currentStock: product.currentStock,
-  //       category: product.category,
-  //       supplier: supplierId,
-  //     });
-  //   }
-  // }, [isOpen, product, suppliers, reset]);
+  // Prefill when editing
+  useEffect(() => {
+    if (isOpen && product) {
+      reset({
+        name: product.name || '',
+        purchaseRate: product.purchaseRate || 0,
+        unitType: product.unitType || '',
+      });
+    }
+  }, [isOpen, product, reset]);
 
+  // Clear when adding new
   useEffect(() => {
     if (isOpen && !product) {
       reset({
         name: '',
-        // sku: '',
         purchaseRate: 0,
-        salesRate: 0,
-        currentStock: 0,
-        category: '',
-        // supplier: '',
+        unitType: '',
       });
     }
   }, [isOpen, product, reset]);
@@ -143,7 +133,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
     const payload = { ...data };
     delete (payload as Record<string, unknown>).supplier;
     if (isEditing) {
-      const id = (product?.id ?? '').toString();
+      const id = (product?._id ?? '').toString();
       if (!id) {
         alert('Product ID is missing. Cannot update.');
         return;
@@ -158,7 +148,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
 
   return (
     <div style={{marginTop:0}} className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg max-w-2xl w-full min-h-[30vh] overflow-y-auto">
         <div className="p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">
             {isEditing ? 'Edit Product' : 'Add New Product'}
@@ -174,16 +164,6 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
                 error={errors.name}
                 required
               />
-
-              {/* <FormField
-                label="SKU"
-                name="sku"
-                placeholder="Enter SKU"
-                register={register}
-                error={errors.sku}
-                required
-              /> */}
-
               <FormField
                 label="Rate"
                 name="purchaseRate"
@@ -193,64 +173,30 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
                 error={errors.purchaseRate}
                 required
               />
-
-              <FormField
-                label="Sales Rate"
-                name="salesRate"
-                type="number"
-                placeholder="Enter sales rate"
-                register={register}
-                error={errors.salesRate}
-                required
+              <Controller
+                name="unitType"
+                control={control}
+                rules={{ required: 'Unit type is required' }}
+                render={({ field }) => (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Unit Type<span className="text-red-500">*</span>
+                    </label>
+                    <Select
+                      {...field}
+                      options={UNIT_TYPE_OPTIONS}
+                      value={UNIT_TYPE_OPTIONS.find(opt => opt.value === field.value) || null}
+                      onChange={option => field.onChange(option ? option.value : '')}
+                      placeholder="Select unit type"
+                      isClearable
+                    />
+                    {errors.unitType && (
+                      <span className="text-xs text-red-500">{errors.unitType.message}</span>
+                    )}
+                  </div>
+                )}
               />
-
-              <FormField
-                label="Current Stock"
-                name="currentStock"
-                type="number"
-                placeholder="Enter current stock"
-                register={register}
-                error={errors.currentStock}
-                required
-              />
-
-              {/* <FormField
-                label="Category"
-                name="category"
-                placeholder="Enter category"
-                register={register}
-                error={errors.category}
-                required
-              /> */}
-                 <SelectField<ProductFormData>
-              label="Category"
-              name="category"
-              options={categoriesData?.data?.categories?.map((category) => ({
-                value: String(category.id ?? category._id),
-                label: category.name,
-              }))}
-              placeholder='Select Category'
-              control={control}
-              error={errors.category}
-              required
-            />
-               
             </div>
-         
-            {/* <SelectField<ProductFormData>
-              label="Supplier"
-              name="supplier"
-              placeholder='Select Supplier'
-              options={suppliers.map((supplier) => ({
-                value: String(supplier.id ?? supplier._id),
-                label: supplier.name,
-              }))}
-              control={control}
-              error={errors.supplier}
-              required
-            /> */}
-             
-
             <div className="flex justify-end space-x-3 pt-4">
               <Button
                 type="button"
@@ -297,14 +243,7 @@ export const Products: React.FC = () => {
 
 
   const products = Array.isArray(productResponse?.products)
-    ? productResponse.products.map((p: Product) => {
-        const id = typeof p.id === 'string'
-          ? p.id
-          : (typeof ((p as unknown) as { _id?: string })._id === 'string'
-              ? ((p as unknown) as { _id: string })._id
-              : undefined);
-        return { ...p, id };
-      })
+    ? productResponse.products
     : [];
   const pagination = productResponse?.pagination || { page: 1, pages: 1, total: 0, limit };
 
@@ -320,12 +259,6 @@ export const Products: React.FC = () => {
   const handleEdit = (product: Product) => {
     setEditingProduct(product);
     setIsModalOpen(true);
-  };
-
-  const handleDelete = (id: number) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
-      deleteMutation.mutate(id.toString());
-    }
   };
 
   const handleCloseModal = () => {
@@ -353,7 +286,6 @@ export const Products: React.FC = () => {
             </Button>
           }
         />
-
         {/* Search */}
         <div className="mb-6">
           <div className="relative">
@@ -370,7 +302,6 @@ export const Products: React.FC = () => {
             />
           </div>
         </div>
-
         {/* Products Table */}
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -379,20 +310,11 @@ export const Products: React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Product
                 </th>
-                {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  SKU
-                </th> */}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Category
+                  Product Price
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Product Price
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Sales Rate
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Stock
+                  Unit Type
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
@@ -419,30 +341,11 @@ export const Products: React.FC = () => {
                       </div>
                     </div>
                   </td>
-                  {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {product.sku}
-                  </td> */}
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-                      {product?.name} - ({product?.unitType})
-                    </span>
-                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {formatCurrency(product.purchaseRate)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {formatCurrency(product.salesRate)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      product.currentStock < 10
-                        ? 'bg-red-100 text-red-800'
-                        : product.currentStock < 50
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-green-100 text-green-800'
-                    }`}>
-                      {product.currentStock}
-                    </span>
+                    {product.unitType}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                     {isAdmin() && (
@@ -481,7 +384,6 @@ export const Products: React.FC = () => {
             </tbody>
           </table>
         </div>
-
         {filteredProducts.length === 0 && (
           <div className="text-center py-8">
             <Package className="mx-auto h-12 w-12 text-gray-400" />
@@ -491,7 +393,6 @@ export const Products: React.FC = () => {
             </p>
           </div>
         )}
-
         {/* Pagination Controls */}
         <div className="flex justify-center items-center space-x-2 mt-6">
           <Button
@@ -513,7 +414,6 @@ export const Products: React.FC = () => {
           </Button>
         </div>
       </Card>
-
       <ProductModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}

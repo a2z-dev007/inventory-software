@@ -29,6 +29,7 @@ export const API_ROUTES = {
   PURCHASE_ORDER: (id: string) => `/purchase-orders/${id}`,
 
   SALES: '/sales',
+  REPORTS_EXCEL: (id: string) => `/reports/${id}`,
   SALE: (id: string) => `/sales/${id}`,
 
   PURCHASES: '/purchases',

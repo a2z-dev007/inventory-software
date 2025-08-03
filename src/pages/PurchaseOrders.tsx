@@ -1,28 +1,29 @@
-"use client"
-
-import React, { useState, useEffect } from "react"
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { Plus, FileText, Download, Edit, Trash2, Search, Eye } from "lucide-react"
-import { useForm, useFieldArray, Controller } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { z } from "zod"
-import { useNavigate } from "react-router-dom"
-import jsPDF from "jspdf"
-import { apiService } from "../services/api"
-import { Card, CardHeader } from "../components/common/Card"
-import { Button } from "../components/common/Button"
-import { LoadingSpinner } from "../components/common/LoadingSpinner"
-import { FormField } from "../components/forms/FormField"
-import { SelectField } from "../components/forms/SelectField"
-import { formatCurrency, getBase64 } from "../utils/constants"
-import { useDebounce } from "../hooks/useDebounce"
-import { usePagination } from "../hooks/usePagination"
-import type { Product, Purposes, Supplier } from "../types"
-import autoTable from "jspdf-autotable"
-import logo from "../assets/images/logo.png"
-import { format } from "date-fns/format"
-import { useAuth } from "../hooks/useAuth"
-
+import React, { useState, useEffect, ChangeEvent } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Plus, FileText, Download, Edit, Trash2, Search, Link2Icon, X, Eye } from 'lucide-react';
+import { useForm, useFieldArray, FieldError, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import jsPDF from 'jspdf';
+import { apiService } from '../services/api';
+import { Card, CardHeader } from '../components/common/Card';
+import { Button } from '../components/common/Button';
+import { LoadingSpinner } from '../components/common/LoadingSpinner';
+import { FormField } from '../components/forms/FormField';
+import { SelectField } from '../components/forms/SelectField';
+import { formatCurrency, formatINRCurrency, getBase64, getStatusColor } from '../utils/constants';
+import { useDebounce } from '../hooks/useDebounce';
+import { usePagination } from '../hooks/usePagination';
+import { DetailModal } from '../components/common/DetailModal';
+import { Product, Purposes, Supplier } from '../types';
+import { Badge } from '../components/common/Badge';
+import autoTable from 'jspdf-autotable';
+import logo from '../assets/images/logo.png'; // static image import
+import { format } from 'date-fns/format';
+import { useAuth } from '../hooks/useAuth';
+import OffCanvas from '../components/common/OffCanvas';
+import { PODetailModal } from '../components/PO/PODetailModal';
+import { generatePDF } from '../utils/pdf';
 // Define error types
 interface ApiError {
   response?: {
@@ -41,11 +42,15 @@ interface ApiError {
 
 // Item schema
 export const purchaseOrderSchema = z.object({
-  ref_num: z.string().min(1, "DB Number is required"),
-  vendor: z.string().min(1, "Supplier is required"),
-  status: z.enum(["draft", "pending", "approved", "delivered", "cancelled"]),
-  attachment: z.any().optional(),
-  remarks: z.string().max(1000, "Remarks cannot exceed 1000 characters").optional(),
+  ref_num: z.string().min(1, 'DB Number is required'),
+  vendor: z.string().min(1, 'Supplier is required'),
+  status: z.enum(['draft', 'pending', 'approved', 'delivered', 'cancelled']),
+  attachment: z.union([z.instanceof(File), z.string(), z.null()]).optional(),
+  remarks: z.union([
+    z.string().max(1000, 'Remarks cannot exceed 1000 characters'),
+    z.literal(''),
+    z.null(),
+  ]).optional(),
   site_incharge: z.string().optional(),
   orderedBy: z.string().optional(),
   deliveryDate: z.string().optional(),
@@ -429,15 +434,22 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
   const total = subtotal
 
   return (
-    <div
-      style={{ marginTop: 0 }}
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-    >
-      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">
-            {isEditing ? "Edit Purchase Order" : "Create Purchase Order"}
+    <div style={{marginTop:0}} className="fixed inset-0 bg-black bg-opacity-50 flex items-center backdrop-blur-sm justify-center p-4 z-50">
+
+      <div className="bg-white rounded-lg relative max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <header className="py-3 px-6 flex items-center justify-between bg-slate-100 fixed max-w-4xl w-full rounded-lg z-50 ">
+        <h2 className="text-xl font-semibold text-gray-900 ">
+            {isEditing ? 'Edit Purchase Order' : 'Create Purchase Order'}
           </h2>
+        <button
+      onClick={onClose}
+      className=" text-white bg-black/30 hover:bg-black/50 rounded-full p-2 z-50"
+    >
+      <X className="h-6 w-6" />
+    </button>
+        </header>
+        <div className="p-6 pt-20">
+         
 
           {serverError && (
             <div className="mb-4 p-3 bg-red-100 text-red-700 rounded" role="alert">
@@ -693,18 +705,22 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
 }
 
 export const PurchaseOrders: React.FC = () => {
-  const navigate = useNavigate()
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingPO, setEditingPO] = useState<PurchaseOrder | null>(null)
-  const [searchTerm, setSearchTerm] = useState("")
-  const debouncedSearch = useDebounce(searchTerm, 800)
-  const { page, handleNext, handlePrev, resetPage } = usePagination(1)
-  const limit = 10
-  const queryClient = useQueryClient()
-  const [serverError, setServerError] = useState<string | null>(null)
-  const { isAdmin } = useAuth()
 
-  // Fixed: Better error handling and data structure handling for purchase orders
+  const navigate = useNavigate()
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingPO, setEditingPO] = useState<PurchaseOrder | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [open,setOpen] = useState(false)
+  const [selectedDetailItem, setSelectedDetailItem] = useState<PurchaseOrder | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const debouncedSearch = useDebounce(searchTerm, 800);
+  const { page, handleNext, handlePrev, resetPage } = usePagination(1);
+  const limit = 10;
+  const queryClient = useQueryClient();
+  // State for server-side error
+  const [serverError, setServerError] = useState<string | null>(null);
+  const { isAdmin } = useAuth();
+
   const {
     data: poResponse,
     isLoading,
@@ -766,133 +782,13 @@ export const PurchaseOrders: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["purchase-orders"], exact: false })
     },
-  })
+  });
 
-  const generatePDF = async (po: PurchaseOrder) => {
-    try {
-      const doc = new jsPDF({ format: "a4", unit: "mm" })
-      const base64Logo = await getBase64(logo)
+  const filteredPOs = purchaseOrders;
 
-      // Styling
-      const labelStyle = () => doc.setTextColor(0, 0, 0).setFont("helvetica", "bold").setFontSize(11)
-      const valueStyle = () => doc.setTextColor(80, 80, 80).setFont("helvetica", "normal")
 
-      const marginLeft = 20
-      const marginRight = 190
-      let y = 20
-
-      // Header: Logo + Company Info
-      doc.addImage(base64Logo, "PNG", marginLeft, y, 30, 20)
-
-      doc.setFontSize(14).setFont("helvetica", "bold")
-      doc.text("SPACE WINGS PVT. LTD", marginLeft + 35, y + 8)
-      doc.text("PURCHASE ORDER (PO)", marginRight, y + 8, { align: "right" })
-
-      doc.setFontSize(10).setFont("helvetica", "normal")
-      doc.text("Contact - +91-7897391111  Email - Team@spacewings.com", 105, y + 18, { align: "center" })
-      doc.text("1/7, Vishwas Khand, Gomti Nagar, Lucknow, Uttar Pradesh 226010", 105, y + 24, { align: "center" })
-
-      y = y + 32
-
-      // Info Block
-      labelStyle()
-      doc.text("PO Number:", marginLeft, y)
-      valueStyle()
-      doc.text(po.poNumber, marginLeft + 35, y)
-
-      labelStyle()
-      doc.text("Date:", 140, y)
-      valueStyle()
-      doc.text(format(new Date(po.orderDate), "yyyy-MM-dd"), 160, y)
-
-      y += 8
-      labelStyle()
-      doc.text("Client Name:", marginLeft, y)
-      valueStyle()
-      doc.text(po.vendor || "-", marginLeft + 35, y)
-
-      y += 8
-      labelStyle()
-      doc.text("Status:", marginLeft, y)
-      valueStyle()
-      doc.text(po.status.toUpperCase(), marginLeft + 35, y)
-
-      labelStyle()
-      doc.text("DB No:", 140, y)
-      valueStyle()
-      doc.text(po.ref_num || "-", 160, y)
-
-      y += 8
-      labelStyle()
-      doc.text("Site Incharge:", marginLeft, y)
-      valueStyle()
-      doc.text(po.site_incharge || "-", marginLeft + 35, y)
-
-      labelStyle()
-      doc.text("Contractor:", 140, y)
-      valueStyle()
-      doc.text(po.contractor || "-", 164, y)
-
-      // Items Table
-      autoTable(doc, {
-        startY: y + 12,
-        margin: { left: marginLeft, right: 20 },
-        head: [["Item Name", "Unit Type", "Quantity", "Rate (INR)", "Total Amount (INR)"]],
-        body: po.items.map((item) => [
-          item.productName,
-          item.unitType || "-",
-          item.quantity,
-          item.unitPrice.toLocaleString(),
-          (item.total || item.quantity * item.unitPrice).toLocaleString(),
-        ]),
-        styles: {
-          fontSize: 10,
-          halign: "center",
-          valign: "middle",
-          cellPadding: 3,
-        },
-        headStyles: {
-          fillColor: [38, 0, 84],
-          textColor: [255, 255, 255],
-        },
-        alternateRowStyles: { fillColor: [245, 245, 245] },
-        bodyStyles: {
-          textColor: [40, 40, 40],
-        },
-      })
-
-      const finalY = (doc as any).lastAutoTable.finalY || 120
-
-      // Footer Details
-      labelStyle()
-      doc.text("Ordered By:", marginLeft, finalY + 30)
-      valueStyle()
-      doc.text(po.orderedBy || "-", marginLeft + 30, finalY + 30)
-
-      labelStyle()
-      doc.text("Delivery Date:", marginLeft, finalY + 38)
-      valueStyle()
-      doc.text(po.deliveryDate ? format(new Date(po.deliveryDate), "yyyy-MM-dd") : "-", marginLeft + 30, finalY + 38)
-
-      labelStyle()
-      doc.text("Purpose:", marginLeft, finalY + 48)
-      valueStyle()
-      doc.text(po.purpose || "-", marginLeft + 30, finalY + 48)
-
-      if (po.remarks) {
-        labelStyle()
-        doc.text("Remarks:", marginLeft, finalY + 60)
-        valueStyle()
-        doc.text(po.remarks, marginLeft, finalY + 70, { maxWidth: 170 })
-      }
-
-      // Save File
-      doc.save(`${po.poNumber}_Purchase_Order.pdf`)
-    } catch (error) {
-      console.error("Error generating PDF:", error)
-      alert("Failed to generate PDF. Please try again.")
-    }
-  }
+  // generating the pdf🧮 
+ 
 
   const handleEdit = (po: PurchaseOrder) => {
     setEditingPO({ ...po, id: po.id ?? po._id })
@@ -915,20 +811,6 @@ export const PurchaseOrders: React.FC = () => {
     setServerError(null)
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "draft":
-        return "bg-gray-100 text-gray-800"
-      case "approved":
-        return "bg-blue-100 text-blue-800"
-      case "delivered":
-        return "bg-green-100 text-green-800"
-      case "cancelled":
-        return "bg-red-100 text-red-800"
-      default:
-        return "bg-gray-100 text-gray-800"
-    }
-  }
 
   if (isLoading) {
     return <LoadingSpinner size="lg" />
@@ -957,8 +839,8 @@ export const PurchaseOrders: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
+    <div className="">
+      <Card >
         <CardHeader
           title={`Purchase Orders (${pagination.total})`}
           subtitle="Manage your purchase orders"
@@ -994,7 +876,7 @@ export const PurchaseOrders: React.FC = () => {
         </div>
 
         {/* Purchase Orders Table */}
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto space-y-6">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -1014,6 +896,9 @@ export const PurchaseOrders: React.FC = () => {
                   Order Date
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                 Attachments
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Total
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -1026,8 +911,10 @@ export const PurchaseOrders: React.FC = () => {
                 <tr key={po.id ?? po._id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <span className={`px-2 py-1 text-sm font-medium rounded-md ${getStatusColor("delivered")}`}>
-                        {po.ref_num || "--"}
+                      {/* <FileText className="h-5 w-5 text-gray-400 mr-3" /> */}
+                      {/* <Badge variant="green" bordered size="sm" radius="full"> {po.ref_num || '--'}</Badge> */}
+                      <span className={`px-2 py-1 text-sm  font-medium rounded-full ${getStatusColor('delivered')}`}>
+                        {po.ref_num || '--'}
                       </span>
                     </div>
                   </td>
@@ -1051,7 +938,8 @@ export const PurchaseOrders: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                     <div className="flex space-x-2">
-                      <div className="relative group">
+                      {
+                        po.attachment && ( <div className="relative group">
                         <button
                           onClick={() => generatePDF(po)}
                           className="text-green-600 hover:text-green-900"
@@ -1059,10 +947,10 @@ export const PurchaseOrders: React.FC = () => {
                         >
                           <Download className="h-4 w-4" />
                         </button>
-                        <span className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none z-10 whitespace-nowrap">
-                          Download PDF
-                        </span>
-                      </div>
+                        <span className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none z-10 whitespace-nowrap">Download PDF</span>
+                      </div>)
+                      }
+                     
                       {isAdmin() && (
                         <div className="relative group">
                           <button
@@ -1138,8 +1026,38 @@ export const PurchaseOrders: React.FC = () => {
           </Button>
         </div>
       </Card>
+        {/* <button onClick={()=>setOpen(!open)}>Open </button> */}
+      <POModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        purchaseOrder={editingPO || undefined}
+      />
+      <PODetailModal
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        item={selectedDetailItem}
+        title="Purchase Order Details"
+      />
 
-      <POModal isOpen={isModalOpen} onClose={handleCloseModal} purchaseOrder={editingPO || undefined} />
+
+{/* <OffCanvas
+  isOpen={open}
+  onClose={() => setOpen(false)}
+  title="Bottom Drawer"
+  position="bottom"
+  size="lg"
+  footer={
+    <div className="flex justify-end gap-2">
+      <button onClick={() => setOpen(false)} className="px-4 py-2 border rounded">
+        Cancel
+      </button>
+      <button className="px-4 py-2 bg-blue-600 text-white rounded">Submit</button>
+    </div>
+  }
+>
+  <p>This drawer slides from the bottom!</p>
+</OffCanvas> */}
+
     </div>
   )
 }

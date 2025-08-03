@@ -29,7 +29,7 @@ const navigation: NavItem[] = [
   { name: 'Purchases', href: '/purchases', icon: ReceiptIndianRupee, roles: ['admin', 'manager'] },
   { name: 'Site', href: '/site', icon: MapPinnedIcon, roles: ['admin', 'manager', 'staff'] },
   { name: 'Suppliers', href: '/suppliers', icon: Truck, roles: ['admin', 'manager'] },
-  { name: 'Client', href: '/client', icon: Users, roles: ['admin', 'manager', 'staff'] },
+  { name: 'Clients', href: '/clients', icon: Users, roles: ['admin', 'manager', 'staff'] },
   { name: 'Products', href: '/products', icon: Package, roles: ['admin', 'manager', 'staff'] },
   { name: 'Reports', href: '/reports', icon: TrendingUp, roles: ['admin', 'manager'] },
   { name: 'Settings', href: '/settings', icon: Settings, roles: ['admin'] },

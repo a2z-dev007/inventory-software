@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Users, Edit, Trash2, Search, Phone, Mail, MapPin } from 'lucide-react';
+import { Plus, Users, Edit, Trash2, Search, Phone, Mail, MapPin, Eye } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useNavigate } from 'react-router-dom';
 import { apiService } from '../services/api';
 import { Card, CardHeader } from '../components/common/Card';
 import { Button } from '../components/common/Button';
@@ -193,11 +194,10 @@ interface PaginatedCustomers {
 }
 
 export const Customers: React.FC = () => {
+  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedDetailItem, setSelectedDetailItem] = useState<any>(null);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const debouncedSearch = useDebounce(searchTerm, 800); 
   const queryClient = useQueryClient();
   const { isAdmin } = useAuth();
@@ -324,12 +324,11 @@ export const Customers: React.FC = () => {
                       </button>
                     )}
                     <button
-                      onClick={() => { setSelectedDetailItem(customer); setIsDetailModalOpen(true); }}
+                      onClick={() => navigate(`/clients/${customer._id || customer.id}`)}
                       className="text-gray-600 hover:text-gray-900"
                       title="View Details"
                     >
-                      <span className="sr-only">View Details</span>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                      <Eye className="h-4 w-4" />
                     </button>
                     {isAdmin() && (
                       <button
@@ -424,12 +423,7 @@ export const Customers: React.FC = () => {
         onClose={handleCloseModal}
         customer={editingCustomer}
       />
-      <DetailModal
-        isOpen={isDetailModalOpen}
-        onClose={() => setIsDetailModalOpen(false)}
-        item={selectedDetailItem}
-        title="Customer Details"
-      />
+
     </div>
   );
 };

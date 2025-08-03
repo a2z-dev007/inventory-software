@@ -1,100 +1,191 @@
-import React, { useState, useEffect, ChangeEvent } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, FileText, Download, Edit, Trash2, Search, Eye } from 'lucide-react';
-import { useForm, useFieldArray, FieldError, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { useNavigate } from 'react-router-dom';
-import jsPDF from 'jspdf';
-import { apiService } from '../services/api';
-import { Card, CardHeader } from '../components/common/Card';
-import { Button } from '../components/common/Button';
-import { LoadingSpinner } from '../components/common/LoadingSpinner';
-import { FormField } from '../components/forms/FormField';
-import { SelectField } from '../components/forms/SelectField';
-import { formatCurrency, formatINRCurrency, getBase64 } from '../utils/constants';
-import { useDebounce } from '../hooks/useDebounce';
-import { usePagination } from '../hooks/usePagination';
-import { Product, Purposes, Supplier } from '../types';
-import { Badge } from '../components/common/Badge';
-import autoTable from 'jspdf-autotable';
-import logo from '../assets/images/logo.png'; // static image import
-import { format } from 'date-fns/format';
-import { useAuth } from '../hooks/useAuth';
+"use client"
+
+import React, { useState, useEffect } from "react"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { Plus, FileText, Download, Edit, Trash2, Search, Eye } from "lucide-react"
+import { useForm, useFieldArray, Controller } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
+import { useNavigate } from "react-router-dom"
+import jsPDF from "jspdf"
+import { apiService } from "../services/api"
+import { Card, CardHeader } from "../components/common/Card"
+import { Button } from "../components/common/Button"
+import { LoadingSpinner } from "../components/common/LoadingSpinner"
+import { FormField } from "../components/forms/FormField"
+import { SelectField } from "../components/forms/SelectField"
+import { formatCurrency, getBase64 } from "../utils/constants"
+import { useDebounce } from "../hooks/useDebounce"
+import { usePagination } from "../hooks/usePagination"
+import type { Product, Purposes, Supplier } from "../types"
+import autoTable from "jspdf-autotable"
+import logo from "../assets/images/logo.png"
+import { format } from "date-fns/format"
+import { useAuth } from "../hooks/useAuth"
+
 // Define error types
 interface ApiError {
   response?: {
     data?: {
-      message?: string;
+      message?: string
       errors?: Array<{
-        msg: string;
-        path: string;
-        type: string;
-        value: string;
-      }>;
-    };
-  };
-  message?: string;
+        msg: string
+        path: string
+        type: string
+        value: string
+      }>
+    }
+  }
+  message?: string
 }
 
-// Item schema is defined inline in the purchaseOrderSchema below
-
+// Item schema
 export const purchaseOrderSchema = z.object({
-  ref_num: z.string().min(1, 'DB Number is required'),
-  vendor: z.string().min(1, 'Supplier is required'),
-  status: z.enum(['draft', 'pending', 'approved', 'delivered', 'cancelled']),
+  ref_num: z.string().min(1, "DB Number is required"),
+  vendor: z.string().min(1, "Supplier is required"),
+  status: z.enum(["draft", "pending", "approved", "delivered", "cancelled"]),
   attachment: z.any().optional(),
-  remarks: z.string().max(1000, 'Remarks cannot exceed 1000 characters').optional(),
+  remarks: z.string().max(1000, "Remarks cannot exceed 1000 characters").optional(),
   site_incharge: z.string().optional(),
-  orderedBy:z.string().optional(),
-  deliveryDate:z.string().optional(),
+  orderedBy: z.string().optional(),
+  deliveryDate: z.string().optional(),
   contractor: z.string().optional(),
   purpose: z.string().optional(),
-  items: z.array(
-    z.object({
-      productId: z.string().min(1, 'Product is required'),
-      quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
-      unitPrice: z.coerce.number().min(0, 'Unit price must be a number'),
-      unitType: z.string().min(1, 'Unit type is required'),
-    })
-  ).min(1, 'At least one item is required'),
-});
+  items: z
+    .array(
+      z.object({
+        productId: z.string().min(1, "Product is required"),
+        quantity: z.coerce.number().min(1, "Quantity must be at least 1"),
+        unitPrice: z.coerce.number().min(0, "Unit price must be a number"),
+        unitType: z.string().min(1, "Unit type is required"),
+      }),
+    )
+    .min(1, "At least one item is required"),
+})
 
-type PurchaseOrderFormData = z.infer<typeof purchaseOrderSchema>;
+type PurchaseOrderFormData = z.infer<typeof purchaseOrderSchema>
+
+interface PurchaseOrderItem {
+  productId: string
+  quantity: number
+  unitPrice: number
+  productName?: string
+  total?: number
+  unitType?: string
+}
+
+export interface PurchaseOrder {
+  id?: string
+  _id?: string
+  ref_num: string
+  attachment?: string
+  poNumber: string
+  vendor: string
+  status: "draft" | "approved" | "delivered" | "cancelled"
+  orderDate: string
+  items: PurchaseOrderItem[]
+  subtotal: number
+  total: number
+  isDeleted?: boolean
+  ref_no: string
+  remarks?: string
+  site_incharge?: string
+  contractor?: string
+  deliveryDate?: string
+  orderedBy?: string
+  purpose?: string
+}
 
 interface POModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  purchaseOrder?: PurchaseOrder | null;
+  isOpen: boolean
+  onClose: () => void
+  purchaseOrder?: PurchaseOrder | null
 }
 
 const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => {
-  const queryClient = useQueryClient();
-  const isEditing = !!purchaseOrder;
+  const queryClient = useQueryClient()
+  const isEditing = !!purchaseOrder
+  const [serverError, setServerError] = useState<string | null>(null)
+  const [attachment, setAttachment] = useState<File | null>(null)
 
-  // Add state for server-side error
-  const [serverError, setServerError] = useState<string | null>(null);
-  const [attachment, setAttachment] = useState<File | null>(null);
+  // Fixed: Add error handling and better data structure handling
+  const {
+    data: productsData,
+    isLoading: productsLoading,
+    error: productsError,
+  } = useQuery({
+    queryKey: ["products"],
+    queryFn: () => apiService.getProducts({ all: true }),
+    retry: 3,
+  })
 
-  const { data: productsData } = useQuery({
-    queryKey: ['products'],
-    queryFn: () => apiService.getProducts({all:true}),
-  });
-  const products: Product[] = Array.isArray(productsData?.products) ? productsData.products : Array.isArray(productsData) ? productsData : [];
-  // console.log(products);
-  const { data: suppliersData } = useQuery({
-    queryKey: ['suppliers'],
-    queryFn: () => apiService.getSuppliers({all:true}),
-  });
-  const suppliers: { vendors?: Supplier[] } = suppliersData || {};
-  const { data: purposesData } = useQuery({
-    queryKey: ['purposes'],
-    queryFn: () => apiService.getAllPurposes({all:true}),
-  });
-  const purposes: { purposes?: Purposes[] } = purposesData || {};
-  console.log("purposesData",purposesData)
+  // Safely extract products array with better error handling
+  const products: Product[] = React.useMemo(() => {
+    if (!productsData) return []
 
-  // Fix defaultValues to ensure items are always of the correct type (productId: number)
+    // Handle different possible response structures
+    if (Array.isArray(productsData)) return productsData
+    if (productsData.products && Array.isArray(productsData.products)) return productsData.products
+    if (productsData.data && Array.isArray(productsData.data)) return productsData.data
+
+    console.warn("Unexpected products data structure:", productsData)
+    return []
+  }, [productsData])
+
+  const {
+    data: suppliersData,
+    isLoading: suppliersLoading,
+    error: suppliersError,
+  } = useQuery({
+    queryKey: ["suppliers"],
+    queryFn: () => apiService.getSuppliers({ all: true }),
+    retry: 3,
+  })
+
+  // Fixed: Better suppliers data handling
+  const suppliers: Supplier[] = React.useMemo(() => {
+    if (!suppliersData) return []
+
+    // Handle different possible response structures
+    if (Array.isArray(suppliersData)) return suppliersData
+    if (suppliersData.vendors && Array.isArray(suppliersData.vendors)) return suppliersData.vendors
+    if (suppliersData.suppliers && Array.isArray(suppliersData.suppliers)) return suppliersData.suppliers
+    if (suppliersData.data && Array.isArray(suppliersData.data)) return suppliersData.data
+
+    console.warn("Unexpected suppliers data structure:", suppliersData)
+    return []
+  }, [suppliersData])
+
+  const {
+    data: purposesData,
+    isLoading: purposesLoading,
+    error: purposesError,
+  } = useQuery({
+    queryKey: ["purposes"],
+    queryFn: () => apiService.getAllPurposes({ all: true }),
+    retry: 3,
+  })
+
+  // Fixed: Better purposes data handling
+  const purposes: Purposes[] = React.useMemo(() => {
+    if (!purposesData) return []
+
+    // Handle different possible response structures
+    if (Array.isArray(purposesData)) return purposesData
+    if (purposesData.purposes && Array.isArray(purposesData.purposes)) return purposesData.purposes
+    if (purposesData.data && Array.isArray(purposesData.data)) return purposesData.data
+
+    console.warn("Unexpected purposes data structure:", purposesData)
+    return []
+  }, [purposesData])
+
+  // Debug logging
+  React.useEffect(() => {
+    console.log("Products data:", { productsData, products: products.length })
+    console.log("Suppliers data:", { suppliersData, suppliers: suppliers.length })
+    console.log("Purposes data:", { purposesData, purposes: purposes.length })
+  }, [productsData, suppliersData, purposesData, products.length, suppliers.length, purposes.length])
+
   const {
     register,
     handleSubmit,
@@ -107,196 +198,167 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
     resolver: zodResolver(purchaseOrderSchema),
     defaultValues: purchaseOrder
       ? {
-        ref_num: purchaseOrder.ref_num || '',
-        attachment: purchaseOrder.attachment || '',
-        vendor: purchaseOrder.vendor || '',
-        status: purchaseOrder.status || 'draft',
-        deliveryDate: purchaseOrder.deliveryDate || '',
-        orderedBy: purchaseOrder.orderedBy || '',
-        remarks: purchaseOrder.remarks || '',
-        site_incharge: purchaseOrder.site_incharge || '',
-        purpose: purchaseOrder.purpose || '',
-        contractor: purchaseOrder.contractor || '',
-        items: purchaseOrder.items.map((item: PurchaseOrderItem) => ({
-          productId: String(item.productId),
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          unitType: item.unitType,
-        })) || [],
-      }
+          ref_num: purchaseOrder.ref_num || "",
+          attachment: purchaseOrder.attachment || "",
+          vendor: purchaseOrder.vendor || "",
+          status: purchaseOrder.status || "draft",
+          deliveryDate: purchaseOrder.deliveryDate || "",
+          orderedBy: purchaseOrder.orderedBy || "",
+          remarks: purchaseOrder.remarks || "",
+          site_incharge: purchaseOrder.site_incharge || "",
+          purpose: purchaseOrder.purpose || "",
+          contractor: purchaseOrder.contractor || "",
+          items:
+            purchaseOrder.items.map((item: PurchaseOrderItem) => ({
+              productId: String(item.productId),
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              unitType: item.unitType,
+            })) || [],
+        }
       : {
-        ref_num: '',
-        attachment: '',
-        vendor: '',
-        status: 'draft',
-        remarks: '',
-        site_incharge: '',
-        purpose: '',
-        orderedBy: '',
-        deliveryDate: '',
-        contractor: '',
-        items: [{ productId: '', quantity: 1, unitPrice: 0, unitType: '' }],
-      },
-  });
+          ref_num: "",
+          attachment: "",
+          vendor: "",
+          status: "draft",
+          remarks: "",
+          site_incharge: "",
+          contractor: "",
+          orderedBy: "",
+          deliveryDate: "",
+          purpose: "",
+          items: [{ productId: "", quantity: 1, unitPrice: 0, unitType: "" }],
+        },
+  })
 
   const { fields, append, remove } = useFieldArray({
     control,
-    name: 'items',
-  });
+    name: "items",
+  })
 
-  const watchedItems = watch('items');
+  const watchedItems = watch("items")
 
-  // Add useEffect to autofill unitPrice when productId changes
+  // Auto-fill unit price and type when product changes
   useEffect(() => {
     watchedItems.forEach((item, idx) => {
       if (item.productId) {
-        const product = products.find((p: Product) => p._id === item.productId);
+        const product = products.find((p: Product) => p._id === item.productId)
         if (product) {
-          setValue(`items.${idx}.unitPrice`, product.purchaseRate);
-          setValue(`items.${idx}.unitType`, product.unitType); // <-- Add this
+          setValue(`items.${idx}.unitPrice`, product.purchaseRate || 0)
+          setValue(`items.${idx}.unitType`, product.unitType || "nos")
         }
       }
-    });
-  }, [watchedItems.map(i => i.productId).join(','), products, setValue]);
+    })
+  }, [watchedItems.map((i) => i.productId).join(","), products, setValue])
 
   const createMutation = useMutation({
     mutationFn: (data: FormData) => apiService.createPurchaseOrder(data),
-
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
-      setServerError(null);
-      onClose();
-      reset();
+      queryClient.invalidateQueries({ queryKey: ["purchase-orders"] })
+      setServerError(null)
+      onClose()
+      reset()
     },
     onError: (error: ApiError) => {
-      console.error('Create PO error:', error);
-      let msg = error?.response?.data?.message || error?.message || 'Failed to create purchase order';
-
-      // Handle validation errors more specifically
+      console.error("Create PO error:", error)
+      let msg = error?.response?.data?.message || error?.message || "Failed to create purchase order"
       if (error?.response?.data?.errors) {
-        const validationErrors = error.response.data.errors;
-        const errorMessages = validationErrors.map((err) => `${err.msg} (${err.path})`).join('\n');
-        msg = `Validation failed:\n${errorMessages}`;
+        const validationErrors = error.response.data.errors
+        const errorMessages = validationErrors.map((err) => `${err.msg} (${err.path})`).join("\n")
+        msg = `Validation failed:\n${errorMessages}`
       }
-
-      setServerError(msg);
+      setServerError(msg)
     },
-  });
+  })
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: FormData }) =>
-      apiService.updatePurchaseOrder(id, data),
+    mutationFn: ({ id, data }: { id: string; data: FormData }) => apiService.updatePurchaseOrder(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
-      setServerError(null);
-      onClose();
-      reset();
+      queryClient.invalidateQueries({ queryKey: ["purchase-orders"] })
+      setServerError(null)
+      onClose()
+      reset()
     },
     onError: (error: ApiError) => {
-      console.error('Update PO error:', error);
-      let msg = error?.response?.data?.message || error?.message || 'Failed to update purchase order';
-
-      // Handle validation errors more specifically
+      console.error("Update PO error:", error)
+      let msg = error?.response?.data?.message || error?.message || "Failed to update purchase order"
       if (error?.response?.data?.errors) {
-        const validationErrors = error.response.data.errors;
-        const errorMessages = validationErrors.map((err) => `${err.msg} (${err.path})`).join('\n');
-        msg = `Validation failed:\n${errorMessages}`;
+        const validationErrors = error.response.data.errors
+        const errorMessages = validationErrors.map((err) => `${err.msg} (${err.path})`).join("\n")
+        msg = `Validation failed:\n${errorMessages}`
       }
-
-      setServerError(msg);
+      setServerError(msg)
     },
-  });
+  })
 
   const calculateSubtotal = () => {
     return watchedItems.reduce((sum, item) => {
-      return sum + (item.quantity * item.unitPrice);
-    }, 0);
-  };
+      return sum + item.quantity * item.unitPrice
+    }, 0)
+  }
 
-  console.log('attachment:', attachment);
-  const fileToBase64 = (file: File): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-
-
-
-  // Prefill form fields when editing a purchase order
   const onSubmit = async (data: PurchaseOrderFormData) => {
-    const subtotal = calculateSubtotal();
-    const total = subtotal;
-
+    const subtotal = calculateSubtotal()
+    const total = subtotal
     const itemsData = data.items.map((item) => {
-      const product = products.find((p) => p._id === item.productId);
+      const product = products.find((p) => p._id === item.productId)
       return {
         productId: item.productId,
-        productName: product?.name || 'Unknown Product',
+        productName: product?.name || "Unknown Product",
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         unitType: item.unitType,
         total: item.quantity * item.unitPrice,
-      };
-    });
+      }
+    })
 
-    const formData = new FormData();
-
-    formData.append('ref_num', data.ref_num);
-    formData.append('vendor', data.vendor);
-    formData.append('status', data.status);
-    formData.append('subtotal', subtotal.toString());
-    formData.append('total', total.toString());
-    formData.append('remarks', data.remarks || '');
-    formData.append('site_incharge', data.site_incharge || '');
-    formData.append('contractor', data.contractor || '');
-    formData.append('orderedBy', data.orderedBy || '');
-    formData.append('deliveryDate', data.deliveryDate || '');
-    formData.append('purpose', data.purpose || '');
+    const formData = new FormData()
+    formData.append("ref_num", data.ref_num)
+    formData.append("vendor", data.vendor)
+    formData.append("status", data.status)
+    formData.append("subtotal", subtotal.toString())
+    formData.append("total", total.toString())
+    formData.append("remarks", data.remarks || "")
+    formData.append("site_incharge", data.site_incharge || "")
+    formData.append("contractor", data.contractor || "")
+    formData.append("orderedBy", data.orderedBy || "")
+    formData.append("deliveryDate", data.deliveryDate || "")
+    formData.append("purpose", data.purpose || "")
 
     if (attachment instanceof File) {
-      formData.append('attachment', attachment); // 🖼️ Send as file
+      formData.append("attachment", attachment)
     }
 
-    formData.append('items', JSON.stringify(itemsData));
+    formData.append("items", JSON.stringify(itemsData))
 
     if (isEditing) {
-      const id = String(purchaseOrder.id ?? purchaseOrder._id);
+      const id = String(purchaseOrder.id ?? purchaseOrder._id)
       if (!id) {
-        alert("Invalid purchase order ID");
-        return;
+        alert("Invalid purchase order ID")
+        return
       }
-      updateMutation.mutate({ id, data: formData });
+      updateMutation.mutate({ id, data: formData })
     } else {
-      formData.append('poNumber', `PO-${Date.now()}`);
-      formData.append('orderDate', new Date().toISOString());
-      createMutation.mutate(formData);
+      formData.append("poNumber", `PO-${Date.now()}`)
+      formData.append("orderDate", new Date().toISOString())
+      createMutation.mutate(formData)
     }
-  };
-
+  }
 
   useEffect(() => {
     if (purchaseOrder) {
-      console.log('Prefilling form with purchase order:', purchaseOrder);
-
-      // If editing and there's an existing attachment
+      console.log("Prefilling form with purchase order:", purchaseOrder)
       if (purchaseOrder.attachment) {
-        console.log('Existing attachment found:', purchaseOrder.attachment);
-        // Set the attachment value for validation - use the actual string value
-        setValue('attachment', purchaseOrder.attachment);
-        // We don't need a new file upload since we're using the existing one
-        setAttachment(null);
+        setValue("attachment", purchaseOrder.attachment)
+        setAttachment(null)
       } else {
-        console.log('No existing attachment found');
-        setValue('attachment', null);
-        setAttachment(null);
+        setValue("attachment", null)
+        setAttachment(null)
       }
-      // auto filled data in update modal
-      // Reset the form with the purchase order data
+
       reset({
-        ref_num: purchaseOrder.ref_num || '',
-        attachment: purchaseOrder.attachment || null, // Use null instead of empty string for no attachment
+        ref_num: purchaseOrder.ref_num || "",
+        attachment: purchaseOrder.attachment || null,
         vendor: purchaseOrder.vendor,
         status: purchaseOrder.status,
         remarks: purchaseOrder.remarks,
@@ -309,41 +371,72 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
           productId: String(item.productId),
           quantity: item.quantity,
           unitPrice: item.unitPrice,
-          unitType: item.unitType
+          unitType: item.unitType,
         })),
-      });
+      })
     } else {
-      console.log('Creating new purchase order');
-      // Clear the form for a new purchase order
       reset({
-        ref_num: '',
-        attachment: null, // Use null instead of empty string for no attachment
-        vendor: '',
-        status: 'draft',
-        remarks: '',
-        site_incharge: '',
-        contractor: '',
-        orderedBy: '',
-        deliveryDate: '',
-        purpose: '',
-        items: [{ productId: '', quantity: 1, unitPrice: 0 }],
-      });
-      setValue('attachment', null);
-      setAttachment(null);
+        ref_num: "",
+        attachment: null,
+        vendor: "",
+        status: "draft",
+        remarks: "",
+        site_incharge: "",
+        contractor: "",
+        orderedBy: "",
+        deliveryDate: "",
+        purpose: "",
+        items: [{ productId: "", quantity: 1, unitPrice: 0, unitType: "nos" }],
+      })
+      setValue("attachment", null)
+      setAttachment(null)
     }
-  }, [purchaseOrder, reset, setValue]);
+  }, [purchaseOrder, reset, setValue])
 
-  if (!isOpen) return null;
+  if (!isOpen) return null
 
-  const subtotal = calculateSubtotal();
-  const total = subtotal;
+  // Show loading state if any data is still loading
+  if (productsLoading || suppliersLoading || purposesLoading) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="bg-white rounded-lg p-6">
+          <LoadingSpinner size="lg" />
+          <p className="mt-4 text-center">Loading form data...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show error state if there are critical errors
+  if (productsError || suppliersError) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="bg-white rounded-lg p-6 max-w-md">
+          <h3 className="text-lg font-semibold text-red-600 mb-4">Error Loading Data</h3>
+          <p className="text-gray-600 mb-4">Failed to load required data. Please try again.</p>
+          <div className="flex space-x-3">
+            <Button onClick={onClose} variant="outline">
+              Close
+            </Button>
+            <Button onClick={() => window.location.reload()}>Reload Page</Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const subtotal = calculateSubtotal()
+  const total = subtotal
 
   return (
-    <div style={{marginTop:0}} className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div
+      style={{ marginTop: 0 }}
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+    >
       <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">
-            {isEditing ? 'Edit Purchase Order' : 'Create Purchase Order'}
+            {isEditing ? "Edit Purchase Order" : "Create Purchase Order"}
           </h2>
 
           {serverError && (
@@ -352,16 +445,13 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
             </div>
           )}
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" encType='multipart/form-data'>
-            <div>
-
-            </div>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" encType="multipart/form-data">
             {/* DB Number and Attachment */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 label="DB Number"
                 name="ref_num"
-                placeholder='Enter DB Number'
+                placeholder="Enter DB Number"
                 type="text"
                 register={register}
                 error={errors.ref_num}
@@ -376,48 +466,47 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
                     <input
                       type="file"
                       accept=".pdf,.jpg,.jpeg,.png"
-
                       onChange={(e) => {
-                        const file = e.target.files?.[0];
+                        const file = e.target.files?.[0]
                         if (file) {
-                          setAttachment(file);
-                          setValue('attachment', 'file-selected', { shouldValidate: true });
+                          setAttachment(file)
+                          setValue("attachment", "file-selected", { shouldValidate: true })
                         } else {
-                          setAttachment(null);
-                          setValue('attachment', null, { shouldValidate: true });
+                          setAttachment(null)
+                          setValue("attachment", null, { shouldValidate: true })
                         }
                       }}
                     />
-                    {errors.attachment && (
-                      <p className="text-sm text-red-600">{errors.attachment.message}</p>
-                    )}
+                    {errors.attachment && <p className="text-sm text-red-600">{errors.attachment.message}</p>}
                   </div>
                 )}
               />
-
             </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <SelectField<PurchaseOrderFormData>
                 label="Supplier"
                 name="vendor"
-                options={suppliers?.vendors?.map((supplier: Supplier) => ({
-                  value: supplier.name,
-                  label: supplier.name,
-                })) || []}
+                options={[
+                  { value: "", label: "Select a supplier" },
+                  ...suppliers.map((supplier: Supplier) => ({
+                    value: supplier.name,
+                    label: supplier.name,
+                  })),
+                ]}
                 control={control}
                 error={errors.vendor}
                 required
               />
-
               <SelectField<PurchaseOrderFormData>
                 label="Status"
                 name="status"
                 options={[
-                  { value: 'draft', label: 'Draft' },
-                  { value: 'pending', label: 'Pending' },
-                  { value: 'approved', label: 'Approved' },
-                  { value: 'delivered', label: 'Delivered' },
-                  { value: 'cancelled', label: 'Cancelled' },
+                  { value: "draft", label: "Draft" },
+                  { value: "pending", label: "Pending" },
+                  { value: "approved", label: "Approved" },
+                  { value: "delivered", label: "Delivered" },
+                  { value: "cancelled", label: "Cancelled" },
                 ]}
                 control={control}
                 error={errors.status}
@@ -433,9 +522,9 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
                   type="button"
                   variant="outline"
                   size="sm"
-                  className='gradient-btn text-white'
+                  className="gradient-btn text-white"
                   icon={Plus}
-                  onClick={() => append({ productId: '', quantity: 1, unitPrice: 0, unitType: 'nos' })} // Default productId is ''
+                  onClick={() => append({ productId: "", quantity: 1, unitPrice: 0, unitType: "nos" })}
                 >
                   Add Item
                 </Button>
@@ -443,24 +532,26 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
 
               <div className="space-y-4">
                 {fields.map((field, index) => (
-                  <div key={field.id} className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 border border-gray-200 rounded-lg">
+                  <div
+                    key={field.id}
+                    className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 border border-gray-200 rounded-lg"
+                  >
                     <div className="md:col-span-2">
                       <SelectField<PurchaseOrderFormData>
                         label="Product"
                         name={`items.${index}.productId`}
                         options={[
-                          { value: '', label: 'Select a product' },
+                          { value: "", label: "Select a product" },
                           ...products.map((product: Product) => ({
                             value: product._id,
                             label: `${product.name} - (${product.unitType})`,
-                          }))
+                          })),
                         ]}
                         control={control}
                         error={errors.items?.[index]?.productId}
                         required
                       />
                     </div>
-
                     <FormField
                       label="Quantity"
                       name={`items.${index}.quantity`}
@@ -469,7 +560,6 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
                       error={errors.items?.[index]?.quantity}
                       required
                     />
-
                     <FormField
                       label="Unit Price"
                       name={`items.${index}.unitPrice`}
@@ -479,18 +569,15 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
                       error={errors.items?.[index]?.unitPrice}
                       required
                     />
-
                     <FormField
                       label="Unit Type"
-                      placeholder='Nos'
+                      placeholder="Nos"
                       name={`items.${index}.unitType`}
                       type="text"
                       register={register}
-                      // readOnly
                       disabled={true}
                       required
                     />
-
                     <div className="flex items-end">
                       <Button
                         type="button"
@@ -505,8 +592,8 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
                   </div>
                 ))}
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                 <FormField
                   label="Site Incharge"
                   name="site_incharge"
@@ -526,52 +613,52 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
                   error={errors.contractor}
                 />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
 
-                  <FormField
-                    label="Ordered By"
-                    name="orderedBy"
-                    placeholder="Ordered By"
-                    type="text"
-                    required
-                    register={register}
-                    error={errors.orderedBy}
-                  />
-                  <FormField
-                    label="Delivery Date"
-                    name="deliveryDate"
-                    placeholder="Delivery Date"
-                    type="date"
-                    register={register}
-                    error={errors.deliveryDate}
-                  />
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-1 gap-4 mt-6">
-                  <SelectField<PurchaseOrderFormData>
-                label="Purpose"
-                name="purpose"
-                options={purposesData.purposes?.map((purpose: Purposes) => ({
-                  value: purpose.title,
-                  label: purpose.title,
-                })) || []}
-                control={control}
-                error={errors.purpose}
-                
-              />
-                  <FormField
-              label="Remarks"
-              name="remarks"
-              type="textarea"
-              placeholder="Enter remarks (optional)"
-              register={register}
-              error={errors.remarks}
-            />
-           
-                    </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                <FormField
+                  label="Ordered By"
+                  name="orderedBy"
+                  placeholder="Ordered By"
+                  type="text"
+                  required
+                  register={register}
+                  error={errors.orderedBy}
+                />
+                <FormField
+                  label="Delivery Date"
+                  name="deliveryDate"
+                  placeholder="Delivery Date"
+                  type="date"
+                  register={register}
+                  error={errors.deliveryDate}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-1 gap-4 mt-6">
+                <SelectField<PurchaseOrderFormData>
+                  label="Purpose"
+                  name="purpose"
+                  options={[
+                    { value: "", label: "Select a purpose" },
+                    ...purposes.map((purpose: Purposes) => ({
+                      value: purpose.title,
+                      label: purpose.title,
+                    })),
+                  ]}
+                  control={control}
+                  error={errors.purpose}
+                />
+                <FormField
+                  label="Remarks"
+                  name="remarks"
+                  type="textarea"
+                  placeholder="Enter remarks (optional)"
+                  register={register}
+                  error={errors.remarks}
+                />
+              </div>
             </div>
 
-
-            
             {/* Totals */}
             <div className="bg-gray-50 p-4 rounded-lg">
               <div className="space-y-2">
@@ -587,285 +674,302 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
             </div>
 
             <div className="flex justify-end space-x-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-              >
+              <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
               <Button
                 type="submit"
-                className='gradient-btn'
+                className="gradient-btn"
                 loading={createMutation.isPending || updateMutation.isPending}
               >
-                {isEditing ? 'Update PO' : 'Create PO'}
+                {isEditing ? "Update PO" : "Create PO"}
               </Button>
             </div>
           </form>
         </div>
       </div>
     </div>
-  );
-};
-
-// Add types for Product, Supplier, PurchaseOrder
-interface PurchaseOrderItem {
-  productId: string;
-  quantity: number;
-  unitPrice: number;
-  productName?: string;
-  total?: number;
-  unitType?: string
-}
-
-export interface PurchaseOrder {
-  id?: string;
-  _id?: string;
-  ref_num: string;
-  attachment?: string;
-  poNumber: string;
-  vendor: string;
-  status: 'draft' | 'approved' | 'delivered' | 'cancelled';
-  orderDate: string;
-  items: PurchaseOrderItem[];
-  subtotal: number;
-  total: number;
-  isDeleted?: boolean;
-  ref_no: string;
-  remarks?: string;
-  site_incharge?: string;
-  contractor?: string;
-  deliveryDate?: string;
-  orderedBy?: string;
-  purpose?: string
+  )
 }
 
 export const PurchaseOrders: React.FC = () => {
-  const navigate = useNavigate();
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingPO, setEditingPO] = useState<PurchaseOrder | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const debouncedSearch = useDebounce(searchTerm, 800);
-  const { page, handleNext, handlePrev, resetPage } = usePagination(1);
-  const limit = 10;
-  const queryClient = useQueryClient();
-  // State for server-side error
-  const [serverError, setServerError] = useState<string | null>(null);
-  const { isAdmin } = useAuth();
+  const navigate = useNavigate()
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingPO, setEditingPO] = useState<PurchaseOrder | null>(null)
+  const [searchTerm, setSearchTerm] = useState("")
+  const debouncedSearch = useDebounce(searchTerm, 800)
+  const { page, handleNext, handlePrev, resetPage } = usePagination(1)
+  const limit = 10
+  const queryClient = useQueryClient()
+  const [serverError, setServerError] = useState<string | null>(null)
+  const { isAdmin } = useAuth()
 
+  // Fixed: Better error handling and data structure handling for purchase orders
   const {
-    data: poResponse = { purchaseOrders: [], pagination: { page: 1, pages: 1, total: 0, limit } },
+    data: poResponse,
     isLoading,
-  } = useQuery<{ purchaseOrders: PurchaseOrder[]; pagination: { page: number; pages: number; total: number; limit: number } }>({
-    queryKey: ['purchase-orders', page, debouncedSearch],
-    // Use a function that ignores the context param for react-query v4 compatibility
+    error: poError,
+  } = useQuery<{
+    purchaseOrders: PurchaseOrder[]
+    pagination: { page: number; pages: number; total: number; limit: number }
+  }>({
+    queryKey: ["purchase-orders", page, debouncedSearch],
     queryFn: () => apiService.getPurchaseOrders({ page, limit, search: debouncedSearch }),
-  });
-  const filteredPurchaseOrders = poResponse?.purchaseOrders.filter((po: PurchaseOrder) => po.isDeleted === false || po.isDeleted !== undefined);
-  const purchaseOrders = Array.isArray(filteredPurchaseOrders) ? filteredPurchaseOrders : [];
-  const pagination = poResponse?.pagination || { page: 1, pages: 1, total: 0, limit };
+    retry: 3,
+  })
+
+  // Fixed: Better data extraction and filtering
+  const { purchaseOrders, pagination } = React.useMemo(() => {
+    if (!poResponse) {
+      return {
+        purchaseOrders: [],
+        pagination: { page: 1, pages: 1, total: 0, limit },
+      }
+    }
+
+    let orders: PurchaseOrder[] = []
+
+    // Handle different possible response structures
+    if (Array.isArray(poResponse)) {
+      orders = poResponse
+    } else if (poResponse.purchaseOrders && Array.isArray(poResponse.purchaseOrders)) {
+      orders = poResponse.purchaseOrders
+    } else if (poResponse.data && Array.isArray(poResponse.data)) {
+      orders = poResponse.data
+    } else {
+      console.warn("Unexpected purchase orders data structure:", poResponse)
+    }
+
+    // Fixed: Better filtering logic - only filter out explicitly deleted items
+    const filteredOrders = orders.filter((po: PurchaseOrder) => {
+      // Only filter out if isDeleted is explicitly true
+      return po.isDeleted !== true
+    })
+
+    const paginationData = poResponse.pagination || { page: 1, pages: 1, total: filteredOrders.length, limit }
+
+    return {
+      purchaseOrders: filteredOrders,
+      pagination: paginationData,
+    }
+  }, [poResponse, limit])
+
+  // Debug logging
+  React.useEffect(() => {
+    console.log("PO Response:", poResponse)
+    console.log("Filtered Purchase Orders:", purchaseOrders)
+    console.log("Pagination:", pagination)
+  }, [poResponse, purchaseOrders, pagination])
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiService.deletePurchaseOrder(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['purchase-orders'], exact: false });
+      queryClient.invalidateQueries({ queryKey: ["purchase-orders"], exact: false })
     },
-  });
+  })
 
-  const filteredPOs = purchaseOrders;
+  const generatePDF = async (po: PurchaseOrder) => {
+    try {
+      const doc = new jsPDF({ format: "a4", unit: "mm" })
+      const base64Logo = await getBase64(logo)
 
-  // const generatePDF = (po: PurchaseOrder) => {
-  //   const doc = new jsPDF();
+      // Styling
+      const labelStyle = () => doc.setTextColor(0, 0, 0).setFont("helvetica", "bold").setFontSize(11)
+      const valueStyle = () => doc.setTextColor(80, 80, 80).setFont("helvetica", "normal")
 
-  //   // Header
-  //   doc.setFontSize(20);
-  //   doc.text('Purchase Order', 20, 30);
+      const marginLeft = 20
+      const marginRight = 190
+      let y = 20
 
-  //   doc.setFontSize(12);
-  //   doc.text(`PO Number: ${po.poNumber}`, 20, 50);
-  //   doc.text(`Vendor: ${po.vendor}`, 20, 65);
-  //   doc.text(`Status: ${po.status.toUpperCase()}`, 20, 80);
-  //   doc.text(`Order Date: ${new Date(po.orderDate).toLocaleDateString()}`, 20, 95);
+      // Header: Logo + Company Info
+      doc.addImage(base64Logo, "PNG", marginLeft, y, 30, 20)
 
-  //   // Items
-  //   doc.text('Items:', 20, 120);
-  //   let yPos = 135;
+      doc.setFontSize(14).setFont("helvetica", "bold")
+      doc.text("SPACE WINGS PVT. LTD", marginLeft + 35, y + 8)
+      doc.text("PURCHASE ORDER (PO)", marginRight, y + 8, { align: "right" })
 
-  //   po.items.forEach((item: PurchaseOrderItem, index: number) => {
-  //     doc.text(`${index + 1}. ${item.productName}`, 25, yPos);
-  //     doc.text(`   Qty: ${item.quantity} × ₹${item.unitPrice} = ₹${item.total}`, 25, yPos + 10);
-  //     yPos += 25;
-  //   });
+      doc.setFontSize(10).setFont("helvetica", "normal")
+      doc.text("Contact - +91-7897391111  Email - Team@spacewings.com", 105, y + 18, { align: "center" })
+      doc.text("1/7, Vishwas Khand, Gomti Nagar, Lucknow, Uttar Pradesh 226010", 105, y + 24, { align: "center" })
 
-  //   // Totals
-  //   yPos += 10;
-  //   doc.text(`Subtotal: ₹${po.subtotal.toFixed(2)}`, 20, yPos);
-  //   doc.text(`Total: ₹${po.total.toFixed(2)}`, 20, yPos + 30);
+      y = y + 32
 
-  //   doc.save(`${po.poNumber}.pdf`);
-  // };
+      // Info Block
+      labelStyle()
+      doc.text("PO Number:", marginLeft, y)
+      valueStyle()
+      doc.text(po.poNumber, marginLeft + 35, y)
 
+      labelStyle()
+      doc.text("Date:", 140, y)
+      valueStyle()
+      doc.text(format(new Date(po.orderDate), "yyyy-MM-dd"), 160, y)
 
-  // generating the pdf🧮 
-   const generatePDF = async (po) => {
-    const doc = new jsPDF({ format: 'a4', unit: 'mm' });
-  
-    const base64Logo = await getBase64(logo);
-  
-    // === Styling ===
-    const labelStyle = () => doc.setTextColor(0, 0, 0).setFont('helvetica', 'bold').setFontSize(11);
-    const valueStyle = () => doc.setTextColor(80, 80, 80).setFont('helvetica', 'normal');
-  
-    const marginLeft = 20;
-    const marginRight = 190;
-    let y = 20;
-  
-    // === Header: Logo + Company Info ===
-    doc.addImage(base64Logo, 'PNG', marginLeft, y, 30, 20);
-  
-    doc.setFontSize(14).setFont('helvetica', 'bold');
-    doc.text('SPACE WINGS PVT. LTD', marginLeft + 35, y + 8);
-    doc.text('PURCHASE ORDER (PO)', marginRight, y + 8, { align: 'right' });
-  
-    doc.setFontSize(10).setFont('helvetica', 'normal');
-    doc.text('Contact - +91-7897391111  Email - Team@spacewings.com', 105, y + 18, { align: 'center' });
-    doc.text('1/7, Vishwas Khand, Gomti Nagar, Lucknow, Uttar Pradesh 226010', 105, y + 24, { align: 'center' });
-    // add devider with margin bottom
-    // doc.line(marginLeft, y + 20, marginRight, y + 20);
-    // add space below
+      y += 8
+      labelStyle()
+      doc.text("Client Name:", marginLeft, y)
+      valueStyle()
+      doc.text(po.vendor || "-", marginLeft + 35, y)
 
-    y = y + 32;
-  
-    // === Info Block ===
-    labelStyle(); doc.text('PO Number:', marginLeft, y);
-    valueStyle(); doc.text(po.poNumber, marginLeft + 35, y);
-  
-    labelStyle(); doc.text('Date:', 140, y);
-    valueStyle(); doc.text(format(new Date(po.orderDate), 'yyyy-MM-dd'), 160, y);
-  
-    y += 8;
-    labelStyle(); doc.text('Client Name:', marginLeft, y);
-    valueStyle(); doc.text(po.clientName || po.vendor || '-', marginLeft + 35, y);
-  
-   
-  
-    y += 8;
-    labelStyle(); doc.text('Status:', marginLeft, y);
-    valueStyle(); doc.text(po.status.toUpperCase(), marginLeft + 35, y);
-  
-    labelStyle(); doc.text('DB No:', 140, y);
-    valueStyle(); doc.text(po.ref_num || '-', 160, y);
-  
-    y += 8;
-    labelStyle(); doc.text('Site Incharge:', marginLeft, y);
-    valueStyle(); doc.text(po.site_incharge || '-', marginLeft + 35, y);
-  
-    labelStyle(); doc.text('Contractor :  ', 140, y);
-    valueStyle(); doc.text(po.contractor || '-',164, y);
-  
-    // === Items Table ===
-    autoTable(doc, {
-      startY: y + 12,
-      margin: { left: marginLeft, right: 20 },
-      head: [['Item Name', 'Unit Type', 'Quantity', 'Rate (INR)', 'Total Amount (INR)']],
-      body: po.items.map((item) => [
-        item.productName,
-        item.unitType || '-',
-        item.quantity,
-        item.unitPrice.toLocaleString(),
-        item.total.toLocaleString(),
-      ]),
-      styles: {
-        fontSize: 10,
-        halign: 'center',
-        valign: 'middle',
-        cellPadding: 3,
-      },
-      headStyles: {
-        fillColor: [38, 0, 84],
-        textColor: [255, 255, 255],
-      },
-      alternateRowStyles: { fillColor: [245, 245, 245] },
-      bodyStyles: {
-        textColor: [40, 40, 40],
-        
-      },
-    });
-  
-    const finalY = doc.lastAutoTable.finalY || 120;
-  
-    // === Totals Section ===
-    // labelStyle(); doc.text('Subtotal:', marginLeft + 30, finalY + 10);
-    // valueStyle(); doc.text(`₹ ${formatINRCurrency(po.subtotal, { withSymbol: false, fraction: false })}`, marginLeft + 30, finalY + 10, { align: 'right' });
-  
-    // labelStyle(); doc.text('Total:', marginLeft + 30, finalY + 18);
-    // valueStyle(); doc.text(`₹ ${formatINRCurrency(po.total, { withSymbol: false, fraction: false })}`, marginLeft + 30, finalY + 18, { align: 'right' });
-  
-    // === Footer Details ===
-    labelStyle(); doc.text('Ordered By:', marginLeft, finalY + 30);
-    valueStyle(); doc.text(po.orderedBy || '-', marginLeft + 30, finalY + 30);
-  
-    labelStyle(); doc.text('Delivery Date:', marginLeft, finalY + 38);
-    valueStyle(); doc.text(format(new Date(po.deliveryDate), 'yyyy-MM-dd'), marginLeft + 30, finalY + 38);
-    
-    labelStyle(); doc.text('Purpose:', marginLeft, finalY + 48);
-    valueStyle(); doc.text(po.purpose || '-', marginLeft + 30, finalY + 48);
-    if (po.remarks) {
-      labelStyle(); doc.text('Remarks:', marginLeft, finalY + 60);
-      valueStyle(); doc.text(po.remarks, marginLeft, finalY + 70, { maxWidth: 170 });
+      y += 8
+      labelStyle()
+      doc.text("Status:", marginLeft, y)
+      valueStyle()
+      doc.text(po.status.toUpperCase(), marginLeft + 35, y)
+
+      labelStyle()
+      doc.text("DB No:", 140, y)
+      valueStyle()
+      doc.text(po.ref_num || "-", 160, y)
+
+      y += 8
+      labelStyle()
+      doc.text("Site Incharge:", marginLeft, y)
+      valueStyle()
+      doc.text(po.site_incharge || "-", marginLeft + 35, y)
+
+      labelStyle()
+      doc.text("Contractor:", 140, y)
+      valueStyle()
+      doc.text(po.contractor || "-", 164, y)
+
+      // Items Table
+      autoTable(doc, {
+        startY: y + 12,
+        margin: { left: marginLeft, right: 20 },
+        head: [["Item Name", "Unit Type", "Quantity", "Rate (INR)", "Total Amount (INR)"]],
+        body: po.items.map((item) => [
+          item.productName,
+          item.unitType || "-",
+          item.quantity,
+          item.unitPrice.toLocaleString(),
+          (item.total || item.quantity * item.unitPrice).toLocaleString(),
+        ]),
+        styles: {
+          fontSize: 10,
+          halign: "center",
+          valign: "middle",
+          cellPadding: 3,
+        },
+        headStyles: {
+          fillColor: [38, 0, 84],
+          textColor: [255, 255, 255],
+        },
+        alternateRowStyles: { fillColor: [245, 245, 245] },
+        bodyStyles: {
+          textColor: [40, 40, 40],
+        },
+      })
+
+      const finalY = (doc as any).lastAutoTable.finalY || 120
+
+      // Footer Details
+      labelStyle()
+      doc.text("Ordered By:", marginLeft, finalY + 30)
+      valueStyle()
+      doc.text(po.orderedBy || "-", marginLeft + 30, finalY + 30)
+
+      labelStyle()
+      doc.text("Delivery Date:", marginLeft, finalY + 38)
+      valueStyle()
+      doc.text(po.deliveryDate ? format(new Date(po.deliveryDate), "yyyy-MM-dd") : "-", marginLeft + 30, finalY + 38)
+
+      labelStyle()
+      doc.text("Purpose:", marginLeft, finalY + 48)
+      valueStyle()
+      doc.text(po.purpose || "-", marginLeft + 30, finalY + 48)
+
+      if (po.remarks) {
+        labelStyle()
+        doc.text("Remarks:", marginLeft, finalY + 60)
+        valueStyle()
+        doc.text(po.remarks, marginLeft, finalY + 70, { maxWidth: 170 })
+      }
+
+      // Save File
+      doc.save(`${po.poNumber}_Purchase_Order.pdf`)
+    } catch (error) {
+      console.error("Error generating PDF:", error)
+      alert("Failed to generate PDF. Please try again.")
     }
-  
-    // === Save File ===
-    doc.save(`${po.poNumber}_Purchase_Order.pdf`);
-  };
-  const handleEdit = (po: PurchaseOrder) => {
-    setEditingPO({ ...po, id: po.id ?? po._id });
-    setIsModalOpen(true);
-  };
+  }
 
-  // Function to handle deletion of purchase orders
+  const handleEdit = (po: PurchaseOrder) => {
+    setEditingPO({ ...po, id: po.id ?? po._id })
+    setIsModalOpen(true)
+  }
+
   const handleDelete = (id: string | undefined) => {
     if (!id) {
-      alert('Invalid purchase order ID');
-      return;
+      alert("Invalid purchase order ID")
+      return
     }
-    if (window.confirm('Are you sure you want to delete this purchase order?')) {
-      deleteMutation.mutate(String(id));
+    if (window.confirm("Are you sure you want to delete this purchase order?")) {
+      deleteMutation.mutate(String(id))
     }
-  };
+  }
 
   const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setEditingPO(null);
-    setServerError(null);
-  };
+    setIsModalOpen(false)
+    setEditingPO(null)
+    setServerError(null)
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'draft': return 'bg-gray-100 text-gray-800';
-      case 'approved': return 'bg-blue-100 text-blue-800';
-      case 'delivered': return 'bg-green-100 text-green-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "draft":
+        return "bg-gray-100 text-gray-800"
+      case "approved":
+        return "bg-blue-100 text-blue-800"
+      case "delivered":
+        return "bg-green-100 text-green-800"
+      case "cancelled":
+        return "bg-red-100 text-red-800"
+      default:
+        return "bg-gray-100 text-gray-800"
     }
-  };
+  }
 
   if (isLoading) {
-    return <LoadingSpinner size="lg" />;
+    return <LoadingSpinner size="lg" />
+  }
+
+  if (poError) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader title="Purchase Orders" subtitle="Error loading purchase orders" />
+          <div className="p-6">
+            <div className="text-center py-8">
+              <div className="text-red-600 mb-4">
+                <FileText className="mx-auto h-12 w-12" />
+              </div>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">Failed to load purchase orders</h3>
+              <p className="mt-1 text-sm text-gray-500">Please check your connection and try again.</p>
+              <Button className="mt-4" onClick={() => window.location.reload()}>
+                Reload Page
+              </Button>
+            </div>
+          </div>
+        </Card>
+      </div>
+    )
   }
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader
-          title={`Purchase Orders (${poResponse.pagination.total && poResponse.pagination.total})`}
+          title={`Purchase Orders (${pagination.total})`}
           subtitle="Manage your purchase orders"
           action={
             <Button
               icon={Plus}
-              className='gradient-btn'
-              onClick={() => { setIsModalOpen(true); setServerError(null); }}
+              className="gradient-btn"
+              onClick={() => {
+                setIsModalOpen(true)
+                setServerError(null)
+              }}
             >
               Create PO
             </Button>
@@ -882,8 +986,8 @@ export const PurchaseOrders: React.FC = () => {
               className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               value={searchTerm}
               onChange={(e) => {
-                setSearchTerm(e.target.value);
-                resetPage();
+                setSearchTerm(e.target.value)
+                resetPage()
               }}
             />
           </div>
@@ -918,29 +1022,22 @@ export const PurchaseOrders: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredPOs.map((po) => (
+              {purchaseOrders.map((po) => (
                 <tr key={po.id ?? po._id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      {/* <FileText className="h-5 w-5 text-gray-400 mr-3" /> */}
-                      {/* <Badge variant="green" bordered size="sm" radius="full"> {po.ref_num || '--'}</Badge> */}
-                      <span className={`px-2 py-1 text-sm  font-medium rounded-md ${getStatusColor('delivered')}`}>
-                        {po.ref_num || '--'}
+                      <span className={`px-2 py-1 text-sm font-medium rounded-md ${getStatusColor("delivered")}`}>
+                        {po.ref_num || "--"}
                       </span>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <FileText className="h-5 w-5 text-gray-400 mr-3" />
-                      <div className="text-sm font-medium text-gray-900">
-                        {po.poNumber}
-                      </div>
+                      <div className="text-sm font-medium text-gray-900">{po.poNumber}</div>
                     </div>
                   </td>
-
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {po.vendor}
-                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{po.vendor}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(po.status)}`}>
                       {po.status}
@@ -949,7 +1046,6 @@ export const PurchaseOrders: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {new Date(po.orderDate).toLocaleDateString()}
                   </td>
-
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {formatCurrency(po.total)}
                   </td>
@@ -963,7 +1059,9 @@ export const PurchaseOrders: React.FC = () => {
                         >
                           <Download className="h-4 w-4" />
                         </button>
-                        <span className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none z-10 whitespace-nowrap">Download PDF</span>
+                        <span className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none z-10 whitespace-nowrap">
+                          Download PDF
+                        </span>
                       </div>
                       {isAdmin() && (
                         <div className="relative group">
@@ -974,7 +1072,9 @@ export const PurchaseOrders: React.FC = () => {
                           >
                             <Edit className="h-4 w-4" />
                           </button>
-                          <span className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none z-10 whitespace-nowrap">Edit</span>
+                          <span className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none z-10 whitespace-nowrap">
+                            Edit
+                          </span>
                         </div>
                       )}
                       {isAdmin() && (
@@ -986,7 +1086,9 @@ export const PurchaseOrders: React.FC = () => {
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
-                          <span className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none z-10 whitespace-nowrap">Delete</span>
+                          <span className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none z-10 whitespace-nowrap">
+                            Delete
+                          </span>
                         </div>
                       )}
                       <div className="relative group">
@@ -997,7 +1099,9 @@ export const PurchaseOrders: React.FC = () => {
                         >
                           <Eye className="h-4 w-4" />
                         </button>
-                        <span className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none z-10 whitespace-nowrap">View Details</span>
+                        <span className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none z-10 whitespace-nowrap">
+                          View Details
+                        </span>
                       </div>
                     </div>
                   </td>
@@ -1007,27 +1111,22 @@ export const PurchaseOrders: React.FC = () => {
           </table>
         </div>
 
-        {filteredPOs.length === 0 && (
+        {purchaseOrders.length === 0 && (
           <div className="text-center py-8">
             <FileText className="mx-auto h-12 w-12 text-gray-400" />
             <h3 className="mt-2 text-sm font-medium text-gray-900">No purchase orders found</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Get started by creating your first purchase order.
-            </p>
+            <p className="mt-1 text-sm text-gray-500">Get started by creating your first purchase order.</p>
           </div>
         )}
 
         {/* Pagination Controls */}
         <div className="flex justify-center items-center space-x-2 mt-6">
-          <Button
-            type="button"
-            variant="outline"
-            disabled={pagination.page <= 1}
-            onClick={handlePrev}
-          >
+          <Button type="button" variant="outline" disabled={pagination.page <= 1} onClick={handlePrev}>
             Previous
           </Button>
-          <span className="px-2">Page {pagination.page} of {pagination.pages}</span>
+          <span className="px-2">
+            Page {pagination.page} of {pagination.pages}
+          </span>
           <Button
             type="button"
             variant="outline"
@@ -1039,12 +1138,7 @@ export const PurchaseOrders: React.FC = () => {
         </div>
       </Card>
 
-      <POModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        purchaseOrder={editingPO || undefined}
-      />
-
+      <POModal isOpen={isModalOpen} onClose={handleCloseModal} purchaseOrder={editingPO || undefined} />
     </div>
-  );
-};
+  )
+}

@@ -230,7 +230,7 @@ export const Products: React.FC = () => {
   const debouncedSearch = useDebounce(searchTerm, 800);
   const { page, handleNext, handlePrev, resetPage } = usePagination(1);
   const limit = 10;
-  const queryClient = useQueryClient();
+  // const queryClient = useQueryClient();
   const { isAdmin } = useAuth();
 
   const {

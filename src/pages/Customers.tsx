@@ -324,7 +324,7 @@ export const Customers: React.FC = () => {
                       </button>
                     )}
                     <button
-                      onClick={() => navigate(`/customers/${customer._id || customer.id}`)}
+                      onClick={() => navigate(`/clients/${customer._id || customer.id}`)}
                       className="text-gray-600 hover:text-gray-900"
                       title="View Details"
                     >

@@ -430,12 +430,13 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
   },
 
   // Vendors/Suppliers
-  getSuppliers: async (params: { page?: number; limit?: number; search?: string } = {}) => {
+  getSuppliers: async (params: { page?: number; limit?: number; search?: string; all?: boolean } = { all: false }) => {
     try {
       const query = new URLSearchParams({
         page: params.page?.toString() || '1',
         limit: params.limit?.toString() || '10',
         search: params.search || '',
+        all: params.all?.toString() || 'false',
       }).toString();
       const res = await request<any>(`${API_ROUTES.VENDORS}?${query}`);
       return res.data;
@@ -444,6 +445,7 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
       throw error;
     }
   },
+  
 
   getSupplierById: async (id: string) => {
     try {
@@ -527,6 +529,7 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
       throw error;
     }
   },
+  
 
   getCustomerById: async (id: string) => {
     try {

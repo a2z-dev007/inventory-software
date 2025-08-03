@@ -67,8 +67,8 @@ const AppRoutes: React.FC = () => {
             <PurchaseOrderDetail />
           </ProtectedRoute>
         } />
-        <Route path="sales" element={<Sales />} />
-        <Route path="sales/:id" element={<SaleDetail />} />
+        <Route path="site" element={<Sales />} />
+        <Route path="site/:id" element={<SaleDetail />} />
         <Route path="purchases" element={
           <ProtectedRoute requiredRoles={['admin', 'manager']}>
             <Purchases />
@@ -89,8 +89,8 @@ const AppRoutes: React.FC = () => {
             <SupplierDetail />
           </ProtectedRoute>
         } />
-        <Route path="customers" element={<Customers />} />
-        <Route path="customers/:id" element={<CustomerDetail />} />
+        <Route path="clients" element={<Customers />} />
+        <Route path="clients/:id" element={<CustomerDetail />} />
         <Route path="reports" element={
           <ProtectedRoute requiredRoles={['admin', 'manager']}>
             <Reports />

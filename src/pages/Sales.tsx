@@ -609,7 +609,7 @@ export const Sales: React.FC = () => {
                       </button>
                     )}
                     <button
-                      onClick={() => navigate(`/sales/${sale._id || sale.id}`)}
+                      onClick={() => navigate(`/site/${sale._id || sale.id}`)}
                       className="text-gray-600 hover:text-gray-900"
                       title="View Details"
                     >

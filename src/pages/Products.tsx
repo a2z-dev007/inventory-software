@@ -358,6 +358,13 @@ export const Products: React.FC = () => {
                         <Edit className="h-4 w-4" />
                       </button>
                     )}
+                    <button
+                      onClick={() => navigate(`/products/${product._id}`)}
+                      className="text-gray-600 hover:text-gray-900"
+                      title="View Details"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
                     {isAdmin() && (
                       <button
                         onClick={() => {
@@ -371,13 +378,7 @@ export const Products: React.FC = () => {
                         <Trash2 className="h-4 w-4" />
                       </button>
                     )}
-                    <button
-                      onClick={() => navigate(`/products/${product._id}`)}
-                      className="text-gray-600 hover:text-gray-900"
-                      title="View Details"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </button>
+                    
                   </td>
                 </tr>
               ))}

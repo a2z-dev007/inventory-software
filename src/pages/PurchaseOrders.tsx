@@ -1077,6 +1077,18 @@ export const PurchaseOrders: React.FC = () => {
                           </span>
                         </div>
                       )}
+                      <div className="relative group">
+                        <button
+                          onClick={() => navigate(`/purchase-orders/${po._id || po.id}`)}
+                          className="text-gray-600 hover:text-gray-900"
+                          aria-label="View Details"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        <span className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none z-10 whitespace-nowrap">
+                          View Details
+                        </span>
+                      </div>
                       {isAdmin() && (
                         <div className="relative group">
                           <button
@@ -1091,18 +1103,7 @@ export const PurchaseOrders: React.FC = () => {
                           </span>
                         </div>
                       )}
-                      <div className="relative group">
-                        <button
-                          onClick={() => navigate(`/purchase-orders/${po._id || po.id}`)}
-                          className="text-gray-600 hover:text-gray-900"
-                          aria-label="View Details"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </button>
-                        <span className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none z-10 whitespace-nowrap">
-                          View Details
-                        </span>
-                      </div>
+                      
                     </div>
                   </td>
                 </tr>

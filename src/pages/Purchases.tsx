@@ -698,13 +698,7 @@ export const Purchases: React.FC = () => {
                     >
                       <Download className="h-4 w-4" />
                     </button> */}
-                    <button
-                      onClick={() => navigate(`/purchases/${purchase._id || purchase.id}`)}
-                      className="text-gray-600 hover:text-gray-900"
-                      title="View Details"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </button>
+                   
                     {isAdmin() && (
                       <button
                         onClick={() => {
@@ -717,6 +711,13 @@ export const Purchases: React.FC = () => {
                         <Edit className="h-4 w-4" />
                       </button>
                     )}
+                     <button
+                      onClick={() => navigate(`/purchases/${purchase._id || purchase.id}`)}
+                      className="text-gray-600 hover:text-gray-900"
+                      title="View Details"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
                     {isAdmin() && (
                       <button
                         onClick={() => {

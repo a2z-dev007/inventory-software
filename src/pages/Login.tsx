@@ -7,7 +7,7 @@ import { Package, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/common/Button';
 import { FormField } from '../components/forms/FormField';
-import logo from "../assets/images/logo.png"
+import logo from "../assets/images/logobnw.png"
 const loginSchema = z.object({
   username: z.string().min(1, 'Username is required'),
   password: z.string().min(1, 'Password is required'),

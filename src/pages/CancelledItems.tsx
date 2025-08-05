@@ -212,12 +212,12 @@ export const CancelledItems: React.FC = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredPurchases.map((purchase,index) => (
-                <tr key={purchase._id} className={`hover:bg-gray-50 ${purchase?.items?.length ===1 && purchase?.items[0]?.isCancelled ? 'bg-red-100 line-through':'' }`}>
+                <tr key={purchase._id} className={`hover:bg-gray-50 `}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       {/* <NotepadTextIcon className="h-5 w-5 text-gray-400 mr-3" /> */}
                    
-                     <span className={`px-2 py-1 text-sm  font-medium rounded-full ${purchase?.items?.length ===1 && purchase?.items[0]?.isCancelled ? 'bg-red-400': getStatusColor('delivered')}`}>
+                     <span className={`px-2 py-1 text-sm  font-medium rounded-full `}>
 
                      {purchase.receiptNumber}
                       </span>

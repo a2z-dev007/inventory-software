@@ -86,7 +86,7 @@ export const CancelledItemsDetail: React.FC = () => {
   const getStatusColor = () => {
     return 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/25';
   };
-
+  let filterItems = po?.items?.filter(item=>item.isCancelled ===true)?.length
 
   return (
     <div className="min-h-screen  p-4 sm:p-6 lg:p-8">
@@ -153,7 +153,7 @@ export const CancelledItemsDetail: React.FC = () => {
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div>
                 <p className="text-sm font-medium text-gray-600">Items Count</p>
-                <p className="text-2xl font-bold text-gray-900">{po?.items.length}</p>
+                <p className="text-2xl font-bold text-gray-900">{filterItems}</p>
               </div>
               <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-3 rounded-xl shadow-lg shadow-blue-500/25">
                 <Package className="h-6 w-6 text-white" />
@@ -347,7 +347,7 @@ export const CancelledItemsDetail: React.FC = () => {
                       <span className="font-bold text-gray-900 text-lg">{formatCurrency(item.unitPrice)}</span>
                     </td>
                     <td className="px-8 py-6 text-right">
-                      <span className={`font-bold text-2xl ${ item?.isCancelled ? 'text-red-500 line-through':'text-emerald-500' }`}>
+                      <span className={`font-bold text-2xl text-red-500`}>
                         {formatINRCurrency(Number(item.quantity) * item.unitPrice)}
                       </span>
                     </td>

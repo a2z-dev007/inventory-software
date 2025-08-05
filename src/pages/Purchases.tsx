@@ -13,7 +13,7 @@ import { Button } from '../components/common/Button';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { FormField } from '../components/forms/FormField';
 import { SelectField } from '../components/forms/SelectField';
-import { formatCurrency, getStatusColor } from '../utils/constants';
+import { extractCancelledItemsFromPurchases, formatCurrency, getStatusColor } from '../utils/constants';
 import { usePagination } from '../hooks/usePagination';
 import { useDebounce } from '../hooks/useDebounce';
 import { PurchaseOrder } from './PurchaseOrders';
@@ -69,20 +69,54 @@ interface SuppliersApiResponse {
     limit: number;
   };
 }
-interface Purchase {
-  _id: string;
+// interface Purchase {
+//   _id: string;
+//   receiptNumber: string;
+//   supplier: string;
+//   ref_num: string;
+//   createdBy: string;
+//   vendor?: string;
+//   purchaseDate: string;
+//   invoiceFile?: string;
+//   total: number;
+//   items: any[];
+//   subtotal: number;
+//   remarks?: string;
+//   // Removed tax
+// }
+export interface Purchase {
+  _id:           string;
+  ref_num:       string;
+  invoiceFile:   null;
+  vendor:        string;
+  purchaseDate:  Date;
+  items:         Item[];
+  subtotal:      number;
+  total:         number;
   receiptNumber: string;
-  supplier: string;
-  ref_num: string;
-  createdBy: string;
-  vendor?: string;
-  purchaseDate: string;
-  invoiceFile?: string;
-  total: number;
-  items: any[];
-  subtotal: number;
-  remarks?: string;
-  // Removed tax
+  createdBy:     CreatedBy;
+  isDeleted:     boolean;
+  remarks:       string;
+  createdAt:     Date;
+  updatedAt:     Date;
+  __v:           number;
+}
+
+export interface CreatedBy {
+  _id:      string;
+  username: string;
+  name:     string;
+}
+
+export interface Item {
+  productId:   string;
+  productName: string;
+  quantity:    number;
+  unitPrice:   number;
+  unitType:    string;
+  total:       number;
+  isCancelled?:boolean;
+  _id:         string;
 }
 interface PurchasesApiResponse {
   purchases: Purchase[];
@@ -422,7 +456,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
 
             {/* Items */}
             <div>
-              <div className="flex items-center justify-between mb-4">
+              {/* <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-medium text-gray-900">Items</h3>
                 <Button
                   type="button"
@@ -433,7 +467,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
                 >
                   Add Item
                 </Button>
-              </div>
+              </div> */}
 
               <div className="space-y-4">
                 {fields.map((field, index) => (
@@ -507,7 +541,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
                     )}
 
 
-                    <div className="flex items-end">
+                    {/* <div className="flex items-end">
                       <Button
                         type="button"
                         variant="danger"
@@ -517,7 +551,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
                       >
                         Remove
                       </Button>
-                    </div>
+                    </div> */}
                   </div>
                 ))}
               </div>
@@ -603,7 +637,7 @@ export const Purchases: React.FC = () => {
   const purchases = purchasesData?.purchases || [];
   const pagination = purchasesData?.pagination || { page: 1, pages: 1, total: 0, limit: 10 };
 
-  const filteredPurchases = purchases;
+  const filteredPurchases = extractCancelledItemsFromPurchases(purchases,false);
   console.log("filteredPurchases", filteredPurchases)
   const generateReceiptPDF = (purchase: any) => {
     const doc = new jsPDF();
@@ -654,7 +688,7 @@ export const Purchases: React.FC = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader
-          title={`Purchases (${purchasesData?.pagination?.total || 0})`}
+          title={`Purchases`}
           subtitle="Record and manage your purchases"
           action={
             <Button
@@ -709,8 +743,8 @@ export const Purchases: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredPurchases.map((purchase) => (
-                <tr key={purchase._id} className="hover:bg-gray-50">
+              {filteredPurchases.map((purchase,index) => (
+                <tr key={purchase._id} className={`hover:bg-gray-50`}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       {/* <NotepadTextIcon className="h-5 w-5 text-gray-400 mr-3" /> */}
@@ -746,7 +780,7 @@ export const Purchases: React.FC = () => {
                       className="text-green-600 hover:text-green-900"
                       title="Download Receipt"
                     >
-                      <Download className="h-4 w-4" />
+                      <Download size={20} />
                     </button> */}
                    
                     {isAdmin() && (
@@ -758,7 +792,7 @@ export const Purchases: React.FC = () => {
                         className="text-blue-600 hover:text-blue-900"
                         title="Edit"
                       >
-                        <Edit className="h-4 w-4" />
+                        <Edit size={20} />
                       </button>
                     )}
                      <button
@@ -766,7 +800,7 @@ export const Purchases: React.FC = () => {
                       className="text-gray-600 hover:text-gray-900"
                       title="View Details"
                     >
-                      <Eye className="h-4 w-4" />
+                      <Eye size={20} />
                     </button>
                     {isAdmin() && (
                       <button
@@ -778,7 +812,7 @@ export const Purchases: React.FC = () => {
                         className="text-red-600 hover:text-red-900"
                         title="Delete"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 size={20} />
                       </button>
                     )}
                   </td>

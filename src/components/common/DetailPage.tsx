@@ -271,7 +271,7 @@ export const DetailPage: React.FC<DetailPageProps> = ({
 }) => {
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-6">
+      <div className="min-h-screen bg-gradient-to-br p-6">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
@@ -288,7 +288,7 @@ export const DetailPage: React.FC<DetailPageProps> = ({
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-red-50 p-6">
+      <div className="min-h-screen bg-gradient-to-br  p-6">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-center h-64">
             <div className="text-center bg-white rounded-xl shadow-lg p-8 border border-red-100">
@@ -316,7 +316,7 @@ export const DetailPage: React.FC<DetailPageProps> = ({
 
   if (!data) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-6">
+      <div className="min-h-screen bg-gradient-to-br  p-6">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-center h-64">
             <div className="text-center bg-white rounded-xl shadow-lg p-8 border border-gray-100">
@@ -375,7 +375,7 @@ export const DetailPage: React.FC<DetailPageProps> = ({
   const arrayFields = otherEntries.filter(([_, value]) => Array.isArray(value));
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 p-6">
+    <div className="min-h-screen bg-gradient-to-br  p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">

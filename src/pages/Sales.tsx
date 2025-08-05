@@ -565,7 +565,7 @@ const [confirmToggleValue, setConfirmToggleValue] = useState<boolean>(false);
     <div className="space-y-6">
       <Card>
         <CardHeader
-          title={`Sites (${salesResponse?.pagination?.total || 0})`}
+          title={`Sites`}
           subtitle="Manage your sites transactions"
           action={
             <Button
@@ -671,7 +671,7 @@ const [confirmToggleValue, setConfirmToggleValue] = useState<boolean>(false);
                       className="text-green-600 hover:text-green-900"
                       title="Download Invoice"
                     >
-                      <Download className="h-4 w-4" />
+                      <Download size={20} />
                     </button> */}
                     {isAdmin() && (
                       <button
@@ -679,7 +679,7 @@ const [confirmToggleValue, setConfirmToggleValue] = useState<boolean>(false);
                         className="text-blue-600 hover:text-blue-900"
                         title="Edit"
                       >
-                        <Edit className="h-4 w-4" />
+                        <Edit size={20} />
                       </button>
                     )}
                     <button
@@ -687,7 +687,7 @@ const [confirmToggleValue, setConfirmToggleValue] = useState<boolean>(false);
                       className="text-gray-600 hover:text-gray-900"
                       title="View Details"
                     >
-                      <Eye className="h-4 w-4" />
+                      <Eye size={20} />
                     </button>
                     {isAdmin() && (
                       <button
@@ -699,7 +699,7 @@ const [confirmToggleValue, setConfirmToggleValue] = useState<boolean>(false);
                         className="text-red-600 hover:text-red-900"
                         title="Delete"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 size={20} />
                       </button>
                     )}
                   </td>

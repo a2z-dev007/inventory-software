@@ -25,6 +25,8 @@ import { useAuth } from './hooks/useAuth';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { ForgotPassword } from './pages/ForgotPassword';
+import { CancelledItems } from './pages/CancelledItems';
+import { CancelledItemsDetail } from './pages/CancelledPurchaseDetail';
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -99,6 +101,16 @@ const AppRoutes: React.FC = () => {
         <Route path="settings" element={
           <ProtectedRoute requiredRoles={['admin']}>
             <Settings />
+          </ProtectedRoute>
+        } />
+         <Route path="cancelled-items" element={
+          <ProtectedRoute requiredRoles={['admin', 'manager']}>
+            <CancelledItems />
+          </ProtectedRoute>
+        } />
+         <Route path="cancelled-items/:id" element={
+          <ProtectedRoute requiredRoles={['admin', 'manager']}>
+            <CancelledItemsDetail />
           </ProtectedRoute>
         } />
       </Route>

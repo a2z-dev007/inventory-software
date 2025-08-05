@@ -269,7 +269,7 @@ export const Customers: React.FC = () => {
     <div className="space-y-6  pb-6">
       <Card>
         <CardHeader
-          title={`Customers (${customerResponse?.pagination?.total || 0})`}
+          title={`Customers`}
           subtitle="Manage your customer base"
           action={
             <Button
@@ -320,7 +320,7 @@ export const Customers: React.FC = () => {
                         className="text-blue-600 hover:text-blue-900"
                         title="Edit"
                       >
-                        <Edit className="h-4 w-4" />
+                        <Edit size={20} />
                       </button>
                     )}
                     <button
@@ -328,7 +328,7 @@ export const Customers: React.FC = () => {
                       className="text-gray-600 hover:text-gray-900"
                       title="View Details"
                     >
-                      <Eye className="h-4 w-4" />
+                      <Eye size={20} />
                     </button>
                     {isAdmin() && (
                       <button
@@ -340,7 +340,7 @@ export const Customers: React.FC = () => {
                         className="text-red-600 hover:text-red-900"
                         title="Delete"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 size={20} />
                       </button>
                     )}
                   </div>

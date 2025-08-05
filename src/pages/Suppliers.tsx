@@ -207,12 +207,12 @@ export const Suppliers: React.FC = () => {
     isFetching,
   } = useQuery<SuppliersApiResponse>({
     queryKey: ['suppliers', page, debouncedSearch],
-    queryFn: () => apiService.getSuppliers({ page, limit: 6, search: debouncedSearch }),
+    queryFn: () => apiService.getSuppliers({ page, limit: 9, search: debouncedSearch }),
     // keepPreviousData: true, // Remove or move to options if your React Query version supports it
   });
 
   const suppliers = data?.vendors || [];
-  const pagination = data?.pagination || { page: 1, pages: 1, total: 0, limit: 6 };
+  const pagination = data?.pagination || { page: 1, pages: 1, total: 0, limit: 9 };
 
   console.log('📦 Current Page State:', page);
   console.log('📄 Pagination Response:', pagination);
@@ -231,7 +231,7 @@ export const Suppliers: React.FC = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader
-          title={`Suppliers (${data?.pagination?.total || 0})`}
+          title={`Suppliers`}
           subtitle="Manage your supplier network"
           action={
             <Button icon={Plus} className='gradient-btn' onClick={() => setIsModalOpen(true)}>
@@ -281,7 +281,7 @@ export const Suppliers: React.FC = () => {
                           className="text-blue-600 hover:text-blue-900"
                           title="Edit"
                         >
-                          <Edit className="h-4 w-4" />
+                          <Edit size={20} />
                         </button>
                       )}
                       <button
@@ -289,7 +289,7 @@ export const Suppliers: React.FC = () => {
                         className="text-gray-600 hover:text-gray-900"
                         title="View Details"
                       >
-                        <Eye className="h-4 w-4" />
+                        <Eye size={20} />
                       </button>
                       {isAdmin() && (
                         <button
@@ -301,7 +301,7 @@ export const Suppliers: React.FC = () => {
                           className="text-red-600 hover:text-red-900"
                           title="Delete"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 size={20} />
                         </button>
                       )}
                     </div>

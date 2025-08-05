@@ -726,7 +726,7 @@ export const PurchaseOrders: React.FC = () => {
     <div className="">
       <Card >
         <CardHeader
-          title={`Purchase Orders (${poResponse.pagination.total && poResponse.pagination.total})`}
+          title={`Purchase Orders `}
           subtitle="Manage your purchase orders"
           action={
             <Button
@@ -850,7 +850,7 @@ export const PurchaseOrders: React.FC = () => {
                           aria-label="Download PDF"
                         >
                           <Download size={20} />
-                          Download
+                          {/* Download */}
                         </button>
                         <span className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none z-10 whitespace-nowrap">Download PDF</span>
                       </div>)
@@ -864,7 +864,7 @@ export const PurchaseOrders: React.FC = () => {
                             aria-label="Edit"
                           >
                             <Edit size={20}  />
-                            Edit
+                            {/* Edit */}
                           </button>
                           <span className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none z-10 whitespace-nowrap">Edit</span>
                         </div>
@@ -877,7 +877,7 @@ export const PurchaseOrders: React.FC = () => {
                           aria-label="View Details"
                         >
                           <Eye size={20}  />
-                          View
+                          {/* View */}
                         </button>
                         <span className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none z-10 whitespace-nowrap">
                           View Details
@@ -891,7 +891,7 @@ export const PurchaseOrders: React.FC = () => {
                             aria-label="Delete"
                           >
                             <Trash2 size={20} />
-                            Delete
+                            {/* Delete */}
                           </button>
                           <span className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none z-10 whitespace-nowrap">Delete</span>
                         </div>
@@ -903,7 +903,7 @@ export const PurchaseOrders: React.FC = () => {
                           aria-label="View Details"
                         >
                     <Fullscreen size={20} />
-                    Preview
+                    {/* Preview */}
                         </button>
                         <span className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none z-10 whitespace-nowrap">Preview</span>
                       </div>

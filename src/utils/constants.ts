@@ -1,5 +1,7 @@
+import moment from "moment";
+
 export const API_BASE_URL = 'http://localhost:8080/api';
-import { moment } from 'moment';
+
 
 // Currency configuration
 export const CURRENCY_CONFIG = {
@@ -81,3 +83,80 @@ export const getBase64 = (imgPath:string) =>
       default: return 'bg-gray-100 text-gray-800';
     }
   };
+
+
+
+  type FormatType =
+    | 'relative'
+    | 'calendar'
+    | 'fromNow'
+    | 'fullDate'
+    | 'custom'
+    | 'dateTime';
+  
+  /**
+   * Formats a date string into a readable format
+   * @param dateString - ISO string (e.g., '2025-08-27T05:30:00+05:30')
+   * @param formatType - The type of formatting to apply
+   * @param customFormat - Custom Moment format string, required if formatType is 'custom'
+   * @returns formatted date string
+   */
+  export function formatRelativeDate(
+    dateString: string,
+    formatType: FormatType = "calendar",
+    customFormat?: string
+  ): string {
+    const date = moment(dateString);
+    const today = moment().startOf('day');
+    const inputDay = date.clone().startOf('day');
+    const diffDays = inputDay.diff(today, 'days');
+  
+    switch (formatType) {
+      case 'relative':
+        if (diffDays === 0) return 'today';
+        if (diffDays === 1) return 'tomorrow';
+        if (diffDays > 1) return `${diffDays} days`;
+        return `${Math.abs(diffDays)} days ago`;
+  
+      case 'calendar':
+        return inputDay.calendar(undefined, {
+          sameDay: '[Today]',
+          nextDay: '[Tomorrow]',
+          nextWeek: 'dddd',
+          lastDay: '[Yesterday]',
+          lastWeek: '[Last] dddd',
+          sameElse: 'MMMM D, YYYY',
+        });
+  
+      case 'fromNow':
+        return date.fromNow(); // e.g., "in 23 days"
+  
+      case 'fullDate':
+        return date.format('MMMM D, YYYY'); // e.g., "August 27, 2025"
+  
+      case 'dateTime':
+        return date.format('MMMM D, YYYY [at] h:mm A'); // e.g., "August 27, 2025 at 5:30 AM"
+  
+      case 'custom':
+        return date.format(customFormat || 'YYYY-MM-DD');
+  
+      default:
+        return date.format(); // fallback ISO
+    }
+  }
+  
+
+export  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  export  function extractCancelledItemsFromPurchases(purchases:any,condition:boolean) {
+    return purchases.map(purchase => ({
+      ...purchase,
+      items: purchase.items?.filter(item => item.isCancelled === condition) || [],
+    })).filter(purchase => purchase.items.length > 0);
+  }

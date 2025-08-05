@@ -64,7 +64,7 @@ export interface Item {
   _id:         string;
 }
 
-export const PurchaseDetail: React.FC = () => {
+export const CancelledItemsDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
@@ -91,7 +91,7 @@ export const PurchaseDetail: React.FC = () => {
   return (
     <div className="min-h-screen  p-4 sm:p-6 lg:p-8">
       {/* Background Pattern */}
-      <div className='mb-6'>
+     <div className='mb-6'>
      <BackButton/>
      </div>
       <div className="relative max-w-7xl mx-auto">
@@ -104,41 +104,25 @@ export const PurchaseDetail: React.FC = () => {
           <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
             <div className="flex items-center space-x-4">
               <div className="relative">
-                <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-4 rounded-2xl shadow-lg shadow-blue-500/25">
+                <div className="bg-gradient-to-r from-red-600 to-purple-600 p-4 rounded-2xl shadow-lg shadow-blue-500/25">
                   <Package className="h-8 w-8 text-white" />
                 </div>
                 {/* <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white animate-pulse"></div> */}
               </div>
               <div>
-                <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
-                  Purchase Details
+                <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-red-900 to-red-600 bg-clip-text text-transparent">
+                   Cancelled Items Details
                 </h1>
                 {/* <p className="text-gray-600 mt-1 text-lg">Advanced Purchase Management</p> */}
               </div>
             </div>
             
-          
+           
           </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Value</p>
-                <p className="text-2xl font-bold text-gray-900">{formatCurrency(po?.total)}</p>
-              </div>
-              <div className="bg-gradient-to-r from-emerald-500 to-green-600 p-3 rounded-xl shadow-lg shadow-emerald-500/25">
-                <IndianRupeeIcon className="h-6 w-6 text-white" />
-              </div>
-            </div>
-            <div className="mt-4 flex items-center text-emerald-600 text-sm">
-              {/* <TrendingUp className="h-4 w-4 mr-1" />
-              <span>100% Complete</span> */}
-            </div>
-          </div>
-
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div>
@@ -155,7 +139,7 @@ export const PurchaseDetail: React.FC = () => {
           <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div>
-                <p className="text-sm font-medium text-gray-600">Purchase Date</p>
+                <p className="text-sm font-medium text-gray-600">Cancelled Date</p>
                 <p className="text-lg font-bold text-gray-900">{formatRelativeDate(po?.purchaseDate)}</p>
               </div>
               <div className="bg-gradient-to-r from-purple-500 to-pink-600 p-3 rounded-xl shadow-lg shadow-purple-500/25">
@@ -182,7 +166,7 @@ export const PurchaseDetail: React.FC = () => {
         </div>
 
         {/* Main Content */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 mb-8">
+        <div className="grid grid-cols-1 xl:grid-cols-1 gap-8 mb-8">
           {/* Order Details */}
           <div className="xl:col-span-2 bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-8 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-500/5 to-purple-500/5 rounded-full -translate-y-16 translate-x-16"></div>
@@ -193,7 +177,7 @@ export const PurchaseDetail: React.FC = () => {
                   <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-2 rounded-xl mr-3 shadow-lg shadow-blue-500/25">
                     <FileText className="h-5 w-5 text-white" />
                   </div>
-                  Purchase Information
+                   Cancelled  Information
                 </h2>
              
                
@@ -304,49 +288,7 @@ export const PurchaseDetail: React.FC = () => {
           </div>
 
           {/* Enhanced Summary Card */}
-          <div className="bg-gradient-to-br from-white to-gray-50 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-8 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-emerald-500/10 to-green-500/10 rounded-full -translate-y-12 translate-x-12"></div>
-            
-            <div className="relative">
-              <h2 className="text-2xl font-bold text-gray-900 mb-8 flex items-center">
-                <div className="bg-gradient-to-r from-emerald-500 to-green-600 p-2 rounded-xl mr-3 shadow-lg shadow-emerald-500/25">
-                  <IndianRupeeIcon className="h-5 w-5 text-white" />
-                </div>
-                Financial Summary
-              </h2>
-              
-              <div className="space-y-6">
-                <div className="bg-white/50 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 font-medium">Subtotal</span>
-                    <span className="font-bold text-gray-900 text-lg">{formatCurrency(po?.subtotal)}</span>
-                  </div>
-                </div>
-                
-               
-                
-                <div className="bg-gradient-to-r from-emerald-500 to-green-600 rounded-2xl p-6 shadow-lg shadow-emerald-500/25">
-                  <div className="flex justify-between items-center">
-                    <span className="text-white font-bold text-lg">Grand Total</span>
-                    <span className="text-white font-bold text-2xl">{formatCurrency(po?.total)}</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="mt-8 p-6 bg-white/50 backdrop-blur-sm rounded-2xl border border-white/20">
-                <p className="text-sm font-medium text-gray-600 mb-3">Order Created By</p>
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                    <User className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-gray-900">{po?.createdBy.name}</p>
-                    <p className="text-sm text-gray-500">@{po?.createdBy.username}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+       
         </div>
 
         {/* Premium Items Table */}
@@ -354,10 +296,10 @@ export const PurchaseDetail: React.FC = () => {
           <div className="bg-gradient-to-r from-gray-50 to-white p-8 border-b border-gray-200/50">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-bold text-gray-900 flex items-center">
-                <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-2 rounded-xl mr-3 shadow-lg shadow-blue-500/25">
+                <div className="bg-gradient-to-r from-red-500 to-purple-600 p-2 rounded-xl mr-3 shadow-lg shadow-blue-500/25">
                   <Package className="h-5 w-5 text-white" />
                 </div>
-                Purchase Items
+                Purchase Cancelled Items
               </h2>
              
             </div>
@@ -375,11 +317,11 @@ export const PurchaseDetail: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {po?.items.map((item, index) => (
+                {po?.items.filter(item=>item.isCancelled===true)?.map((item, index) => (
                   <tr key={item._id} className={`hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-purple-50/50 transition-all duration-300 border-b border-gray-100 ${ item?.isCancelled ? 'bg-red-100 ':'' } `}>
                     <td className="px-8 py-6">
                       <div className="flex items-center space-x-4">
-                        <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-3 rounded-xl shadow-lg shadow-blue-500/25">
+                        <div className="bg-gradient-to-r from-red-500 to-purple-600 p-3 rounded-xl shadow-lg shadow-blue-500/25">
                           <Package className="h-5 w-5 text-white" />
                         </div>
                         <div>

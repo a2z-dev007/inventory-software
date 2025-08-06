@@ -61,7 +61,7 @@ export const Login: React.FC = () => {
           <img src={logo} className='' />
           </div>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">
-          Wings Stock Management System
+          Wings Procurement Management
           </h2>
           <p className="mt-2 text-sm text-gray-600">
             Sign in to access your dashboard

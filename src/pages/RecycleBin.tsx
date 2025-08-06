@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Trash2, RefreshCw, Search, Calendar, Package, ShoppingCart, FileText, AlertTriangle, CheckCircle, Users, DollarSign, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Trash2, RefreshCw, Search, Calendar, Package, ShoppingCart, FileText, AlertTriangle, CheckCircle, Users, IndianRupeeIcon, ChevronLeft, Che, IndianRupeeIconvronRight } from 'lucide-react';
 import { apiService } from '../services/api';
 
 // Assuming apiService is imported from your API service file
@@ -323,7 +323,7 @@ const RecycleBin: React.FC = () => {
         <div className="grid grid-cols-2 gap-4">
           <div className="text-center p-3 bg-gradient-to-br from-green-50 to-green-100 rounded-xl">
             <div className="flex items-center justify-center mb-2">
-              <DollarSign className="w-5 h-5 text-green-600" />
+              <IndianRupeeIcon className="w-5 h-5 text-green-600" />
             </div>
             <p className="text-sm text-green-600 font-medium">Total Amount</p>
             <p className="font-bold text-lg text-green-700">

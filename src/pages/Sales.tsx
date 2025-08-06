@@ -487,7 +487,7 @@ const [confirmToggleValue, setConfirmToggleValue] = useState<boolean>(false);
     isLoading,
   } = useQuery<{ sales: any[]; pagination: { page: number; pages: number; total: number; limit: number } }>({
     queryKey: ['sales', page, debouncedSearch],
-    queryFn: () => apiService.getSales({ page, limit, search: debouncedSearch }),
+    queryFn: () => apiService.getSales({ page, limit, search: debouncedSearch,isDeleted:false }),
   });
 
   const sales = Array.isArray(salesResponse?.sales) ? salesResponse.sales : [];
@@ -495,39 +495,7 @@ const [confirmToggleValue, setConfirmToggleValue] = useState<boolean>(false);
 
   const filteredSales = sales;
 
-  const generateInvoicePDF = (sale: any) => {
-    const doc = new jsPDF();
-    
-    // Header
-    doc.setFontSize(20);
-    doc.text('SALES INVOICE', 20, 30);
-    
-    doc.setFontSize(12);
-    doc.text(`Invoice #: ${sale.invoiceNumber}`, 20, 50);
-    doc.text(`Customer: ${sale.customerName}`, 20, 65);
-    doc.text(`Email: ${sale.customerEmail}`, 20, 80);
-    doc.text(`Date: ${new Date(sale.saleDate).toLocaleDateString()}`, 20, 95);
-    doc.text(`Status: ${sale.status.toUpperCase()}`, 20, 110);
-    
-    // Items
-    doc.text('Items:', 20, 135);
-    let yPos = 150;
-    
-    if (sale.items && Array.isArray(sale.items)) {
-      sale.items.forEach((item: any, index: number) => {
-        doc.text(`${index + 1}. ${item.productName}`, 25, yPos);
-        doc.text(`   Qty: ${item.quantity} × ₹${item.unitPrice} = ₹${item.total}`, 25, yPos + 10);
-        yPos += 25;
-      });
-    }
-    
-    // Totals
-    yPos += 10;
-    doc.text(`Subtotal: ₹${sale.subtotal.toFixed(2)}`, 20, yPos);
-    doc.text(`Total: ₹${sale.total.toFixed(2)}`, 20, yPos + 30);
-    
-    doc.save(`${sale.invoiceNumber}.pdf`);
-  };
+
 
   const handleEdit = (sale: any) => {
     setEditingSale({ ...sale, id: sale.id ?? sale._id });

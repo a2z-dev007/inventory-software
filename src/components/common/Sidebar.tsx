@@ -13,6 +13,7 @@ import {
   Receipt,
   MapPinnedIcon,
   BookX,
+  Trash,
   
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
@@ -33,8 +34,9 @@ const navigation: NavItem[] = [
   { name: 'Clients', href: '/clients', icon: Users, roles: ['admin', 'manager', 'staff'] },
   { name: 'Products', href: '/products', icon: Package, roles: ['admin', 'manager', 'staff'] },
   { name: 'Reports', href: '/reports', icon: TrendingUp, roles: ['admin', 'manager'] },
-  { name: 'Settings', href: '/settings', icon: Settings, roles: ['admin'] },
   { name: 'Cancelled Items', href: '/cancelled-items', icon: BookX, roles: ['admin'] },
+  { name: 'Settings', href: '/settings', icon: Settings, roles: ['admin'] },
+  { name: 'Recycle Bin', href: '/recycle-bin', icon: Trash, roles: ['admin'] },
 ];
 
 export const Sidebar: React.FC = () => {

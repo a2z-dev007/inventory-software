@@ -628,10 +628,10 @@ export const Purchases: React.FC = () => {
   const debouncedSearch = useDebounce(searchTerm, 800);
   const { page, handleNext, handlePrev } = usePagination(1);
   const { isAdmin } = useAuth();
-
+const isDeleted = false
   const { data: purchasesData, isLoading } = useQuery<PurchasesApiResponse>({
-    queryKey: ['purchases', page, debouncedSearch],
-    queryFn: () => apiService.getPurchases({ page, limit: 10, search: debouncedSearch }),
+    queryKey: ['purchases', page, debouncedSearch,isDeleted],
+    queryFn: () => apiService.getPurchases({ page, limit: 10, search: debouncedSearch,isDeleted:false }),
   });
 
   const purchases = purchasesData?.purchases || [];

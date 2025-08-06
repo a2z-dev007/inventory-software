@@ -27,6 +27,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { CancelledItems } from './pages/CancelledItems';
 import { CancelledItemsDetail } from './pages/CancelledPurchaseDetail';
+import RecycleBin from './pages/RecycleBin';
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -111,6 +112,11 @@ const AppRoutes: React.FC = () => {
          <Route path="cancelled-items/:id" element={
           <ProtectedRoute requiredRoles={['admin', 'manager']}>
             <CancelledItemsDetail />
+          </ProtectedRoute>
+        } />
+         <Route path="recycle-bin" element={
+          <ProtectedRoute requiredRoles={['admin', 'manager']}>
+            <RecycleBin />
           </ProtectedRoute>
         } />
       </Route>

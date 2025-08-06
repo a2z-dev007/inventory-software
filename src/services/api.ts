@@ -160,15 +160,33 @@ export const apiService = {
   },
 
   // Purchase Orders
-  getPurchaseOrders: async (params: { page?: number; limit?: number; search?: string; all?: boolean } = { all: false }) => {
+  getPurchaseOrders: async (params: { page?: number; limit?: number; search?: string; all?: boolean,isDeleted?:boolean } = { all: false }) => {
     try {
       const query = new URLSearchParams({
         page: params.page?.toString() || '1',
         limit: params.limit?.toString() || '10',
-        search: params.search || '',
+        search: params?.search || '',
         all:params.all?.toString() || 'false',
+        isDeleted:params?.isDeleted?.toString() || 'false',
       }).toString();
       const res = await request<any>(`${API_ROUTES.PURCHASE_ORDERS}?${query}`);
+      return res.data; // { purchaseOrders, pagination }
+    } catch (error) {
+      console.error('Error fetching purchase orders:', error);
+      throw error;
+    }
+  },
+
+  getDeletedPurchaseOrders: async (params: { page?: number; limit?: number; search?: string; all?: boolean,isDeleted?:boolean } = { all: false }) => {
+    try {
+      const query = new URLSearchParams({
+        page: params.page?.toString() || '1',
+        limit: params.limit?.toString() || '10',
+        search: params?.search || '',
+        all:params.all?.toString() || 'false',
+        isDeleted:params?.isDeleted?.toString() || 'false',
+      }).toString();
+      const res = await request<any>(`${API_ROUTES.DELETED_PURCHASE_ORDERS}?${query}`);
       return res.data; // { purchaseOrders, pagination }
     } catch (error) {
       console.error('Error fetching purchase orders:', error);
@@ -254,15 +272,33 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
   },
 
   // Sales
-  getSales: async (params: { page?: number; limit?: number; search?: string; all?: boolean } = { all: false }) => {
+  getSales: async (params: { page?: number; limit?: number; search?: string; all?: boolean,isDeleted?:boolean } = { all: false }) => {
     try {
       const query = new URLSearchParams({
         page: params.page?.toString() || '1',
         limit: params.limit?.toString() || '10',
         search: params.search || '',
         all:params.all?.toString() || 'false',
+        isDeleted:params.isDeleted?.toString() || 'false',
       }).toString();
       const res = await request<any>(`${API_ROUTES.SALES}?${query}`);
+      return res.data; // { sales, pagination }
+    } catch (error) {
+      console.error('Error fetching sales:', error);
+      throw error;
+    }
+  },
+
+  getDeletedSales: async (params: { page?: number; limit?: number; search?: string; all?: boolean,isDeleted?:boolean } = { all: false }) => {
+    try {
+      const query = new URLSearchParams({
+        page: params.page?.toString() || '1',
+        limit: params.limit?.toString() || '10',
+        search: params.search || '',
+        all:params.all?.toString() || 'false',
+        isDeleted:params.isDeleted?.toString() || 'false',
+      }).toString();
+      const res = await request<any>(`${API_ROUTES.DELETED_SALES}?${query}`);
       return res.data; // { sales, pagination }
     } catch (error) {
       console.error('Error fetching sales:', error);
@@ -339,14 +375,30 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
   },
 
   // Purchases
-  getPurchases: async (params: { page?: number; limit?: number; search?: string,all?:boolean } = {}) => {
+  getPurchases: async (params: { page?: number; limit?: number; search?: string,all?:boolean,isDeleted?:boolean } = {}) => {
     try {
       const query = new URLSearchParams({
         page: params.page?.toString() || '1',
         limit: params.limit?.toString() || '10',
         search: params.search || '',
+        isDeleted:params?.isDeleted?.toString() || 'false',
       }).toString();
       const res = await request<any>(`${API_ROUTES.PURCHASES}?${query}`);
+      return res.data;
+    } catch (error) {
+      console.error('Error fetching purchases:', error);
+      throw error;
+    }
+  },
+  getDeletedPurchases: async (params: { page?: number; limit?: number; search?: string,all?:boolean,isDeleted?:boolean } = {}) => {
+    try {
+      const query = new URLSearchParams({
+        page: params.page?.toString() || '1',
+        limit: params.limit?.toString() || '10',
+        search: params.search || '',
+        isDeleted:params?.isDeleted?.toString() || 'false',
+      }).toString();
+      const res = await request<any>(`${API_ROUTES.DELETED_PURCHASES}?${query}`);
       return res.data;
     } catch (error) {
       console.error('Error fetching purchases:', error);

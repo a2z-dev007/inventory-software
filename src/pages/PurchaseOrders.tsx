@@ -673,10 +673,10 @@ export const PurchaseOrders: React.FC = () => {
   const {
     data: poResponse = { purchaseOrders: [], pagination: { page: 1, pages: 1, total: 0, limit } },
     isLoading,
-  } = useQuery<{ purchaseOrders: PurchaseOrder[]; pagination: { page: number; pages: number; total: number; limit: number } }>({
+  } = useQuery<{ purchaseOrders: PurchaseOrder[]; pagination: { page: number; pages: number; total: number; limit: number,isDeleted:false } }>({
     queryKey: ['purchase-orders', page, debouncedSearch],
     // Use a function that ignores the context param for react-query v4 compatibility
-    queryFn: () => apiService.getPurchaseOrders({ page, limit, search: debouncedSearch }),
+    queryFn: () => apiService.getPurchaseOrders({ page, limit, search: debouncedSearch,isDeleted:false }),
   });
   const filteredPurchaseOrders = poResponse?.purchaseOrders.filter((po: PurchaseOrder) => po.isDeleted === false || po.isDeleted !== undefined);
   const purchaseOrders = Array.isArray(filteredPurchaseOrders) ? filteredPurchaseOrders : [];

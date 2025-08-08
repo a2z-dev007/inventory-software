@@ -30,6 +30,9 @@ export const API_ROUTES = {
   DELETED_SALES: '/sales/recycle-bin',
   DELETED_PURCHASES: '/purchases/recycle-bin',
   PURCHASE_ORDER: (id: string) => `/purchase-orders/${id}`,
+  RESTORE_PURCHASE_ORDER: (id: string) => `/purchase-orders/${id}/restore`,
+  RESTORE_PURCHASES: (id: string) => `/purchases/${id}/restore`,
+  RESTORE_SALES: (id: string) => `/sales/${id}/restore`,
 
   SALES: '/sales',
   REPORTS_EXCEL: (id: string) => `/reports/${id}`,

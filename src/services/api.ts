@@ -252,6 +252,67 @@ updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
   }
 },
 
+restorePO: async (id: string) => {
+  try {
+
+    const res = await request<any>(API_ROUTES.RESTORE_PURCHASE_ORDER(id), {
+      method: 'PUT',
+    });
+
+    if (res.success === false) {
+      throw new Error(res.message || 'Failed to restore purchase order');
+    }
+
+    if (res.success) {
+      toast.success(res.message || 'Purchase order restore successfully');
+      return res;
+    }
+  } catch (error: any) {
+    toast.error(error?.response?.data?.message || error.message || 'Failed to update purchase order');
+    throw error;
+  }
+},
+restoreSales: async (id: string) => {
+  try {
+
+    const res = await request<any>(API_ROUTES.RESTORE_SALES(id), {
+      method: 'PUT',
+    });
+
+    if (res.success === false) {
+      throw new Error(res.message || 'Failed restore Sales');
+    }
+
+    if (res.success) {
+      toast.success(res.message || 'Sales restore successfully');
+      return res;
+    }
+  } catch (error: any) {
+    toast.error(error?.response?.data?.message || error.message || 'Failed to restore sales');
+    throw error;
+  }
+},
+restorePurchase: async (id: string) => {
+  try {
+
+    const res = await request<any>(API_ROUTES.RESTORE_PURCHASES(id), {
+      method: 'PUT',
+    });
+
+    if (res.success === false) {
+      throw new Error(res.message || 'Failed to restore purchases');
+    }
+
+    if (res.success) {
+      toast.success(res.message || 'Purchases  restore successfully');
+      return res;
+    }
+  } catch (error: any) {
+    toast.error(error?.response?.data?.message || error.message || 'Failed to restore purchases');
+    throw error;
+  }
+},
+
   deletePurchaseOrder: async (id: string) => {
     try {
       const res = await request<any>(API_ROUTES.PURCHASE_ORDER(id), {

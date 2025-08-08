@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Provider } from 'react-redux';
@@ -28,6 +28,7 @@ import { ForgotPassword } from './pages/ForgotPassword';
 import { CancelledItems } from './pages/CancelledItems';
 import { CancelledItemsDetail } from './pages/CancelledPurchaseDetail';
 import RecycleBin from './pages/RecycleBin';
+import WelcomeLoader from './components/loader/WelcomeLoader';
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -40,7 +41,7 @@ export const queryClient = new QueryClient({
 
 const AppRoutes: React.FC = () => {
   const { isAuthenticated } = useAuth();
-
+  
   return (
     <Routes>
       <Route 
@@ -127,6 +128,29 @@ const AppRoutes: React.FC = () => {
 };
 
 function App() {
+    // Initialize state based on localStorage immediately
+    const [showLoader, setShowLoader] = useState(() => {
+      if (typeof window !== 'undefined') {
+        const hasLoaded = localStorage.getItem('wingsAppLoaded');
+        return !hasLoaded; // Only show if hasn't loaded before
+      }
+      return true; // Default for SSR
+    });
+  
+    const handleLoadingComplete = () => {
+      setShowLoader(false);
+      // Mark as loaded in localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('wingsAppLoaded', 'true');
+      }
+    };
+  
+    const resetLoader = () => {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('wingsAppLoaded');
+        setShowLoader(true);
+      }
+    };
   return (
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
@@ -135,8 +159,12 @@ function App() {
             <AppRoutes />
             <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop closeOnClick pauseOnFocusLoss draggable pauseOnHover />
           </div>
+          <WelcomeLoader 
+            showLoader={showLoader}
+            onLoadingComplete={handleLoadingComplete}
+          />
         </Router>
-      </QueryClientProvider>
+      </QueryClientProvider> 
     </Provider>
   );
 }

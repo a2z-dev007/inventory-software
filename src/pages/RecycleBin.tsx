@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Trash2, RefreshCw, Search, Calendar, Package, ShoppingCart, FileText, AlertTriangle, CheckCircle, Users, IndianRupeeIcon, ChevronLeft, Che, IndianRupeeIconvronRight } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Trash2, RefreshCw, Search, Calendar, Package, ShoppingCart, FileText, AlertTriangle, CheckCircle, Users, IndianRupeeIcon, ChevronLeft, Che, IndianRupeeIconvronRight, Eye, ChevronRight } from 'lucide-react';
 import { apiService } from '../services/api';
+import { useNavigate } from 'react-router-dom';
 
 // Assuming apiService is imported from your API service file
 // import { apiService } from './api/apiService';
@@ -82,9 +83,10 @@ const RecycleBin: React.FC = () => {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [actionType, setActionType] = useState<'restore' | 'permanent'>('restore');
+  const [moduleType,setModuleType] = useState("")
   const [page, setPage] = useState(1);
   const limit = 10;
-
+  const queryClient = useQueryClient();
   // Debounced search term
   const [debouncedSearch, setDebouncedSearch] = useState('');
   React.useEffect(() => {
@@ -103,6 +105,8 @@ const RecycleBin: React.FC = () => {
     queryKey: ['purchase-orders-deleted', page, debouncedSearch],
     queryFn: () => apiService.getDeletedPurchaseOrders({ page, limit, search: debouncedSearch }),
     enabled: activeTab === 'all' || activeTab === 'purchaseOrder',
+    refetchOnMount: true, // Add this line
+
   });
 
   const { 
@@ -112,6 +116,8 @@ const RecycleBin: React.FC = () => {
     queryKey: ['purchases-deleted', page, debouncedSearch],
     queryFn: () => apiService.getDeletedPurchases({ page, limit, search: debouncedSearch }),
     enabled: activeTab === 'all' || activeTab === 'purchase',
+    refetchOnMount: true, // Add this line
+
   });
 
   const {
@@ -121,6 +127,8 @@ const RecycleBin: React.FC = () => {
     queryKey: ['sales-deleted', page, debouncedSearch],
     queryFn: () => apiService.getDeletedSales({ page, limit, search: debouncedSearch }),
     enabled: activeTab === 'all' || activeTab === 'sale',
+    refetchOnMount: true, // Add this line
+
   });
 
   // Debug logging
@@ -191,6 +199,7 @@ const RecycleBin: React.FC = () => {
   }, [activeTab, poResponse, purchasesData, salesResponse, page]);
 
   const isLoading = isPOLoading || isPurchasesLoading || isSalesLoading;
+  const navigate = useNavigate();
 
   const getItemCounts = () => {
     return {
@@ -226,9 +235,22 @@ const RecycleBin: React.FC = () => {
     setShowConfirmModal(true);
   };
 
-  const confirmAction = () => {
+  const confirmAction = async() => {
     console.log(`${actionType} items:`, selectedItems);
     // Here you would implement the actual restore/delete API calls
+    console.log("module",moduleType)
+    if(moduleType=== "purchaseOrder"){
+      await apiService.restorePO(selectedItems[0])
+      queryClient.invalidateQueries({ queryKey: ['purchase-orders-deleted'] });
+    }
+    if(moduleType=== "purchase"){
+      await apiService.restorePurchase(selectedItems[0])
+      queryClient.invalidateQueries({ queryKey: ['purchases-deleted'] });
+    }
+    if(moduleType=== "sale"){
+      await apiService.restoreSales(selectedItems[0])
+      queryClient.invalidateQueries({ queryKey: ['sales-deleted'] });
+    }
     setSelectedItems([]);
     setShowConfirmModal(false);
   };
@@ -262,11 +284,10 @@ const RecycleBin: React.FC = () => {
   };
 
   const renderCard = (item: RecycleBinItem) => (
+
     <div
       key={item._id}
-      className={`bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] group ${
-        selectedItems.includes(item._id) ? 'ring-2 ring-blue-500 shadow-blue-100' : ''
-      }`}
+      className={`bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] group`}
     >
       {/* Card Header */}
       <div className={`bg-gradient-to-r ${item.type === 'purchaseOrder' ? 'from-blue-500 to-blue-600' : 
@@ -286,12 +307,31 @@ const RecycleBin: React.FC = () => {
                 <p className="text-sm opacity-90">#{item.ref_num}</p>
               </div>
             </div>
-            <input
+            {/* <input
               type="checkbox"
               checked={selectedItems.includes(item._id)}
               onChange={() => handleItemSelect(item._id)}
               className="w-5 h-5 rounded border-white/30 bg-white/20 text-white focus:ring-white/30 focus:ring-2"
-            />
+            /> */}
+             <button
+                          onClick={() =>{
+                            if(item.type=== "purchaseOrder"){
+                              navigate(`/purchase-orders/${item._id}`)
+                            }
+                            if(item.type=== "purchase"){
+                              navigate(`/purchases/${item._id}`)
+                            }
+                            if(item.type=== "sale"){
+                              navigate(`/site/${item._id}`)
+                            }
+                            
+                          }}
+                          className="text-white flex items-center gap-x-1 hover:text-gray-900"
+                          aria-label="View Details"
+                        >
+                          <Eye size={20}  />
+                          View
+                        </button>
           </div>
           
           <div className="text-sm opacity-90">
@@ -377,10 +417,10 @@ const RecycleBin: React.FC = () => {
         </div>
 
         {/* Remarks */}
-        {item.remarks && (
+        {item?.remarks && (
           <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
             <p className="text-sm text-amber-800">
-              <span className="font-medium">Note:</span> {item.remarks}
+              <span className="font-medium">Note:</span> {item?.remarks}
             </p>
           </div>
         )}
@@ -390,10 +430,12 @@ const RecycleBin: React.FC = () => {
       <div className="p-5 pt-0">
         <div className="flex gap-3">
           <button
-            onClick={() => {
+            onClick={async() => {
               setSelectedItems([item._id]);
               setActionType('restore');
               setShowConfirmModal(true);
+              setModuleType(item.type)
+             
             }}
             className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 transition-all shadow-lg hover:shadow-xl font-medium"
           >

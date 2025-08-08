@@ -1,6 +1,6 @@
 import React, { useState, useEffect, ChangeEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, FileText, Download, Edit, Trash2, Search, Link2Icon, X, Eye, Fullscreen } from 'lucide-react';
+import { Plus, FileText, Download, Edit, Trash2, Search, Link2Icon, X, Eye, Fullscreen, RefreshCcwDotIcon, RefreshCcw } from 'lucide-react';
 import { useForm, useFieldArray, FieldError, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -86,17 +86,23 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
   const { data: productsData } = useQuery({
     queryKey: ['products'],
     queryFn: () => apiService.getProducts({all:true}),
+    refetchOnMount: true, // Add this line
+
   });
   const products: Product[] = Array.isArray(productsData?.products) ? productsData.products : Array.isArray(productsData) ? productsData : [];
   // console.log(products);
   const { data: suppliersData } = useQuery({
     queryKey: ['suppliers'],
     queryFn: () => apiService.getSuppliers({all:true}),
+    refetchOnMount: true, // Add this line
+
   });
   const suppliers: { vendors?: Supplier[] } = suppliersData || {};
   const { data: purposesData } = useQuery({
     queryKey: ['purposes'],
     queryFn: () => apiService.getAllPurposes({all:true}),
+    refetchOnMount: true, // Add this line
+
   });
   const purposes: { purposes?: Purposes[] } = purposesData || {};
   console.log("purposesData",purposesData)
@@ -673,10 +679,13 @@ export const PurchaseOrders: React.FC = () => {
   const {
     data: poResponse = { purchaseOrders: [], pagination: { page: 1, pages: 1, total: 0, limit } },
     isLoading,
+    refetch,
   } = useQuery<{ purchaseOrders: PurchaseOrder[]; pagination: { page: number; pages: number; total: number; limit: number,isDeleted:false } }>({
     queryKey: ['purchase-orders', page, debouncedSearch],
     // Use a function that ignores the context param for react-query v4 compatibility
-    queryFn: () => apiService.getPurchaseOrders({ page, limit, search: debouncedSearch,isDeleted:false }),
+    queryFn: () => apiService.getPurchaseOrders({ page, limit, search: debouncedSearch }),
+    refetchOnMount: true, // Add this line
+
   });
   const filteredPurchaseOrders = poResponse?.purchaseOrders.filter((po: PurchaseOrder) => po.isDeleted === false || po.isDeleted !== undefined);
   const purchaseOrders = Array.isArray(filteredPurchaseOrders) ? filteredPurchaseOrders : [];
@@ -716,14 +725,20 @@ export const PurchaseOrders: React.FC = () => {
     setServerError(null);
   };
 
-
-
   if (isLoading) {
     return <LoadingSpinner size="lg" />;
   }
 
   return (
     <div className="">
+      <div className='absolute bottom-8 flex items-center justify-center right-8 w-12 h-12 '>
+      <Button onClick={()=>refetch()} className=' w-16 h-16 rounded-full gradient-btn ' style={{borderRadius:"50%"}}>
+      {
+        isLoading ?  <LoadingSpinner size="lg" color='white' />: <RefreshCcw size={40} color='white'/> 
+      }
+      
+      </Button>
+      </div>
       <Card >
         <CardHeader
           title={`Purchase Orders `}
@@ -872,7 +887,7 @@ export const PurchaseOrders: React.FC = () => {
                     
                     <div className="relative group">
                         <button
-                          onClick={() => navigate(`/purchase-orders/${po._id || po.id}`)}
+                          onClick={() => navigate(`/purchase-orders/${po._id}`)}
                           className="text-gray-600 flex items-center gap-x-1 hover:text-gray-900"
                           aria-label="View Details"
                         >

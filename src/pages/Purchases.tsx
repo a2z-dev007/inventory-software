@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Receipt, Download, Search, Trash2, Edit, Link,Eye, IndianRupeeIcon, ReceiptIndianRupeeIcon, ReceiptIndianRupee, NotepadTextDashedIcon, BadgeIndianRupeeIcon, NotepadTextIcon } from 'lucide-react';
+import { Plus, Receipt, Download, Search, Trash2, Edit, Link,Eye, IndianRupeeIcon, ReceiptIndianRupeeIcon, ReceiptIndianRupee, NotepadTextDashedIcon, BadgeIndianRupeeIcon, NotepadTextIcon, RefreshCcw } from 'lucide-react';
 
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -135,10 +135,14 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
   const { data: productsData } = useQuery({
     queryKey: ['products'],
     queryFn: () => apiService.getProducts({all:true}),
+    refetchOnMount: true, // Add this line
+
   });
   const { data: purchaseOrderData } = useQuery({
     queryKey: ['purchaseOrderData'],
     queryFn: () => apiService.getPurchaseOrders({ all:true}),
+    refetchOnMount: true, // Add this line
+
   });
 
 
@@ -254,32 +258,6 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
   const watchedItems = watch('items');
 
   const createMutation = useMutation({
-    // mutationFn: (payload: PurchaseFormData) => {
-    //   // Prepare payload for backend
-    //   const backendPayload = {
-    //     ref_num: payload.ref_num,
-    //     receiptNumber: isEditing && purchase ? purchase.receiptNumber : generateReceiptNumber(),
-    //     vendor: payload.supplier, // vendor is the supplier name
-    //     purchaseDate: isEditing && purchase ? purchase.purchaseDate : new Date().toISOString(),
-    //     items: payload.items.map(item => ({
-    //       productId: String(item.productId),
-    //       quantity: item.quantity,
-    //       unitPrice: item.unitPrice,
-    //       unitType:item.unitType
-    //     })),
-    //     subtotal: calculateSubtotal(),
-    //     // Removed tax
-    //     total: calculateSubtotal(),
-    //     invoiceFile: payload.invoiceFile?.[0]?.name || '',
-    //     // supplier: payload.supplier, // add supplier for type compatibility
-    //   };
-    //   console.log('Backend payload--------:', backendPayload);
-    //   if (isEditing && purchase && purchase._id) {
-    //     return apiService.updatePurchase(purchase._id, backendPayload);
-    //   } else {
-    //     return apiService.createPurchase(backendPayload);
-    //   }
-    // },
     mutationFn: async (payload: PurchaseFormData) => {
       const formData = new FormData();
 
@@ -628,10 +606,10 @@ export const Purchases: React.FC = () => {
   const debouncedSearch = useDebounce(searchTerm, 800);
   const { page, handleNext, handlePrev } = usePagination(1);
   const { isAdmin } = useAuth();
-const isDeleted = false
-  const { data: purchasesData, isLoading } = useQuery<PurchasesApiResponse>({
-    queryKey: ['purchases', page, debouncedSearch,isDeleted],
-    queryFn: () => apiService.getPurchases({ page, limit: 10, search: debouncedSearch,isDeleted:false }),
+
+  const { data: purchasesData, isLoading,refetch } = useQuery<PurchasesApiResponse>({
+    queryKey: ['purchases', page, debouncedSearch],
+    queryFn: () => apiService.getPurchases({ page, limit: 10, search: debouncedSearch }),
   });
 
   const purchases = purchasesData?.purchases || [];
@@ -686,6 +664,14 @@ const isDeleted = false
 
   return (
     <div className="space-y-6">
+       <div className='absolute bottom-8 flex items-center justify-center right-8 w-12 h-12 '>
+      <Button onClick={()=>refetch()} className=' w-16 h-16 rounded-full gradient-btn' style={{borderRadius:"50%"}}>
+      {
+        isLoading ?  <LoadingSpinner size="lg" color='white' />: <RefreshCcw size={40} color='white'/> 
+      }
+      
+      </Button>
+      </div>
       <Card>
         <CardHeader
           title={`Purchases`}
@@ -796,7 +782,7 @@ const isDeleted = false
                       </button>
                     )}
                      <button
-                      onClick={() => navigate(`/purchases/${purchase._id || purchase.id}`)}
+                      onClick={() => navigate(`/purchases/${purchase._id}`)}
                       className="text-gray-600 hover:text-gray-900"
                       title="View Details"
                     >

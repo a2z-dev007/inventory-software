@@ -731,7 +731,7 @@ export const PurchaseOrders: React.FC = () => {
 
   return (
     <div className="">
-      <div className='absolute bottom-8 flex items-center justify-center right-8 w-12 h-12 '>
+      <div className='fixed bottom-8 flex items-center justify-center right-8 w-12 h-12 '>
       <Button onClick={()=>refetch()} className=' w-16 h-16 rounded-full gradient-btn ' style={{borderRadius:"50%"}}>
       {
         isLoading ?  <LoadingSpinner size="lg" color='white' />: <RefreshCcw size={40} color='white'/> 

@@ -23,7 +23,8 @@ import {   Package,
   TrendingUp,
   Clock,
   Shield, 
-  IndianRupeeIcon} from 'lucide-react';
+  IndianRupeeIcon,
+  User2Icon} from 'lucide-react';
 import { generatePDF } from '../utils/pdf';
 import moment from 'moment';
 import { formatCurrency, formatDate, formatINRCurrency, formatRelativeDate, getStatusColor } from '../utils/constants';
@@ -179,7 +180,7 @@ export const PurchaseOrderDetail: React.FC = () => {
         </div>
 
         {/* Main Content */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 mb-8">
+        <div className="grid grid-cols-1 xl:grid-cols-1 gap-8 mb-8">
           {/* Order Details */}
           <div className="xl:col-span-2 bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-8 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-500/5 to-purple-500/5 rounded-full -translate-y-16 translate-x-16"></div>
@@ -252,6 +253,17 @@ export const PurchaseOrderDetail: React.FC = () => {
                       </div>
                     </div>
                   </div>
+                  <div className="group hover:bg-gradient-to-r hover:from-orange-50 hover:to-red-50 p-4 rounded-xl transition-all duration-200">
+                    <div className="flex items-start space-x-4">
+                      <div className="bg-orange-100 group-hover:bg-orange-200 p-2 rounded-lg transition-colors duration-200">
+                        <User2Icon className="h-5 w-5 text-orange-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-600 mb-1">Created By</p>
+                        <p className="font-bold text-lg text-gray-900">{po?.createdBy.username}</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 
                 <div className="space-y-6">
@@ -308,54 +320,7 @@ export const PurchaseOrderDetail: React.FC = () => {
           </div>
 
           {/* Enhanced Summary Card */}
-          <div className="bg-gradient-to-br from-white to-gray-50 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-8 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-emerald-500/10 to-green-500/10 rounded-full -translate-y-12 translate-x-12"></div>
-            
-            <div className="relative">
-              <h2 className="text-2xl font-bold text-gray-900 mb-8 flex items-center">
-                <div className="bg-gradient-to-r from-emerald-500 to-green-600 p-2 rounded-xl mr-3 shadow-lg shadow-emerald-500/25">
-                  <IndianRupeeIcon className="h-5 w-5 text-white" />
-                </div>
-                Financial Summary
-              </h2>
-              
-              <div className="space-y-6">
-                <div className="bg-white/50 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 font-medium">Subtotal</span>
-                    <span className="font-bold text-gray-900 text-lg">{formatCurrency(po?.subtotal)}</span>
-                  </div>
-                </div>
-                
-                {/* <div className="bg-white/50 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 font-medium">Tax & Fees</span>
-                    <span className="font-bold text-gray-900 text-lg">{formatCurrency(0)}</span>
-                  </div>
-                </div> */}
-                
-                <div className="bg-gradient-to-r from-emerald-500 to-green-600 rounded-2xl p-6 shadow-lg shadow-emerald-500/25">
-                  <div className="flex justify-between items-center">
-                    <span className="text-white font-bold text-lg">Grand Total</span>
-                    <span className="text-white font-bold text-2xl">{formatCurrency(po?.total)}</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="mt-8 p-6 bg-white/50 backdrop-blur-sm rounded-2xl border border-white/20">
-                <p className="text-sm font-medium text-gray-600 mb-3">Order Created By</p>
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                    <User className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-gray-900">{po?.createdBy.name}</p>
-                    <p className="text-sm text-gray-500">@{po?.createdBy.username}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+        
         </div>
 
         {/* Premium Items Table */}

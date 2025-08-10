@@ -1,8 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Trash2, RefreshCw, Search, Calendar, Package, ShoppingCart, FileText, AlertTriangle, CheckCircle, Users, IndianRupeeIcon, ChevronLeft, Che, IndianRupeeIconvronRight, Eye, ChevronRight } from 'lucide-react';
+import { Trash2, RefreshCw, Search, Calendar, Package, ShoppingCart, FileText, AlertTriangle, CheckCircle, Users, IndianRupeeIcon, ChevronLeft, Che, IndianRupeeIconvronRight, Eye, ChevronRight, RefreshCcw } from 'lucide-react';
 import { apiService } from '../services/api';
 import { useNavigate } from 'react-router-dom';
+import { Button } from '../components/common/Button';
+import { LoadingSpinner } from '../components/common/LoadingSpinner';
 
 // Assuming apiService is imported from your API service file
 // import { apiService } from './api/apiService';
@@ -101,6 +103,7 @@ const RecycleBin: React.FC = () => {
   const {
     data: poResponse = { purchaseOrders: [], pagination: { page: 1, pages: 1, total: 0, limit } },
     isLoading: isPOLoading,
+    refetch:reloadPO,
   } = useQuery({
     queryKey: ['purchase-orders-deleted', page, debouncedSearch],
     queryFn: () => apiService.getDeletedPurchaseOrders({ page, limit, search: debouncedSearch }),
@@ -109,9 +112,12 @@ const RecycleBin: React.FC = () => {
 
   });
 
+ 
+
   const { 
     data: purchasesData = { purchases: [], pagination: { page: 1, pages: 1, total: 0, limit} }, 
-    isLoading: isPurchasesLoading 
+    isLoading: isPurchasesLoading ,
+    refetch:reloadPurchases,
   } = useQuery({
     queryKey: ['purchases-deleted', page, debouncedSearch],
     queryFn: () => apiService.getDeletedPurchases({ page, limit, search: debouncedSearch }),
@@ -123,6 +129,7 @@ const RecycleBin: React.FC = () => {
   const {
     data: salesResponse = { sales: [], pagination: { page: 1, pages: 1, total: 0, limit } },
     isLoading: isSalesLoading,
+    refetch:reloadSales,
   } = useQuery({
     queryKey: ['sales-deleted', page, debouncedSearch],
     queryFn: () => apiService.getDeletedSales({ page, limit, search: debouncedSearch }),
@@ -131,6 +138,13 @@ const RecycleBin: React.FC = () => {
 
   });
 
+
+  // reload 
+  const reloadAll = ()=>{
+    reloadPO();
+    reloadPurchases();
+    reloadSales()
+  }
   // Debug logging
   React.useEffect(() => {
     console.log('Debug - API Responses:', {
@@ -511,6 +525,14 @@ const RecycleBin: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
+        <div className='fixed bottom-8 flex items-center justify-center right-8 w-12 h-12 z-50'>
+      <Button onClick={()=>reloadAll()} className=' w-16 h-16 rounded-full gradient-btn ' style={{borderRadius:"50%"}}>
+      {
+        isLoading ?  <LoadingSpinner size="lg" color='white' />: <RefreshCcw size={40} color='white'/> 
+      }
+      
+      </Button>
+      </div>
       <div className="max-w-8xl mx-auto">
         {/* Header */}
         <div className="mb-8">

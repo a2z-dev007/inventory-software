@@ -218,6 +218,7 @@ export const Customers: React.FC = () => {
   } = useQuery<PaginatedCustomers>({
     queryKey: ['customers', page, debouncedSearch],
     queryFn: () => apiService.getCustomers({ page, limit, search: debouncedSearch }),
+    refetchOnMount:true,
   });
 
   // Always fallback to array/object to avoid map on undefined
@@ -228,6 +229,7 @@ export const Customers: React.FC = () => {
   const { data: salesData } = useQuery({
     queryKey: ['sales'],
     queryFn: () => apiService.getSales({}),
+    
   });
   const sales = salesData?.sales || [];
 

@@ -15,6 +15,7 @@ export interface SelectFieldProps<T extends FieldValues = FieldValues> {
   control: Control<T>;
   error?: FieldError;
   required?: boolean;
+  disabled?: boolean;
   className?: string;
 }
 
@@ -25,6 +26,7 @@ export function SelectField<T extends FieldValues = FieldValues>({
   placeholder = 'Select an option',
   control,
   error,
+  disabled,
   required = false,
   className = '',
 }: SelectFieldProps<T>) {
@@ -43,6 +45,7 @@ export function SelectField<T extends FieldValues = FieldValues>({
             inputId={name}
             options={options}
             placeholder={placeholder}
+            isDisabled={disabled}
             classNamePrefix="react-select"
             value={options.find(option => option.value === field.value) || null}
             onChange={option => field.onChange((option as Option)?.value)}

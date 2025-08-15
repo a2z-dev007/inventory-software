@@ -45,6 +45,8 @@ interface ApiError {
 export const purchaseOrderSchema = z.object({
   ref_num: z.string().min(1, 'DB Number is required'),
   vendor: z.string().min(1, 'Supplier is required'),
+  customer: z.string().min(1, 'Client is required'),
+  siteType: z.string().min(1, 'Site Type is required').default("Site"),
   status: z.enum(['draft', 'pending', 'approved', 'delivered', 'cancelled']),
   attachment: z.union([z.instanceof(File), z.string(), z.null()]).optional(),
   remarks: z.union([
@@ -53,14 +55,17 @@ export const purchaseOrderSchema = z.object({
     z.null(),
   ]).optional(),
   site_incharge: z.string().optional(),
-  orderedBy:z.string().optional(),
-  deliveryDate:z.string().optional(),
+  orderedBy: z.string().optional(),
+  deliveryDate: z.string().optional(),
   contractor: z.string().optional(),
-  purpose: z.string().optional(),
+  purpose: z.string().min(1, 'Purpose is required'),
   items: z.array(
     z.object({
       productId: z.string().min(1, 'Product is required'),
-      quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
+      quantity: z.coerce
+        .number()
+        .min(1, 'Quantity must be at least 1')
+        .refine(val => Number.isFinite(val), { message: 'Quantity must be a valid number' }),
       unitPrice: z.coerce.number().min(0, 'Unit price must be a number'),
       unitType: z.string().min(1, 'Unit type is required'),
     })
@@ -85,7 +90,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
 
   const { data: productsData } = useQuery({
     queryKey: ['products'],
-    queryFn: () => apiService.getProducts({all:true}),
+    queryFn: () => apiService.getProducts({ all: true }),
     refetchOnMount: true, // Add this line
 
   });
@@ -93,19 +98,24 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
   // console.log(products);
   const { data: suppliersData } = useQuery({
     queryKey: ['suppliers'],
-    queryFn: () => apiService.getSuppliers({all:true}),
+    queryFn: () => apiService.getSuppliers({ all: true }),
     refetchOnMount: true, // Add this line
 
   });
+  const { data: customerResponse } = useQuery<{ customers: any[] }>({
+    queryKey: ['customers'],
+    queryFn: () => apiService.getCustomers({ all: true }),
+  });
+  const customers: any[] = customerResponse?.customers || [];
   const suppliers: { vendors?: Supplier[] } = suppliersData || {};
   const { data: purposesData } = useQuery({
     queryKey: ['purposes'],
-    queryFn: () => apiService.getAllPurposes({all:true}),
+    queryFn: () => apiService.getAllPurposes({ all: true }),
     refetchOnMount: true, // Add this line
 
   });
   const purposes: { purposes?: Purposes[] } = purposesData || {};
-  console.log("purposesData",purposesData)
+  console.log("purposesData", purposesData)
 
   // Fix defaultValues to ensure items are always of the correct type (productId: number)
   const {
@@ -123,6 +133,8 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
         ref_num: purchaseOrder.ref_num || '',
         attachment: purchaseOrder.attachment || '',
         vendor: purchaseOrder.vendor || '',
+        customer: purchaseOrder.customer || '',
+        siteType: purchaseOrder.siteType || '',
         status: purchaseOrder.status || 'draft',
         deliveryDate: purchaseOrder.deliveryDate || '',
         orderedBy: purchaseOrder.orderedBy || '',
@@ -141,6 +153,8 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
         ref_num: '',
         attachment: '',
         vendor: '',
+        customer: '',
+        siteType: 'Site',
         status: 'draft',
         remarks: '',
         site_incharge: '',
@@ -258,6 +272,8 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
 
     formData.append('ref_num', data.ref_num);
     formData.append('vendor', data.vendor);
+    formData.append('customer', data.customer);
+    formData.append('siteType', data.siteType);
     formData.append('status', data.status);
     formData.append('subtotal', subtotal.toString());
     formData.append('total', total.toString());
@@ -311,6 +327,8 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
         ref_num: purchaseOrder.ref_num || '',
         attachment: purchaseOrder.attachment || null, // Use null instead of empty string for no attachment
         vendor: purchaseOrder.vendor,
+        customer: purchaseOrder.customer,
+        siteType: purchaseOrder.siteType,
         status: purchaseOrder.status,
         remarks: purchaseOrder.remarks,
         site_incharge: purchaseOrder.site_incharge,
@@ -332,6 +350,8 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
         ref_num: '',
         attachment: null, // Use null instead of empty string for no attachment
         vendor: '',
+        customer: '',
+        siteType: 'Site',
         status: 'draft',
         remarks: '',
         site_incharge: '',
@@ -352,22 +372,22 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
   const total = subtotal;
 
   return (
-    <div style={{marginTop:0}} className="fixed inset-0 bg-black bg-opacity-50 flex items-center backdrop-blur-sm justify-center p-4 z-50">
+    <div style={{ marginTop: 0 }} className="fixed inset-0 bg-black bg-opacity-50 flex items-center backdrop-blur-sm justify-center p-4 z-50">
 
       <div className="bg-white rounded-lg relative max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <header className="py-3 px-6 flex items-center justify-between bg-slate-100 fixed max-w-4xl w-full rounded-lg z-50 ">
-        <h2 className="text-xl font-semibold text-gray-900 ">
+          <h2 className="text-xl font-semibold text-gray-900 ">
             {isEditing ? 'Edit Purchase Order' : 'Create Purchase Order'}
           </h2>
-        <button
-      onClick={onClose}
-      className=" text-white bg-black/30 hover:bg-black/50 rounded-full p-2 z-50"
-    >
-      <X className="h-6 w-6" />
-    </button>
+          <button
+            onClick={onClose}
+            className=" text-white bg-black/30 hover:bg-black/50 rounded-full p-2 z-50"
+          >
+            <X className="h-6 w-6" />
+          </button>
         </header>
         <div className="p-6 pt-20">
-         
+
 
           {serverError && (
             <div className="mb-4 p-3 bg-red-100 text-red-700 rounded" role="alert">
@@ -384,7 +404,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
               <FormField
                 label="DB Number"
                 name="ref_num"
-                placeholder='Enter DB Number'
+                placeholder='DB Number e.g number/page'
                 type="text"
                 register={register}
                 error={errors.ref_num}
@@ -431,7 +451,19 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
                 error={errors.vendor}
                 required
               />
-
+              <SelectField<PurchaseOrderFormData>
+                label="Client"
+                name="customer"
+                options={customers?.map((customer: any) => ({
+                  value: customer.name,
+                  label: customer.name,
+                })) || []}
+                control={control}
+                error={errors.customer}
+                required
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <SelectField<PurchaseOrderFormData>
                 label="Status"
                 name="status"
@@ -446,6 +478,37 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
                 error={errors.status}
                 required
               />
+
+              {/* Site/Unit radio buttons */}
+              <div className="flex flex-col">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Site/Unit <span className="text-red-500 ml-1">*</span></label>
+                <div className="flex items-center gap-6">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      value="Site"
+                      required
+                      {...register('siteType')}
+                      defaultChecked
+                      className="text-blue-600 focus:ring-blue-500 border-gray-300"
+                    />
+                    Site
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      value="Unit"
+                      required
+                      {...register('siteType')}
+                      className="text-blue-600 focus:ring-blue-500 border-gray-300"
+                    />
+                    Unit
+                  </label>
+                </div>
+                {errors.siteType && (
+                  <p className="text-sm text-red-600">{errors.siteType.message}</p>
+                )}
+              </div>
             </div>
 
             {/* Items */}
@@ -488,6 +551,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
                       label="Quantity"
                       name={`items.${index}.quantity`}
                       type="number"
+                      min={1}
                       register={register}
                       error={errors.items?.[index]?.quantity}
                       required
@@ -551,46 +615,47 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
 
-                  <FormField
-                    label="Ordered By"
-                    name="orderedBy"
-                    placeholder="Ordered By"
-                    type="text"
-                    required
-                    register={register}
-                    error={errors.orderedBy}
-                  />
-                  <FormField
-                    label="Delivery Date"
-                    name="deliveryDate"
-                    placeholder="Delivery Date"
-                    type="date"
-                    register={register}
-                    error={errors.deliveryDate}
-                  />
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-1 gap-4 mt-6">
-                  <SelectField<PurchaseOrderFormData>
-                label="Purpose"
-                name="purpose"
-                options={purposesData.purposes?.map((purpose: Purposes) => ({
-                  value: purpose.title,
-                  label: purpose.title,
-                })) || []}
-                control={control}
-                error={errors.purpose}
-              />
-                  <FormField
-              label="Remarks"
-              name="remarks"
-              type="textarea"
-              placeholder="Enter remarks (optional)"
-              register={register}
-              error={errors.remarks}
-            />
-                    </div>
+                <FormField
+                  label="Ordered By"
+                  name="orderedBy"
+                  placeholder="Ordered By"
+                  type="text"
+                  required
+                  register={register}
+                  error={errors.orderedBy}
+                />
+                <FormField
+                  label="Delivery Date"
+                  name="deliveryDate"
+                  placeholder="Delivery Date"
+                  type="date"
+                  register={register}
+                  error={errors.deliveryDate}
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-1 gap-4 mt-6">
+                <SelectField<PurchaseOrderFormData>
+                  label="Purpose"
+                  name="purpose"
+                  options={purposesData.purposes?.map((purpose: Purposes) => ({
+                    value: purpose.title,
+                    label: purpose.title,
+                  })) || []}
+                  required
+                  control={control}
+                  error={errors.purpose}
+                />
+                <FormField
+                  label="Remarks"
+                  name="remarks"
+                  type="textarea"
+                  placeholder="Enter remarks (optional)"
+                  register={register}
+                  error={errors.remarks}
+                />
+              </div>
             </div>
-            
+
             {/* Totals */}
             <div className="bg-gray-50 p-4 rounded-lg">
               <div className="space-y-2">
@@ -645,6 +710,8 @@ export interface PurchaseOrder {
   attachment?: string;
   poNumber: string;
   vendor: string;
+  siteType?: string;
+  customer?: string;
   status: 'draft' | 'approved' | 'delivered' | 'cancelled';
   orderDate: string;
   items: PurchaseOrderItem[];
@@ -664,7 +731,7 @@ export const PurchaseOrders: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPO, setEditingPO] = useState<PurchaseOrder | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [open,setOpen] = useState(false)
+  const [open, setOpen] = useState(false)
   const navigate = useNavigate()
   const [selectedDetailItem, setSelectedDetailItem] = useState<PurchaseOrder | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -680,7 +747,7 @@ export const PurchaseOrders: React.FC = () => {
     data: poResponse = { purchaseOrders: [], pagination: { page: 1, pages: 1, total: 0, limit } },
     isLoading,
     refetch,
-  } = useQuery<{ purchaseOrders: PurchaseOrder[]; pagination: { page: number; pages: number; total: number; limit: number,isDeleted:false } }>({
+  } = useQuery<{ purchaseOrders: PurchaseOrder[]; pagination: { page: number; pages: number; total: number; limit: number, isDeleted: false } }>({
     queryKey: ['purchase-orders', page, debouncedSearch],
     // Use a function that ignores the context param for react-query v4 compatibility
     queryFn: () => apiService.getPurchaseOrders({ page, limit, search: debouncedSearch }),
@@ -702,7 +769,7 @@ export const PurchaseOrders: React.FC = () => {
 
 
   // generating the pdf🧮 
- 
+
   const handleEdit = (po: PurchaseOrder) => {
     setEditingPO({ ...po, id: po.id ?? po._id });
     setIsModalOpen(true);
@@ -732,12 +799,12 @@ export const PurchaseOrders: React.FC = () => {
   return (
     <div className="">
       <div className='fixed bottom-8 flex items-center justify-center right-8 w-12 h-12 '>
-      <Button onClick={()=>refetch()} className=' w-16 h-16 rounded-full gradient-btn ' style={{borderRadius:"50%"}}>
-      {
-        isLoading ?  <LoadingSpinner size="lg" color='white' />: <RefreshCcw size={40} color='white'/> 
-      }
-      
-      </Button>
+        <Button onClick={() => refetch()} className=' w-16 h-16 rounded-full gradient-btn ' style={{ borderRadius: "50%" }}>
+          {
+            isLoading ? <LoadingSpinner size="lg" color='white' /> : <RefreshCcw size={40} color='white' />
+          }
+
+        </Button>
       </div>
       <Card >
         <CardHeader
@@ -792,7 +859,7 @@ export const PurchaseOrders: React.FC = () => {
                   Order Date
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                 Attachments
+                  Attachments
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Total
@@ -835,42 +902,42 @@ export const PurchaseOrders: React.FC = () => {
                     {new Date(po.orderDate).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {
-                        po.attachment && ( <div className="relative group">
-                          
+                    {
+                      po.attachment && (<div className="relative group">
+
                         <a
                           target='_blank'
                           className="text-white rounded-full p-1 px-2 text-xs  bg-blue-500 hover:text-green-900"
-                         
+
                           href={po.attachment}
                         >
-                          
-                        View File
+
+                          View File
                         </a>
-                        
+
                       </div>)
-                      }
+                    }
                   </td>
-                
+
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {formatCurrency(po.total)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                     <div className="flex space-x-2">
                       {
-                        po.attachment && ( <div className="relative group">
-                        <button
-                          onClick={() => generatePDF(po)}
-                          className="text-green-600 flex items-center gap-x-1 hover:text-green-900"
-                          aria-label="Download PDF"
-                        >
-                          <Download size={20} />
-                          {/* Download */}
-                        </button>
-                        <span className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none z-10 whitespace-nowrap">Download PDF</span>
-                      </div>)
+                        po.attachment && (<div className="relative group">
+                          <button
+                            onClick={() => generatePDF(po)}
+                            className="text-green-600 flex items-center gap-x-1 hover:text-green-900"
+                            aria-label="Download PDF"
+                          >
+                            <Download size={20} />
+                            {/* Download */}
+                          </button>
+                          <span className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none z-10 whitespace-nowrap">Download PDF</span>
+                        </div>)
                       }
-                     
+
                       {isAdmin() && (
                         <div className="relative group">
                           <button
@@ -878,20 +945,20 @@ export const PurchaseOrders: React.FC = () => {
                             className="text-blue-600 flex items-center gap-x-1 hover:text-blue-900"
                             aria-label="Edit"
                           >
-                            <Edit size={20}  />
+                            <Edit size={20} />
                             {/* Edit */}
                           </button>
                           <span className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none z-10 whitespace-nowrap">Edit</span>
                         </div>
                       )}
-                    
-                    <div className="relative group">
+
+                      <div className="relative group">
                         <button
                           onClick={() => navigate(`/purchase-orders/${po._id}`)}
                           className="text-gray-600 flex items-center gap-x-1 hover:text-gray-900"
                           aria-label="View Details"
                         >
-                          <Eye size={20}  />
+                          <Eye size={20} />
                           {/* View */}
                         </button>
                         <span className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none z-10 whitespace-nowrap">
@@ -917,8 +984,8 @@ export const PurchaseOrders: React.FC = () => {
                           className="text-gray-600 flex gap-x-1  items-center hover:text-gray-900"
                           aria-label="View Details"
                         >
-                    <Fullscreen size={20} />
-                    {/* Preview */}
+                          <Fullscreen size={20} />
+                          {/* Preview */}
                         </button>
                         <span className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none z-10 whitespace-nowrap">Preview</span>
                       </div>
@@ -961,7 +1028,7 @@ export const PurchaseOrders: React.FC = () => {
           </Button>
         </div>
       </Card>
-        {/* <button onClick={()=>setOpen(!open)}>Open </button> */}
+      {/* <button onClick={()=>setOpen(!open)}>Open </button> */}
       <POModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
@@ -975,7 +1042,7 @@ export const PurchaseOrders: React.FC = () => {
       />
 
 
-{/* <OffCanvas
+      {/* <OffCanvas
   isOpen={open}
   onClose={() => setOpen(false)}
   title="Bottom Drawer"

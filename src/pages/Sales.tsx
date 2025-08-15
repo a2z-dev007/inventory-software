@@ -24,7 +24,7 @@ const saleItemSchema = z.object({
   productId: z.string().min(1, 'Product is required'),
   quantity: z.number().min(1, 'Quantity must be at least 1'),
   unitPrice: z.number().min(0, 'Unit price must be positive'),
-  unitType:z.string()
+  unitType: z.string()
 });
 
 const saleSchema = z.object({
@@ -33,9 +33,9 @@ const saleSchema = z.object({
   phone: z.string().min(1, 'Phone is required'),
   ref_num: z.string().min(1, 'DB Number is required'),
   items: z.array(saleItemSchema).min(1, 'At least one item is required'),
-  saleDate:z.string().min(1, 'Sale date is required'),
-  receivedBy:z.string().min(1, 'Received by is required'),      
-  remarks:z.string().optional(),
+  saleDate: z.string().min(1, 'Sale date is required'),
+  receivedBy: z.string().min(1, 'Received by is required'),
+  remarks: z.string().optional(),
 });
 
 
@@ -54,20 +54,20 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
 
   const { data: productsData } = useQuery<{ products: any[] }>({
     queryKey: ['products'],
-    queryFn: () => apiService.getProducts({all:true}),
+    queryFn: () => apiService.getProducts({ all: true }),
   });
   const products: any[] = Array.isArray(productsData?.products) ? productsData.products : Array.isArray(productsData) ? productsData : [];
 
   const { data: customerResponse } = useQuery<{ customers: any[] }>({
     queryKey: ['customers'],
-    queryFn: () => apiService.getCustomers({all:true}),
+    queryFn: () => apiService.getCustomers({ all: true }),
   });
   const customers: any[] = customerResponse?.customers || [];
 
   // --- PURCHASE ORDERS (DB Numbers) ---
   const { data: purchaseOrderData } = useQuery({
     queryKey: ['purchaseOrders'],
-    queryFn: () => apiService.getPurchaseOrders({ all:true }),
+    queryFn: () => apiService.getPurchaseOrders({ all: true }),
   });
   const purchaseOrders = purchaseOrderData?.purchaseOrders || [];
 
@@ -114,7 +114,7 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
           productId: String(item.productId),
           quantity: item.quantity,
           unitPrice: item.unitPrice,
-          unitType:item.unitType
+          unitType: item.unitType
         })),
       }));
     }
@@ -147,7 +147,7 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
           productId: String(item.productId ?? item.id ?? item._id),
           quantity: item.quantity,
           unitPrice: item.unitPrice,
-          unitType:item.unitType
+          unitType: item.unitType
         })),
       });
       setIsInitialized(true);
@@ -158,7 +158,7 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
         phone: '',
         ref_num: '',
         saleDate: new Date().toISOString().slice(0, 10),
-        items: [{ productId: '', quantity: 1, unitPrice: 0,unitType:'' }],
+        items: [{ productId: '', quantity: 1, unitPrice: 0, unitType: '' }],
       });
       setIsInitialized(true);
     } else if (!isOpen) {
@@ -178,7 +178,7 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
         phone: '',
         ref_num: '',
         saleDate: new Date().toISOString().slice(0, 10),
-        items: [{ productId: '', quantity: 1, unitPrice: 0,unitType:'' }],
+        items: [{ productId: '', quantity: 1, unitPrice: 0, unitType: '' }],
       });
     },
   });
@@ -197,7 +197,7 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
         phone: '',
         ref_num: '',
         saleDate: new Date().toISOString().slice(0, 10),
-        items: [{ productId: '', quantity: 1, unitPrice: 0,unitType:'' }],
+        items: [{ productId: '', quantity: 1, unitPrice: 0, unitType: '' }],
       });
     },
   });
@@ -222,7 +222,7 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
           ...item,
           productName: product?.name || '',
           total: item.quantity * item.unitPrice,
-          unitType:item.unitType
+          unitType: item.unitType
 
         };
       }),
@@ -244,7 +244,7 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
   const total = subtotal;
 
   return (
-    <div style={{marginTop:0}} className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div style={{ marginTop: 0 }} className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">
@@ -254,19 +254,19 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div className="">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4" >
-              <SelectField<SaleFormData>
-                label="DB Number"
-                name="ref_num"
-                options={purchaseOrders?.map((po: any) => ({
-                  value: po.ref_num,
-                  label: po.ref_num,
-                })) || []}
-                control={control}
-                error={errors.ref_num}
-                required
-              />
                 <SelectField<SaleFormData>
-                  label="Customer"
+                  label="DB Number"
+                  name="ref_num"
+                  options={purchaseOrders?.map((po: any) => ({
+                    value: po.ref_num,
+                    label: po.ref_num,
+                  })) || []}
+                  control={control}
+                  error={errors.ref_num}
+                  required
+                />
+                <SelectField<SaleFormData>
+                  label="Client"
                   name="customerName"
                   options={customers?.map((customer: any) => ({
                     value: customer.name,
@@ -278,47 +278,47 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
                 />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4" >
-             <FormField
-                label="Address"
-                name="address"
-                placeholder='Address'
-                type="text"
-                register={register}
-                error={errors.address}
-                required
-              />
-              <FormField
-                label="Phone"
-                name="phone"
-                placeholder='Phone'
-                type="text"
-                register={register}
-                error={errors.phone}
-                required
-              />
-             </div>
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4" >
-           <FormField
-                label="Delivery Date"
-                name="saleDate"
-                placeholder='Delivery Date'
-                type="date"
-                register={register}
-                error={errors.saleDate}
-                required
-              />
-               <FormField
-                label="Received By"
-                name="receivedBy"
-                placeholder='Received By'
-                type="text"
-                register={register}
-                error={errors.receivedBy}
-                required
-              />
-           </div>
+                <FormField
+                  label="Address"
+                  name="address"
+                  placeholder='Address'
+                  type="text"
+                  register={register}
+                  error={errors.address}
+                  required
+                />
+                <FormField
+                  label="Phone"
+                  name="phone"
+                  placeholder='Phone'
+                  type="text"
+                  register={register}
+                  error={errors.phone}
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4" >
+                <FormField
+                  label="Delivery Date"
+                  name="saleDate"
+                  placeholder='Delivery Date'
+                  type="date"
+                  register={register}
+                  error={errors.saleDate}
+                  required
+                />
+                <FormField
+                  label="Received By"
+                  name="receivedBy"
+                  placeholder='Received By'
+                  type="text"
+                  register={register}
+                  error={errors.receivedBy}
+                  required
+                />
+              </div>
 
-            
+
             </div>
             {/* Items */}
             <div>
@@ -366,7 +366,7 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
                       error={errors.items?.[index]?.unitPrice}
                       required
                     />
-                       <FormField
+                    <FormField
                       label="Unit Type"
                       name={`items.${index}.unitType`}
                       type="string"
@@ -391,13 +391,13 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
             </div>
             <div className="" >
               <FormField
-              label="Remarks"
-              name="remarks"
-              type="textarea"
-              placeholder="Enter remarks (optional)"
-              register={register}
-              error={errors.remarks}
-            />
+                label="Remarks"
+                name="remarks"
+                type="textarea"
+                placeholder="Enter remarks (optional)"
+                register={register}
+                error={errors.remarks}
+              />
             </div>
             {/* Totals */}
             <div className="bg-gray-50 p-4 rounded-lg">
@@ -416,7 +416,7 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
               <Button
                 type="button"
                 variant="outline"
-                onClick={()=>{
+                onClick={() => {
                   onClose()
                   setIsInitialized(false);
                   reset({
@@ -425,7 +425,7 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
                     phone: '',
                     ref_num: '',
                     saleDate: new Date().toISOString().slice(0, 10),
-                    items: [{ productId: '', quantity: 1, unitPrice: 0,unitType:'' }],
+                    items: [{ productId: '', quantity: 1, unitPrice: 0, unitType: '' }],
                   });
                 }}
               >
@@ -436,7 +436,7 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
                 className='gradient-btn'
                 loading={createMutation.isPending || updateMutation.isPending}
               >
-                  {isEditing ? 'Update Delivery' : 'Create Delivery'}
+                {isEditing ? 'Update Delivery' : 'Create Delivery'}
               </Button>
             </div>
           </form>
@@ -456,25 +456,25 @@ export const Sales: React.FC = () => {
   const debouncedSearch = useDebounce(searchTerm, 800);
   const { page, handleNext, handlePrev, resetPage } = usePagination(1);
   const [confirmToggleId, setConfirmToggleId] = useState<string | null>(null);
-const [confirmToggleValue, setConfirmToggleValue] = useState<boolean>(false);
+  const [confirmToggleValue, setConfirmToggleValue] = useState<boolean>(false);
   const limit = 10;
   const queryClient = useQueryClient();
   const { isAdmin } = useAuth();
-  const { handleSubmit, control,watch } = useForm({
+  const { handleSubmit, control, watch } = useForm({
     defaultValues: {
       isActive: false,
     },
   });
 
-  const toggleIsActiveMutation = async({ id, isActive }:{id:string,isActive:boolean})=>{
+  const toggleIsActiveMutation = async ({ id, isActive }: { id: string, isActive: boolean }) => {
     try {
-        const res = await apiService.toggleSaleActiveStatus({ id, isActive })
-        console.log("res",res)
-            // ✅ Invalidate and refetch the sales list
-    queryClient.invalidateQueries({ queryKey: ['sales'] });
+      const res = await apiService.toggleSaleActiveStatus({ id, isActive })
+      console.log("res", res)
+      // ✅ Invalidate and refetch the sales list
+      queryClient.invalidateQueries({ queryKey: ['sales'] });
 
     } catch (error) {
-      console.log("Error",error)
+      console.log("Error", error)
     }
   }
   const isActive = watch('isActive');
@@ -487,7 +487,7 @@ const [confirmToggleValue, setConfirmToggleValue] = useState<boolean>(false);
     isLoading,
   } = useQuery<{ sales: any[]; pagination: { page: number; pages: number; total: number; limit: number } }>({
     queryKey: ['sales', page, debouncedSearch],
-    queryFn: () => apiService.getSales({ page, limit, search: debouncedSearch,isDeleted:false }),
+    queryFn: () => apiService.getSales({ page, limit, search: debouncedSearch, isDeleted: false }),
   });
 
   const sales = Array.isArray(salesResponse?.sales) ? salesResponse.sales : [];
@@ -516,7 +516,7 @@ const [confirmToggleValue, setConfirmToggleValue] = useState<boolean>(false);
     }
   };
 
-  
+
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiService.deleteSale(id),
@@ -580,11 +580,11 @@ const [confirmToggleValue, setConfirmToggleValue] = useState<boolean>(false);
                 {
                   isAdmin() && (
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                   Site Status
-                  </th>
+                      Site Status
+                    </th>
                   )
                 }
-            
+
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Total
                 </th>
@@ -612,24 +612,24 @@ const [confirmToggleValue, setConfirmToggleValue] = useState<boolean>(false);
                     {new Date(sale.saleDate).toLocaleDateString()}
                   </td>
                   {
-                    isAdmin() && (  <td className="px-6 py-4 whitespace-nowrap">
+                    isAdmin() && (<td className="px-6 py-4 whitespace-nowrap">
                       {/* <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(sale.status)}`}>
                         {sale.status}
                       </span> */}
                       {/* Add swtich when isActive is true show active else show inactive */}
                       <Switch
-                      name={`isActive-${sale._id}`}
-                      checked={sale.isActive}
-                      label={sale.isActive ? 'Active' : 'Inactive'}
-                      onChange={(val) => {
-                        setConfirmToggleId(sale._id);
-                        setConfirmToggleValue(val);
-                      }}
-                    
-                    />
+                        name={`isActive-${sale._id}`}
+                        checked={sale.isActive}
+                        label={sale.isActive ? 'Active' : 'Inactive'}
+                        onChange={(val) => {
+                          setConfirmToggleId(sale._id);
+                          setConfirmToggleValue(val);
+                        }}
+
+                      />
                     </td>)
                   }
-                
+
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {formatCurrency(sale.total)}
                   </td>
@@ -721,37 +721,37 @@ const [confirmToggleValue, setConfirmToggleValue] = useState<boolean>(false);
         title="Sale Details"
       />
       {confirmToggleId && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-    <div className="bg-white p-6 rounded-lg w-full max-w-md">
-      <h2 className="text-lg font-semibold text-gray-800 mb-4">
-        Are you sure you want to {confirmToggleValue ? 'activate' : 'deactivate'} this site?
-      </h2>
-      <p className="text-sm text-gray-600 mb-6">
-        This will mark the site as {confirmToggleValue ? 'active' : 'inactive'} in the system.
-      </p>
-      <div className="flex justify-end gap-3">
-        <Button
-          variant="outline"
-          onClick={() => setConfirmToggleId(null)}
-        >
-          Cancel
-        </Button>
-        <Button
-          className="gradient-btn"
-          onClick={() =>{
-            toggleIsActiveMutation({id:confirmToggleId,isActive:confirmToggleValue})
-            setConfirmToggleId(null)
-          }
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white p-6 rounded-lg w-full max-w-md">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">
+              Are you sure you want to {confirmToggleValue ? 'activate' : 'deactivate'} this site?
+            </h2>
+            <p className="text-sm text-gray-600 mb-6">
+              This will mark the site as {confirmToggleValue ? 'active' : 'inactive'} in the system.
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setConfirmToggleId(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="gradient-btn"
+                onClick={() => {
+                  toggleIsActiveMutation({ id: confirmToggleId, isActive: confirmToggleValue })
+                  setConfirmToggleId(null)
+                }
 
 
-          }
-        >
-          Yes, {confirmToggleValue ? 'Activate' : 'Deactivate'}
-        </Button>
-      </div>
-    </div>
-  </div>
-)}
+                }
+              >
+                Yes, {confirmToggleValue ? 'Activate' : 'Deactivate'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
 
     </div>

@@ -4,13 +4,14 @@ import { useQuery } from '@tanstack/react-query';
 import { apiService } from '../services/api';
 import { DetailPage } from '../components/common/DetailPage';
 import { toast } from 'react-toastify';
-import {   Package, 
-  Calendar, 
-  User, 
-  Building, 
-  FileText, 
-  Truck, 
-  CheckCircle, 
+import {
+  Package,
+  Calendar,
+  User,
+  Building,
+  FileText,
+  Truck,
+  CheckCircle,
   DollarSign,
   Hash,
   MapPin,
@@ -22,9 +23,12 @@ import {   Package,
   Star,
   TrendingUp,
   Clock,
-  Shield, 
+  Shield,
   IndianRupeeIcon,
-  User2Icon} from 'lucide-react';
+  User2Icon,
+  Building2Icon,
+  InfoIcon
+} from 'lucide-react';
 import { generatePDF } from '../utils/pdf';
 import moment from 'moment';
 import { formatCurrency, formatDate, formatINRCurrency, formatRelativeDate, getStatusColor } from '../utils/constants';
@@ -44,20 +48,6 @@ export const PurchaseOrderDetail: React.FC = () => {
     enabled: !!id,
   });
 
-  const handleBack = () => {
-    navigate('/purchase-orders');
-  };
-
-  const handleEdit = () => {
-    navigate(`/purchase-orders/${id}/edit`);
-  };
-
-  const handleDelete = () => {
-    if (window.confirm('Are you sure you want to delete this purchase order?')) {
-      // TODO: Implement delete functionality
-      toast.error('Delete functionality not implemented yet');
-    }
-  };
   // Status color mapping
   const po = purchaseOrder;
 
@@ -67,15 +57,15 @@ export const PurchaseOrderDetail: React.FC = () => {
       {/* Background Pattern */}
       {/* <div className="absolute inset-0 bg-grid-pattern opacity-5"></div> */}
       <div className='mb-6'>
-     <BackButton/>
-     </div>
+        <BackButton />
+      </div>
       <div className="relative max-w-7xl mx-auto">
         {/* Floating Header */}
         <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-8 mb-8 relative overflow-hidden">
           {/* Decorative Elements */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-blue-500/10 to-purple-500/10 rounded-full -translate-y-32 translate-x-32"></div>
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-emerald-500/10 to-teal-500/10 rounded-full translate-y-24 -translate-x-24"></div>
-          
+
           <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
             <div className="flex items-center space-x-4">
               <div className="relative">
@@ -91,7 +81,7 @@ export const PurchaseOrderDetail: React.FC = () => {
                 {/* <p className="text-gray-600 mt-1 text-lg">Advanced Order Management</p> */}
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-4">
               <div className={`px-6 py-3 rounded-2xl font-bold text-lg ${getStatusColor(po?.status)} transform hover:scale-105 transition-all duration-200`}>
                 <div className="flex items-center space-x-2">
@@ -99,9 +89,9 @@ export const PurchaseOrderDetail: React.FC = () => {
                   <span className="capitalize">{po?.status}</span>
                 </div>
               </div>
-              
+
               <div className="flex space-x-2">
-                <button onClick={()=>generatePDF(po)} className="p-3 bg-white/50 hover:bg-white/80 rounded-xl border border-white/20 backdrop-blur-sm transition-all duration-200 hover:shadow-lg">
+                <button onClick={() => generatePDF(po)} className="p-3 bg-white/50 hover:bg-white/80 rounded-xl border border-white/20 backdrop-blur-sm transition-all duration-200 hover:shadow-lg">
                   <Download className="h-5 w-5 text-gray-600" />
                 </button>
                 {/* <button className="p-3 bg-white/50 hover:bg-white/80 rounded-xl border border-white/20 backdrop-blur-sm transition-all duration-200 hover:shadow-lg">
@@ -150,7 +140,7 @@ export const PurchaseOrderDetail: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Delivery In</p>
-                <p className="text-2xl font-bold text-gray-900">{formatRelativeDate(po?.deliveryDate,'relative')}</p>
+                <p className="text-2xl font-bold text-gray-900">{formatRelativeDate(po?.deliveryDate, 'relative')}</p>
               </div>
               <div className="bg-gradient-to-r from-purple-500 to-pink-600 p-3 rounded-xl shadow-lg shadow-purple-500/25">
                 <Clock className="h-6 w-6 text-white" />
@@ -184,7 +174,7 @@ export const PurchaseOrderDetail: React.FC = () => {
           {/* Order Details */}
           <div className="xl:col-span-2 bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-8 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-500/5 to-purple-500/5 rounded-full -translate-y-16 translate-x-16"></div>
-            
+
             <div className="relative">
               <div className="flex items-center justify-between mb-8">
                 <h2 className="text-2xl font-bold text-gray-900 flex items-center">
@@ -194,16 +184,16 @@ export const PurchaseOrderDetail: React.FC = () => {
                   Order Information
                 </h2>
                 {
-                 po?.attachment && (
-                  <a href={po?.attachment} target='_blank' className="flex items-center space-x-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all duration-200">
-                  <Eye className="h-4 w-4" />
-                  <span className="text-sm font-medium">View File</span>
-                </a>
-                 )
+                  po?.attachment && (
+                    <a href={po?.attachment} target='_blank' className="flex items-center space-x-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all duration-200">
+                      <Eye className="h-4 w-4" />
+                      <span className="text-sm font-medium">View File</span>
+                    </a>
+                  )
                 }
-               
+
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-6">
                   <div className="group hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 p-4 rounded-xl transition-all duration-200">
@@ -217,19 +207,30 @@ export const PurchaseOrderDetail: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="group hover:bg-gradient-to-r hover:from-emerald-50 hover:to-green-50 p-4 rounded-xl transition-all duration-200">
                     <div className="flex items-start space-x-4">
                       <div className="bg-emerald-100 group-hover:bg-emerald-200 p-2 rounded-lg transition-colors duration-200">
                         <Building className="h-5 w-5 text-emerald-600" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-600 mb-1">Vendor</p>
+                        <p className="text-sm font-medium text-gray-600 mb-1">Supplier</p>
                         <p className="font-bold text-lg text-gray-900">{po?.vendor}</p>
                       </div>
                     </div>
                   </div>
-                  
+                  <div className="group hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-50 p-4 rounded-xl transition-all duration-200">
+                    <div className="flex items-start space-x-4">
+                      <div className="bg-gray-100 group-hover:bg-gray-200 p-2 rounded-lg transition-colors duration-200">
+                        <Building className="h-5 w-5 text-gray-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-600 mb-1">Client</p>
+                        <p className="font-bold text-lg text-gray-900">{po?.customer}</p>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="group hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 p-4 rounded-xl transition-all duration-200">
                     <div className="flex items-start space-x-4">
                       <div className="bg-purple-100 group-hover:bg-purple-200 p-2 rounded-lg transition-colors duration-200">
@@ -241,7 +242,7 @@ export const PurchaseOrderDetail: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="group hover:bg-gradient-to-r hover:from-orange-50 hover:to-red-50 p-4 rounded-xl transition-all duration-200">
                     <div className="flex items-start space-x-4">
                       <div className="bg-orange-100 group-hover:bg-orange-200 p-2 rounded-lg transition-colors duration-200">
@@ -265,7 +266,7 @@ export const PurchaseOrderDetail: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="space-y-6">
                   <div className="group hover:bg-gradient-to-r hover:from-indigo-50 hover:to-blue-50 p-4 rounded-xl transition-all duration-200">
                     <div className="flex items-start space-x-4">
@@ -278,7 +279,7 @@ export const PurchaseOrderDetail: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="group hover:bg-gradient-to-r hover:from-teal-50 hover:to-cyan-50 p-4 rounded-xl transition-all duration-200">
                     <div className="flex items-start space-x-4">
                       <div className="bg-teal-100 group-hover:bg-teal-200 p-2 rounded-lg transition-colors duration-200">
@@ -290,7 +291,7 @@ export const PurchaseOrderDetail: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="group hover:bg-gradient-to-r hover:from-rose-50 hover:to-pink-50 p-4 rounded-xl transition-all duration-200">
                     <div className="flex items-start space-x-4">
                       <div className="bg-rose-100 group-hover:bg-rose-200 p-2 rounded-lg transition-colors duration-200">
@@ -302,11 +303,11 @@ export const PurchaseOrderDetail: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="group hover:bg-gradient-to-r hover:from-amber-50 hover:to-yellow-50 p-4 rounded-xl transition-all duration-200">
                     <div className="flex items-start space-x-4">
                       <div className="bg-amber-100 group-hover:bg-amber-200 p-2 rounded-lg transition-colors duration-200">
-                        <Wrench className="h-5 w-5 text-amber-600" />
+                        <InfoIcon className="h-5 w-5 text-amber-600" />
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-600 mb-1">Purpose</p>
@@ -314,13 +315,25 @@ export const PurchaseOrderDetail: React.FC = () => {
                       </div>
                     </div>
                   </div>
+                  <div className="group hover:bg-gradient-to-r hover:from-violet-50 hover:to-violet-50 p-4 rounded-xl transition-all duration-200">
+                    <div className="flex items-start space-x-4">
+                      <div className="bg-violet-100 group-hover:bg-violet-200 p-2 rounded-lg transition-colors duration-200">
+                        <Building2Icon className="h-5 w-5 text-violet-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-600 mb-1">Site/Unit</p>
+                        <p className="font-bold text-lg text-gray-900">{po?.siteType}</p>
+                      </div>
+                    </div>
+                  </div>
+
                 </div>
               </div>
             </div>
           </div>
 
           {/* Enhanced Summary Card */}
-        
+
         </div>
 
         {/* Premium Items Table */}
@@ -343,7 +356,7 @@ export const PurchaseOrderDetail: React.FC = () => {
               </div> */}
             </div>
           </div>
-          
+
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>

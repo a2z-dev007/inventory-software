@@ -161,8 +161,8 @@ const labelX = marginX;;
   valueStyle(); doc.text(format(new Date(po.orderDate), 'yyyy-MM-dd'), 160, y);
 
   y += 8;
-  labelStyle(); doc.text('Client Name:', marginLeft, y);
-  valueStyle(); doc.text(po.clientName || po.vendor || '-', marginLeft + 35, y);
+  labelStyle(); doc.text('Supplier Name:', marginLeft, y);
+  valueStyle(); doc.text(po.vendor || '-', marginLeft + 35, y);
 
   y += 8;
   labelStyle(); doc.text('Status:', marginLeft, y);

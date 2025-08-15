@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Receipt, Download, Search, Trash2, Edit, Link,Eye, IndianRupeeIcon, ReceiptIndianRupeeIcon, ReceiptIndianRupee, NotepadTextDashedIcon, BadgeIndianRupeeIcon, NotepadTextIcon, RefreshCcw } from 'lucide-react';
+import { Plus, Download, Search, Trash2, Edit, Link, Eye, IndianRupeeIcon, ReceiptIndianRupeeIcon, ReceiptIndianRupee, NotepadTextDashedIcon, BadgeIndianRupeeIcon, NotepadTextIcon, RefreshCcw } from 'lucide-react';
 
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -22,10 +22,13 @@ import { Badge } from '../components/common/Badge';
 
 const purchaseItemSchema = z.object({
   productId: z.string().min(1, 'Product is required'),
-  quantity: z.number().min(1, 'Quantity must be at least 1'),
+  quantity: z.coerce
+    .number()
+    .min(1, 'Quantity must be at least 1')
+    .refine(val => Number.isFinite(val), { message: 'Quantity must be a valid number' }),
   unitPrice: z.number().min(0, 'Unit price must be positive'),
   unitType: z.string().min(1, 'Unit type is required'),
-  isCancelled:z.boolean().optional()
+  isCancelled: z.boolean().optional()
 });
 
 const purchaseSchema = z.object({
@@ -33,13 +36,13 @@ const purchaseSchema = z.object({
   supplier: z.string().min(1, 'Supplier is required'),
   items: z.array(purchaseItemSchema).min(1, 'At least one item is required'),
   invoiceFile: z.any().optional(),
-  remarks:z.string().optional(),
+  remarks: z.string().optional(),
 });
 
 type PurchaseFormData = {
   ref_num: string;
   supplier: string;
-  items: { productId: number; quantity: number; unitPrice: number, unitType: string,isCancelled:false }[];
+  items: { productId: number; quantity: number; unitPrice: number, unitType: string, isCancelled: false }[];
   invoiceFile: FileList;
   remarks: string;
   // add other fields as needed
@@ -85,38 +88,38 @@ interface SuppliersApiResponse {
 //   // Removed tax
 // }
 export interface Purchase {
-  _id:           string;
-  ref_num:       string;
-  invoiceFile:   null;
-  vendor:        string;
-  purchaseDate:  Date;
-  items:         Item[];
-  subtotal:      number;
-  total:         number;
+  _id: string;
+  ref_num: string;
+  invoiceFile: null;
+  vendor: string;
+  purchaseDate: Date;
+  items: Item[];
+  subtotal: number;
+  total: number;
   receiptNumber: string;
-  createdBy:     CreatedBy;
-  isDeleted:     boolean;
-  remarks:       string;
-  createdAt:     Date;
-  updatedAt:     Date;
-  __v:           number;
+  createdBy: CreatedBy;
+  isDeleted: boolean;
+  remarks: string;
+  createdAt: Date;
+  updatedAt: Date;
+  __v: number;
 }
 
 export interface CreatedBy {
-  _id:      string;
+  _id: string;
   username: string;
-  name:     string;
+  name: string;
 }
 
 export interface Item {
-  productId:   string;
+  productId: string;
   productName: string;
-  quantity:    number;
-  unitPrice:   number;
-  unitType:    string;
-  total:       number;
-  isCancelled?:boolean;
-  _id:         string;
+  quantity: number;
+  unitPrice: number;
+  unitType: string;
+  total: number;
+  isCancelled?: boolean;
+  _id: string;
 }
 interface PurchasesApiResponse {
   purchases: Purchase[];
@@ -127,17 +130,6 @@ interface PurchasesApiResponse {
     limit: number;
   };
 }
-// import React, { useEffect, useState } from 'react';
-// import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-// import { useForm, Controller, useFieldArray } from 'react-hook-form';
-// import { zodResolver } from '@hookform/resolvers/zod';
-// ... (other imports like SelectField, FormField, Button, apiService, purchaseSchema, formatCurrency, etc.)
-
-// type PurchaseModalProps = {
-//   isOpen: boolean;
-//   onClose: () => void;
-//   purchase?: any; // keep as your PurchaseType if you have it
-// };
 
 const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase }) => {
   const queryClient = useQueryClient();
@@ -464,6 +456,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
                       label="Quantity"
                       name={`items.${index}.quantity`}
                       type="number"
+                      min={1}
                       register={register}
                       error={errors.items?.[index]?.quantity}
                       required
@@ -494,8 +487,8 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
                       watchedItems[index]?.quantity > 0 &&
                       watchedItems[index]?.unitPrice > 0 && (
                         <div className="flex items-center gap-2">
-                          <label htmlFor={`items.${index}.isCancelled`} className="text-sm font-medium text-gray-700">Cancelled</label> 
-                          
+                          <label htmlFor={`items.${index}.isCancelled`} className="text-sm font-medium text-gray-700">Cancelled</label>
+
                           <Controller
                             control={control}
                             name={`items.${index}.isCancelled`}
@@ -505,17 +498,17 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
                                 checked={watchedItems[index]?.isCancelled}
                                 className="w-5 h-5 text-red-600 rounded border-gray-300 focus:ring-red-500"
                                 {...field}
-                                // keep checkbox enabled so user can toggle cancel state in edit mode
+                              // keep checkbox enabled so user can toggle cancel state in edit mode
                               />
                             )}
                           />
-                         
+
                         </div>
-                        
+
                       )}
-                     
+
                   </div>
-                  
+
                 ))}
               </div>
             </div>
@@ -581,477 +574,6 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
 
 export default PurchaseModal;
 
-// const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase }) => {
-//   const queryClient = useQueryClient();
-//   const isEditing = !!purchase;
-
-//   const { data: productsData } = useQuery({
-//     queryKey: ['products'],
-//     queryFn: () => apiService.getProducts({all:true}),
-//     refetchOnMount: true, // Add this line
-
-//   });
-//   const { data: purchaseOrderData } = useQuery({
-//     queryKey: ['purchaseOrderData'],
-//     queryFn: () => apiService.getPurchaseOrders({ all:true}),
-//     refetchOnMount: true, // Add this line
-
-//   });
-
-
-
-//   const products = Array.isArray(productsData?.products) ? productsData.products : Array.isArray(productsData) ? productsData : [];
-
-//   const { data: suppliers } = useQuery<SuppliersApiResponse>({
-//     queryKey: ['suppliers'],
-//     queryFn: () => apiService.getSuppliers({ all:true }),
-//   });
-//   const suppliersList = suppliers?.vendors || [];
-
-//   const {
-//     register,
-//     handleSubmit,
-//     control,
-//     watch,
-//     formState: { errors },
-//     reset,
-//     setValue,
-//   } = useForm<PurchaseFormData>({
-//     resolver: zodResolver(purchaseSchema),
-//     defaultValues: {
-//       ref_num: '',
-//       supplier: '',
-//       items: [{ productId: 0, quantity: 1, unitPrice: 0, unitType: '',isCancelled:false }],
-//       invoiceFile: '',
-//       remarks:''
-//     },
-//   });
-//   const selectedRefNum = watch('ref_num');
-//   const [attachment, setAttachment] = useState<File | null>(null);
-
-
-//   useEffect(() => {
-//     if (isEditing && purchase) {
-//       reset({
-//         ref_num: purchase.ref_num,
-//         supplier: purchase.vendor || purchase.supplier || '',
-//         items: purchase.items.map((item: any) => ({
-//           productId: String(item.productId),
-//           quantity: item.quantity,
-//           unitPrice: item.unitPrice,
-//           unitType: item.unitType,
-//           isCancelled:item.isCancelled ?? false
-//         })),
-//         invoiceFile: purchase.invoiceFile || '',
-//         remarks: purchase.remarks
-//       });
-  
-//       // If there's an attachment
-//       if (purchase.invoiceFile && typeof purchase.invoiceFile === 'string') {
-//         setValue('invoiceFile', purchase.invoiceFile);
-//         setAttachment(null); // prevent unnecessary upload again
-//       }
-//     }
-//   }, [isEditing, purchase, reset, setValue]);
-  
-//   useEffect(() => {
-//     if (!selectedRefNum || !purchaseOrderData?.purchaseOrders?.length) return;
-
-//     const matchedPO = purchaseOrderData.purchaseOrders.find(
-//       (po: any) => po.ref_num === selectedRefNum
-//     );
-
-//     if (matchedPO) {
-//       // If editing and there's an existing attachment
-//       if (matchedPO.attachment) {
-//         console.log('Existing attachment found:', matchedPO.attachment);
-//         // Set the attachment value for validation - use the actual string value
-//         setValue('invoiceFile', matchedPO.attachment);
-//         // We don't need a new file upload since we're using the existing one
-//         setAttachment(null);
-//       } else {
-//         console.log('No existing attachment found');
-//         setValue('invoiceFile', null);
-//         setAttachment(null);
-//       }
-//       reset((prevValues) => ({
-//         ...prevValues,
-//         ref_num: matchedPO.ref_num,
-//         supplier: matchedPO.vendor,
-//         items: matchedPO.items.map((item: any) => ({
-//           productId: String(item.productId),
-//           quantity: item.quantity,
-//           unitPrice: item.unitPrice,
-//           unitType: item.unitType,
-//           isCancelled:item.isCancelled ?? false
-//         })),
-//         // Keep invoiceFile untouched
-//         invoiceFile: prevValues.invoiceFile,
-//         remarks: prevValues.remarks
-//       }));
-//     } else {
-//       reset({
-//         ref_num: '',
-//         supplier: '',
-//         items: [{ productId: 0, quantity: 1, unitPrice: 0, unitType: '',isCancelled:false }],
-//         invoiceFile: '',
-//         remarks:''
-//       })
-//       setValue('invoiceFile', '');
-//       setAttachment(null);
-
-//     }
-//   }, [selectedRefNum, purchaseOrderData, reset]);
-
-//   const { fields, append, remove } = useFieldArray({
-//     control,
-//     name: 'items',
-//   });
-
-//   const watchedItems = watch('items');
-
-//   const createMutation = useMutation({
-//     mutationFn: async (payload: PurchaseFormData) => {
-//       const formData = new FormData();
-
-//       // Add all basic fields
-//       formData.append("ref_num", payload.ref_num);
-//       formData.append(
-//         "receiptNumber",
-//         isEditing && purchase ? purchase.receiptNumber : generateReceiptNumber()
-//       );
-//       formData.append(
-//         "vendor",
-//         payload.supplier
-//       );
-//       formData.append(
-//         "purchaseDate",
-//         isEditing && purchase ? purchase.purchaseDate : new Date().toISOString()
-//       );
-
-//       formData.append("subtotal", String(calculateSubtotal()));
-//       formData.append("total", String(calculateSubtotal()));
-
-//       formData.append("remarks", payload.remarks);
-
-//       // Append file
-//       if (attachment instanceof File) {
-//         formData.append("invoiceFile", attachment); // Must match backend's multer fieldName
-//       }
-
-//       // Append items as a JSON string
-//       formData.append("items", JSON.stringify(payload.items.map(item => ({
-//         productId: String(item.productId),
-//         quantity: item.quantity,
-//         unitPrice: item.unitPrice,
-//         unitType: item.unitType,
-//         isCancelled: item.isCancelled || false
-//       }))));
-
-//       // POST or PUT to API
-//       if (isEditing && purchase && purchase._id) {
-//         return apiService.updatePurchase(purchase._id, formData);
-//       } else {
-//         return apiService.createPurchase(formData);
-//       }
-//     },
-
-//     onSuccess: () => {
-//       queryClient.invalidateQueries({ queryKey: ['purchases'] });
-//       onClose();
-//       reset();
-//     },
-//   });
-
-//   const calculateSubtotal = () => {
-//     return watchedItems.reduce((sum, item) => {
-//       if (item.isCancelled) return sum; // skip cancelled items
-//       return sum + (item.quantity * item.unitPrice);
-//     }, 0);
-//   };
-
-//   // Removed calculateTax and calculateTotal
-//   const calculateCancelledTotal = () => {
-//     return watchedItems.reduce((sum, item) => {
-//       if (!item.isCancelled) return sum;
-//       return sum + (item.quantity * item.unitPrice);
-//     }, 0);
-//   };
-//   const generateReceiptNumber = () => {
-//     const now = new Date();
-//     return `PUR-${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}-${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}${now.getSeconds().toString().padStart(2, '0')}`;
-//   };
-
-//   const onSubmit = async (data: PurchaseFormData) => {
-//     const payload = {
-//       ref_num: data.ref_num,
-//       // receiptNumber: isEditing && purchase ? purchase.receiptNumber : generateReceiptNumber(),
-//       vendor: data.supplier,
-//       // purchaseDate: isEditing && purchase ? purchase.purchaseDate : new Date().toISOString(),
-//       items: data.items.map(item => ({
-//         productId: String(item.productId),
-//         productName: products.find((p: any) => String(p._id) === String(item.productId))?.name || '',
-//         quantity: item.quantity,
-//         unitPrice: item.unitPrice,
-//         unitType: item.unitType,
-//         total: item.quantity * item.unitPrice,
-//         isCancelled: item.isCancelled || false
-//       })),
-//       subtotal: calculateSubtotal(),
-//       // Removed tax
-//       total: calculateSubtotal(),
-//       invoiceFile: data.invoiceFile?.[0]?.name || '',
-//       supplier: data.supplier, // add supplier for type compatibility
-//       remarks:data.remarks
-//     };
-
-//     createMutation.mutate(payload);
-//   };
-
-//   if (!isOpen) return null;
-
-//   const subtotal = calculateSubtotal();
-//   // Removed tax and total
-
-//   return (
-//     <div style={{marginTop:0}} className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-//       <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-//         <div className="p-6">
-//           <h2 className="text-xl font-semibold text-gray-900 mb-6">
-//             {isEditing ? 'Edit Purchase' : 'Record Purchase'}
-//           </h2>
-
-//           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" encType='multipart/form-data'>
-//             <SelectField<PurchaseFormData>
-//               label="DB Number"
-//               name="ref_num"
-//               options={purchaseOrderData?.purchaseOrders?.map((po: PurchaseOrder) => ({
-//                 value: po.ref_num, // vendor is po name
-//                 label: po.ref_num,
-//               })) || []}
-//               control={control}
-//               error={errors.supplier}
-//               required
-//             />
-//             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-//               <SelectField<PurchaseFormData>
-//                 label="Supplier"
-//                 name="supplier"
-//                 options={suppliersList.map((supplier: Supplier) => ({
-//                   value: supplier.name, // vendor is supplier name
-//                   label: supplier.name,
-//                 })) || []}
-//                 control={control}
-//                 error={errors.supplier}
-//                 required
-//               />
-
-//               {/* <FormField
-//                 label="Invoice File"
-//                 name="invoiceFile"
-//                 type="file"
-//                 register={register}
-//                 error={errors.invoiceFile}
-//                 inputProps={{ accept: '.pdf,.jpg,.jpeg,.png' }}
-//               /> */}
-//               <Controller
-//                 name="invoiceFile"
-//                 control={control}
-//                 render={({ field }) => (
-//                   <div className="space-y-1">
-//                     <label className="block text-sm font-medium text-gray-700">Invoice</label>
-//                     <input
-//                       type="file"
-//                       accept=".pdf,.jpg,.jpeg,.png"
-
-//                       onChange={(e) => {
-//                         const file = e.target.files?.[0];
-//                         if (file) {
-//                           setAttachment(file);
-//                           setValue('invoiceFile', 'file-selected', { shouldValidate: true });
-//                         } else {
-//                           setAttachment(null);
-//                           setValue('invoiceFile', null, { shouldValidate: true });
-//                         }
-//                       }}
-//                     />
-//                     {errors.invoiceFile && (
-//                       <p className="text-sm text-red-600">{errors.invoiceFile.message}</p>
-//                     )}
-//                   </div>
-//                 )}
-//               />
-
-//             </div>
-
-//             {/* Items */}
-//             <div>
-//               {/* <div className="flex items-center justify-between mb-4">
-//                 <h3 className="text-lg font-medium text-gray-900">Items</h3>
-//                 <Button
-//                   type="button"
-//                   variant="outline"
-//                   size="sm"
-//                   icon={Plus}
-//                   onClick={() => append({ productId: 0, quantity: 1, unitPrice: 0 })}
-//                 >
-//                   Add Item
-//                 </Button>
-//               </div> */}
-
-//               <div className="space-y-4">
-//                 {fields.map((field, index) => (
-//                 <div
-//                 key={field.id}
-//                 className={`grid grid-cols-1 md:grid-cols-5 gap-4 p-4 border border-gray-200 rounded-lg ${
-//                   watchedItems[index]?.isCancelled ? 'bg-red-100' : ''
-//                 }`}
-//               >
-//                     <div className="md:col-span-2">
-//                       <SelectField<PurchaseFormData>
-//                         label="Product"
-//                         name={`items.${index}.productId`}
-//                         options={products.map((product: any) => ({
-//                           value: String(product._id),
-//                           label: `${product.name} (${product.sku})`,
-//                         })) || []}
-//                         control={control}
-//                         error={errors.items?.[index]?.productId}
-//                         required
-//                         disabled={watchedItems[index]?.isCancelled}
-//                       />
-//                     </div>
-
-//                     <FormField
-//                       label="Quantity"
-//                       name={`items.${index}.quantity`}
-//                       type="number"
-//                       register={register}
-//                       error={errors.items?.[index]?.quantity}
-//                       required
-//                       disabled={watchedItems[index]?.isCancelled}
-//                     />
-
-//                     <FormField
-//                       label="Unit Price"
-//                       name={`items.${index}.unitPrice`}
-//                       disabled={true}
-//                       type="number"
-//                       register={register}
-//                       error={errors.items?.[index]?.unitPrice}
-//                       required
-//                     />
-//                       <FormField
-//                       label="Unit Type"
-//                       placeholder='Nos'
-//                       name={`items.${index}.unitType`}
-//                       type="text"
-//                       register={register}
-//                       // readOnly
-//                       disabled={true}
-//                       required
-//                     />
-//                 {watchedItems[index]?.productId &&
-//                   watchedItems[index]?.quantity > 0 &&
-//                     watchedItems[index]?.unitPrice > 0 && (
-//                       <div className="flex items-center gap-2">
-//                         <label htmlFor={`items.${index}.isCancelled`} className="text-sm font-medium text-gray-700">
-//                           Cancelled
-//                         </label>
-//                         <Controller
-//                           control={control}
-//                           name={`items.${index}.isCancelled`}
-//                           render={({ field }) => (
-//                             <input
-//                               type="checkbox"
-//                               className="w-5 h-5 text-red-600 rounded border-gray-300 focus:ring-red-500"
-//                               {...field}
-//                             />
-//                           )}
-//                         />
-//                       </div>
-//                     )}
-
-
-//                     {/* <div className="flex items-end">
-//                       <Button
-//                         type="button"
-//                         variant="danger"
-//                         size="sm"
-//                         onClick={() => remove(index)}
-//                         disabled={fields.length === 1}
-//                       >
-//                         Remove
-//                       </Button>
-//                     </div> */}
-//                   </div>
-//                 ))}
-//               </div>
-//             </div>
-//             <FormField
-//               label="Remarks"
-//               name="remarks"
-//               type="textarea"
-//               placeholder="Enter remarks (optional)"
-//               register={register}
-//               error={errors.remarks}
-//             />
-//             {/* Totals */}
-//             <div className="bg-gray-50 p-4 rounded-lg">
-//               <div className="space-y-2">
-            
-//               {calculateCancelledTotal() > 0 && (
-//                   <div className="flex justify-between text-red-500">
-//                     <span>Cancelled Total:</span>
-//                     <span>{formatCurrency(calculateCancelledTotal())}</span>
-//                   </div>
-//                 )}
-          
-//                 <div className="flex justify-between">
-//                   <span>Subtotal:</span>
-//                   <span>{formatCurrency(subtotal)}</span>
-//                 </div>
-//                 {/* Removed Tax row */}
-//                 <div className="flex justify-between font-bold text-lg border-t pt-2">
-//                   <span>Total:</span>
-//                   <span>{formatCurrency(subtotal)}</span>
-//                 </div>
-//               </div>
-//             </div>
-
-//             <div className="flex justify-end space-x-3">
-//               <Button
-//                 type="button"
-//                 variant="outline"
-//                 onClick={() => {
-//                   reset({
-//                     ref_num: '',
-//                     supplier: '',
-//                     items: [{ productId: 0, quantity: 1, unitPrice: 0, unitType: '' }],
-//                     invoiceFile: undefined,
-//                     remarks: '',
-//                   });
-//                   onClose();
-//                 }}
-//               >
-//                 Cancel
-//               </Button>
-//               <Button
-//                 type="submit"
-//                 className='gradient-btn'
-//                 loading={createMutation.isPending}
-//               >
-//                 {isEditing ? 'Update Purchase' : 'Record Purchase'}
-//               </Button>
-//             </div>
-//           </form>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// };
-
 export const Purchases: React.FC = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -1062,7 +584,7 @@ export const Purchases: React.FC = () => {
   const { page, handleNext, handlePrev } = usePagination(1);
   const { isAdmin } = useAuth();
 
-  const { data: purchasesData, isLoading,refetch } = useQuery<PurchasesApiResponse>({
+  const { data: purchasesData, isLoading, refetch } = useQuery<PurchasesApiResponse>({
     queryKey: ['purchases', page, debouncedSearch],
     queryFn: () => apiService.getPurchases({ page, limit: 10, search: debouncedSearch }),
   });
@@ -1070,7 +592,7 @@ export const Purchases: React.FC = () => {
   const purchases = purchasesData?.purchases || [];
   const pagination = purchasesData?.pagination || { page: 1, pages: 1, total: 0, limit: 10 };
 
-  const filteredPurchases = extractCancelledItemsFromPurchases(purchases,false);
+  const filteredPurchases = extractCancelledItemsFromPurchases(purchases, false);
   console.log("filteredPurchases", filteredPurchases)
   const generateReceiptPDF = (purchase: any) => {
     const doc = new jsPDF();
@@ -1119,13 +641,13 @@ export const Purchases: React.FC = () => {
 
   return (
     <div className="space-y-6">
-       <div className='absolute bottom-8 flex items-center justify-center right-8 w-12 h-12 '>
-      <Button onClick={()=>refetch()} className=' w-16 h-16 rounded-full gradient-btn' style={{borderRadius:"50%"}}>
-      {
-        isLoading ?  <LoadingSpinner size="lg" color='white' />: <RefreshCcw size={40} color='white'/> 
-      }
-      
-      </Button>
+      <div className='absolute bottom-8 flex items-center justify-center right-8 w-12 h-12 '>
+        <Button onClick={() => refetch()} className=' w-16 h-16 rounded-full gradient-btn' style={{ borderRadius: "50%" }}>
+          {
+            isLoading ? <LoadingSpinner size="lg" color='white' /> : <RefreshCcw size={40} color='white' />
+          }
+
+        </Button>
       </div>
       <Card>
         <CardHeader
@@ -1184,17 +706,17 @@ export const Purchases: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredPurchases.map((purchase,index) => (
+              {filteredPurchases.map((purchase, index) => (
                 <tr key={purchase._id} className={`hover:bg-gray-50`}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       {/* <NotepadTextIcon className="h-5 w-5 text-gray-400 mr-3" /> */}
-                   
-                     <span className={`px-2 py-1 text-sm  font-medium rounded-full ${getStatusColor('delivered')}`}>
 
-                     {purchase.receiptNumber}
+                      <span className={`px-2 py-1 text-sm  font-medium rounded-full ${getStatusColor('delivered')}`}>
+
+                        {purchase.receiptNumber}
                       </span>
-            
+
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -1205,15 +727,15 @@ export const Purchases: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {purchase.invoiceFile ? (
-                       <a
-                       target='_blank'
-                       className="text-white rounded-full p-1 px-2 text-xs  bg-blue-500 hover:text-green-900"
-                      
-                       href={purchase.invoiceFile}
-                     >
-                       
-                     View File
-                     </a>
+                      <a
+                        target='_blank'
+                        className="text-white rounded-full p-1 px-2 text-xs  bg-blue-500 hover:text-green-900"
+
+                        href={purchase.invoiceFile}
+                      >
+
+                        View File
+                      </a>
                     ) : (
                       <span className="text-sm text-gray-400">No file</span>
                     )}
@@ -1229,7 +751,7 @@ export const Purchases: React.FC = () => {
                     >
                       <Download size={20} />
                     </button> */}
-                   
+
                     {isAdmin() && (
                       <button
                         onClick={() => {
@@ -1242,7 +764,7 @@ export const Purchases: React.FC = () => {
                         <Edit size={20} />
                       </button>
                     )}
-                     <button
+                    <button
                       onClick={() => navigate(`/purchases/${purchase._id}`)}
                       className="text-gray-600 hover:text-gray-900"
                       title="View Details"

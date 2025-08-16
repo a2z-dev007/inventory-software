@@ -859,6 +859,91 @@ restorePurchase: async (id: string) => {
   //   }
   // },
 
+  // purpose crud 
+  // Purposes
+  getPurposes: async (params: { page?: number; limit?: number; search?: string, all?: boolean } = {}) => {
+    try {
+      const query = new URLSearchParams({
+        page: params.page?.toString() || '1',
+        limit: params.limit?.toString() || '10',
+        search: params.search || '',
+      }).toString();
+      const res = await request<any>(`${API_ROUTES.PURPOSES}?${query}`);
+      return res.data;
+    } catch (error) {
+      console.error('Error fetching purposes:', error);
+      throw error;
+    }
+  },
+
+  getPurposeById: async (id: string) => {
+    try {
+      const res = await request<any>(API_ROUTES.PURPOSE(id));
+      return res.data?.purpose;
+    } catch (error) {
+      console.error('Error fetching purpose:', error);
+      throw error;
+    }
+  },
+
+  createPurpose: async (purpose: { title: string }) => {
+    try {
+      const res = await request<any>(API_ROUTES.PURPOSES, {
+        method: 'POST',
+        body: JSON.stringify(purpose),
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (res.success) {
+        toast.success(res.message || 'Purpose created successfully');
+      }
+      if (res.success === false) {
+        throw new Error(res.message || 'Failed to create purpose');
+      }
+      return res;
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to create purpose');
+      throw error;
+    }
+  },
+
+  updatePurpose: async (id: string, purpose: { name: string }) => {
+    try {
+      const res = await request<any>(API_ROUTES.PURPOSE(id), {
+        method: 'PUT',
+        body: JSON.stringify(purpose),
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (res.success) {
+        toast.success(res.message || 'Purpose updated successfully');
+        return res;
+      }
+      if (res.success === false) {
+        throw new Error(res.message || 'Failed to update purpose');
+      }
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to update purpose');
+      throw error;
+    }
+  },
+
+  deletePurpose: async (id: string) => {
+    try {
+      const res = await request<any>(API_ROUTES.PURPOSE(id), {
+        method: 'DELETE',
+      });
+      if (res.success) {
+        toast.success(res.message || 'Purpose deleted successfully');
+      }
+      if (res.success === false) {
+        throw new Error(res.message || 'Failed to delete purpose');
+      }
+      return res;
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to delete purpose');
+      throw error;
+    }
+  },
+
 
   exportToExcel: async ({ moduleName, startDate, endDate,}:{moduleName:string,startDate:string,endDate:string}) => {
     try {

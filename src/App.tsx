@@ -31,6 +31,7 @@ import RecycleBin from './pages/RecycleBin';
 import WelcomeLoader from './components/loader/WelcomeLoader';
 import { ReturnedItems } from './pages/ReturnedItems';
 import { PurchaseReturnedDetail } from './pages/PurchaseReturnedDetail';
+import PurposePage from './pages/Purpose';
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -88,6 +89,11 @@ const AppRoutes: React.FC = () => {
         <Route path="suppliers" element={
           <ProtectedRoute requiredRoles={['admin', 'manager']}>
             <Suppliers />
+          </ProtectedRoute>
+        } />
+          <Route path="purpose" element={
+          <ProtectedRoute requiredRoles={['admin']}>
+            <PurposePage />
           </ProtectedRoute>
         } />
         <Route path="suppliers/:id" element={

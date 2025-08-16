@@ -19,6 +19,7 @@ export const API_ROUTES = {
   PRODUCT_STOCK: (id: string) => `/products/${id}/stock`,
   PRODUCT_CATEGORIES: '/products/categories',
   PURPOSES: '/purposes',
+  PURPOSE: (id: string) => `/purposes/${id}`,
   VENDORS: '/vendors',
   VENDOR: (id: string) => `/vendors/${id}`,
 
@@ -34,6 +35,9 @@ export const API_ROUTES = {
 
   PURCHASES: '/purchases',
   PURCHASE: (id: string) => `/purchases/${id}`,
+ 
+
+
 
   REPORTS_DASHBOARD: '/reports/dashboard',
   REPORTS_SALES: '/reports/sales',

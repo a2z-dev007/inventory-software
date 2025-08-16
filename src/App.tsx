@@ -25,6 +25,7 @@ import { useAuth } from './hooks/useAuth';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { ForgotPassword } from './pages/ForgotPassword';
+import PurposePage from './pages/Purpose';
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -82,6 +83,11 @@ const AppRoutes: React.FC = () => {
         <Route path="suppliers" element={
           <ProtectedRoute requiredRoles={['admin', 'manager']}>
             <Suppliers />
+          </ProtectedRoute>
+        } />
+          <Route path="purpose" element={
+          <ProtectedRoute requiredRoles={['admin']}>
+            <PurposePage />
           </ProtectedRoute>
         } />
         <Route path="suppliers/:id" element={

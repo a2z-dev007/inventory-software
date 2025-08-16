@@ -32,6 +32,7 @@ const navigation: NavItem[] = [
   { name: 'Clients', href: '/clients', icon: Users, roles: ['admin', 'manager', 'staff'] },
   { name: 'Products', href: '/products', icon: Package, roles: ['admin', 'manager', 'staff'] },
   { name: 'Reports', href: '/reports', icon: TrendingUp, roles: ['admin', 'manager'] },
+  { name: 'Purpose', href: '/purpose', icon: TrendingUp, roles: ['admin', 'manager'] },
   { name: 'Settings', href: '/settings', icon: Settings, roles: ['admin'] },
 ];
 

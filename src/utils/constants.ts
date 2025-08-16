@@ -160,3 +160,10 @@ export  const formatDate = (dateString) => {
       items: purchase.items?.filter(item => item.isCancelled === condition) || [],
     })).filter(purchase => purchase.items.length > 0);
   }
+
+   export  function extractReturnItemsFromPurchases(purchases:any,condition:boolean) {
+    return purchases.map(purchase => ({
+      ...purchase,
+      items: purchase.items?.filter(item => item.isReturn === condition) || [],
+    })).filter(purchase => purchase.items.length > 0);
+  }

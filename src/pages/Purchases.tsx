@@ -28,7 +28,9 @@ const purchaseItemSchema = z.object({
     .refine(val => Number.isFinite(val), { message: 'Quantity must be a valid number' }),
   unitPrice: z.number().min(0, 'Unit price must be positive'),
   unitType: z.string().min(1, 'Unit type is required'),
-  isCancelled: z.boolean().optional()
+  isCancelled: z.boolean().optional(),
+  isReturn: z.boolean().optional(),
+
 });
 
 const purchaseSchema = z.object({
@@ -37,16 +39,9 @@ const purchaseSchema = z.object({
   items: z.array(purchaseItemSchema).min(1, 'At least one item is required'),
   invoiceFile: z.any().optional(),
   remarks: z.string().optional(),
-});
+  receivedBy: z.string().min(1, 'Received by is required'),
 
-type PurchaseFormData = {
-  ref_num: string;
-  supplier: string;
-  items: { productId: number; quantity: number; unitPrice: number, unitType: string, isCancelled: false }[];
-  invoiceFile: FileList;
-  remarks: string;
-  // add other fields as needed
-};
+});
 
 interface PurchaseModalProps {
   isOpen: boolean;
@@ -63,36 +58,13 @@ interface Supplier {
   phone: string;
   address: string;
 }
-interface SuppliersApiResponse {
-  vendors: Supplier[];
-  pagination: {
-    page: number;
-    pages: number;
-    total: number;
-    limit: number;
-  };
-}
-// interface Purchase {
-//   _id: string;
-//   receiptNumber: string;
-//   supplier: string;
-//   ref_num: string;
-//   createdBy: string;
-//   vendor?: string;
-//   purchaseDate: string;
-//   invoiceFile?: string;
-//   total: number;
-//   items: any[];
-//   subtotal: number;
-//   remarks?: string;
-//   // Removed tax
-// }
+
 export interface Purchase {
   _id: string;
   ref_num: string;
   invoiceFile: null;
   vendor: string;
-  purchaseDate: Date;
+  purchaseDate: string;
   items: Item[];
   subtotal: number;
   total: number;
@@ -100,8 +72,9 @@ export interface Purchase {
   createdBy: CreatedBy;
   isDeleted: boolean;
   remarks: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
+  receivedBy: string;
   __v: number;
 }
 
@@ -185,9 +158,10 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
     defaultValues: {
       ref_num: '',
       supplier: '',
-      items: [{ productId: 0, quantity: 1, unitPrice: 0, unitType: '', isCancelled: false }],
+      items: [{ productId: 0, quantity: 1, unitPrice: 0, unitType: '', isCancelled: false, isReturn: false }],
       invoiceFile: '',
       remarks: '',
+      receivedBy: '',
     },
   });
 
@@ -209,9 +183,11 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
           unitPrice: item.unitPrice,
           unitType: item.unitType,
           isCancelled: item.isCancelled ?? false,
+          isReturn: item.isReturn ?? false,
         })),
         invoiceFile: currentPurchase.invoiceFile || '',
         remarks: currentPurchase.remarks || '',
+        receivedBy: currentPurchase.receivedBy || '',
       });
 
       // Set invoiceFile if exists
@@ -235,13 +211,14 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
       // Merge PO items with cancelled info from currentPurchase (if editing)
       const mergedItems = (matchedPO.items || []).map((poItem: any) => {
         let cancelledFlag = false;
-
+        let returnFlag = false;
         if (isEditing && currentPurchase && Array.isArray(currentPurchase.items)) {
           const matchingPurchaseItem = currentPurchase.items.find(
             (pItem: any) => String(pItem.productId) === String(poItem.productId)
           );
           if (matchingPurchaseItem) {
             cancelledFlag = matchingPurchaseItem.isCancelled ?? false;
+            returnFlag = matchingPurchaseItem.isReturn ?? false;
           }
         }
 
@@ -251,6 +228,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
           unitPrice: poItem.unitPrice,
           unitType: poItem.unitType,
           isCancelled: cancelledFlag,
+          isReturn: returnFlag,
         };
       });
 
@@ -260,9 +238,10 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
         ...prevValues,
         ref_num: matchedPO.ref_num,
         supplier: matchedPO.vendor,
-        items: mergedItems.length ? mergedItems : [{ productId: 0, quantity: 1, unitPrice: 0, unitType: '', isCancelled: false }],
+        items: mergedItems.length ? mergedItems : [{ productId: 0, quantity: 1, unitPrice: 0, unitType: '', isCancelled: false, isReturn: false }],
         invoiceFile: prevValues.invoiceFile || matchedPO.attachment || '',
         remarks: prevValues.remarks,
+        receivedBy: prevValues.receivedBy,
       }));
 
       if (matchedPO.attachment) {
@@ -276,9 +255,10 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
       reset({
         ref_num: '',
         supplier: '',
-        items: [{ productId: 0, quantity: 1, unitPrice: 0, unitType: '', isCancelled: false }],
+        items: [{ productId: 0, quantity: 1, unitPrice: 0, unitType: '', isCancelled: false, isReturn: false }],
         invoiceFile: '',
         remarks: '',
+        receivedBy: '',
       });
       setValue('invoiceFile', '');
       setAttachment(null);
@@ -302,8 +282,9 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
       );
       formData.append('vendor', payload.vendor || payload.supplier);
       formData.append('purchaseDate', isEditing && currentPurchase ? currentPurchase.purchaseDate : new Date().toISOString());
-      formData.append('subtotal', String(calculateSubtotal()));
-      formData.append('total', String(calculateSubtotal()));
+      formData.append('subtotal', String(subtotal));
+      formData.append('total', String(grandTotal));
+      formData.append('receivedBy', payload.receivedBy || '');
       formData.append('remarks', payload.remarks || '');
 
       if (attachment instanceof File) {
@@ -316,6 +297,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
         unitPrice: item.unitPrice,
         unitType: item.unitType,
         isCancelled: item.isCancelled || false,
+        isReturn: item.isReturn || false,
       }))));
 
       if (isEditing && currentPurchase && currentPurchase._id) {
@@ -332,18 +314,33 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
     },
   });
 
-  const calculateSubtotal = () => {
-    return (watchedItems || []).reduce((sum: number, item: any) => {
-      if (item.isCancelled) return sum;
-      return sum + (Number(item.quantity || 0) * Number(item.unitPrice || 0));
-    }, 0);
-  };
 
-  const calculateCancelledTotal = () => {
-    return (watchedItems || []).reduce((sum: number, item: any) => {
-      if (!item.isCancelled) return sum;
-      return sum + (Number(item.quantity || 0) * Number(item.unitPrice || 0));
-    }, 0);
+
+  const calculateTotals = (items: any[]) => {
+    let subtotal = 0;
+    let cancelledTotal = 0;
+    let returnTotal = 0;
+
+    items.forEach((item) => {
+      const qty = Number(item.quantity || 0);
+      const price = Number(item.unitPrice || 0);
+      const lineTotal = qty * price;
+
+      if (item.isCancelled) {
+        cancelledTotal += lineTotal;
+      } else if (item.isReturn) {
+        returnTotal += lineTotal;
+      } else {
+        subtotal += lineTotal; // only active items add to subtotal
+      }
+    });
+
+    return {
+      subtotal,
+      cancelledTotal,
+      returnTotal,
+      grandTotal: subtotal, // ✅ grand total = subtotal only
+    };
   };
 
   const generateReceiptNumber = () => {
@@ -363,12 +360,14 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
         unitType: item.unitType,
         total: item.quantity * item.unitPrice,
         isCancelled: item.isCancelled || false,
+        isReturn: item.isReturn || false,
       })),
-      subtotal: calculateSubtotal(),
-      total: calculateSubtotal(),
+      subtotal: subtotal,
+      total: grandTotal,
       invoiceFile: typeof data.invoiceFile === 'string' ? data.invoiceFile : (data.invoiceFile?.[0]?.name || ''),
       supplier: data.supplier,
       remarks: data.remarks,
+      receivedBy: data.receivedBy,
     };
 
     createMutation.mutate(payload);
@@ -376,60 +375,83 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
 
   if (!isOpen) return null;
 
-  const subtotal = calculateSubtotal();
+  // const subtotal = calculateSubtotal();
+  const { subtotal, cancelledTotal, returnTotal, grandTotal } = calculateTotals(watchedItems || []);
 
   return (
     <div style={{ marginTop: 0 }} className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">
-            {isEditing ? 'Edit Purchase' : 'Record Purchase'}
+            {isEditing ? 'Edit Purchase' : 'Create Purchase'}
           </h2>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" encType="multipart/form-data">
-            <SelectField<any>
-              label="DB Number"
-              name="ref_num"
-              options={purchaseOrderData?.purchaseOrders?.map((po: any) => ({ value: po.ref_num, label: po.ref_num })) || []}
-              control={control}
-              error={errors.supplier}
-              required
-            />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
               <SelectField<any>
-                label="Supplier"
-                name="supplier"
-                options={suppliersList.map((s: any) => ({ value: s.name, label: s.name })) || []}
+                label="DB Number"
+                name="ref_num"
+                options={purchaseOrderData?.purchaseOrders?.map((po: any) => ({ value: po.ref_num, label: po.ref_num })) || []}
                 control={control}
                 error={errors.supplier}
                 required
               />
 
-              <Controller
-                name="invoiceFile"
-                control={control}
-                render={() => (
-                  <div className="space-y-1">
-                    <label className="block text-sm font-medium text-gray-700">Invoice</label>
-                    <input
-                      type="file"
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          setAttachment(file);
-                          setValue('invoiceFile', 'file-selected', { shouldValidate: true });
-                        } else {
-                          setAttachment(null);
-                          setValue('invoiceFile', null, { shouldValidate: true });
-                        }
-                      }}
-                    />
-                    {errors.invoiceFile && <p className="text-sm text-red-600">{errors.invoiceFile.message}</p>}
-                  </div>
-                )}
+              <div className="">
+
+                <SelectField<any>
+                  label="Supplier"
+                  name="supplier"
+                  options={suppliersList.map((s: any) => ({ value: s.name, label: s.name })) || []}
+                  control={control}
+                  error={errors.supplier}
+                  required
+                />
+
+
+              </div>
+
+
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4" >
+
+              <FormField
+                label="Received By"
+                name="receivedBy"
+                placeholder='Received By'
+                type="text"
+                register={register}
+                error={errors.receivedBy}
+                required
               />
+              <div className='flex-1'>
+                <Controller
+                  name="invoiceFile"
+                  control={control}
+                  render={() => (
+                    <div className="space-y-1 ">
+                      <label className="block text-sm font-medium text-gray-700">Invoice</label>
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setAttachment(file);
+                            setValue('invoiceFile', 'file-selected', { shouldValidate: true });
+                          } else {
+                            setAttachment(null);
+                            setValue('invoiceFile', null, { shouldValidate: true });
+                          }
+                        }}
+                      />
+                      {errors.invoiceFile && <p className="text-sm text-red-600">{errors.invoiceFile.message}</p>}
+                    </div>
+                  )}
+                />
+              </div>
             </div>
 
             {/* Items */}
@@ -438,7 +460,9 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
                 {fields.map((field, index) => (
                   <div
                     key={field.id}
-                    className={`grid grid-cols-1 md:grid-cols-5 gap-4 p-4 border border-gray-200 rounded-lg ${watchedItems[index]?.isCancelled ? 'bg-red-100' : ''}`}
+                    className={`grid grid-cols-1 md:grid-cols-5 gap-4 p-4 border border-gray-200 rounded-lg 
+                      ${watchedItems[index]?.isCancelled ? 'bg-red-100' : watchedItems[index]?.isReturn ? 'bg-yellow-100' : ''}`}
+
                   >
                     <div className="md:col-span-2">
                       <SelectField<any>
@@ -448,7 +472,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
                         control={control}
                         error={errors.items?.[index]?.productId}
                         required
-                        disabled={watchedItems[index]?.isCancelled}
+                        disabled={watchedItems[index]?.isCancelled || watchedItems[index]?.isReturn}
                       />
                     </div>
 
@@ -460,7 +484,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
                       register={register}
                       error={errors.items?.[index]?.quantity}
                       required
-                      disabled={watchedItems[index]?.isCancelled}
+                      disabled={watchedItems[index]?.isCancelled || watchedItems[index]?.isReturn}
                     />
 
                     <FormField
@@ -486,24 +510,65 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
                     {watchedItems[index]?.productId &&
                       watchedItems[index]?.quantity > 0 &&
                       watchedItems[index]?.unitPrice > 0 && (
-                        <div className="flex items-center gap-2">
-                          <label htmlFor={`items.${index}.isCancelled`} className="text-sm font-medium text-gray-700">Cancelled</label>
+                        <div className="flex items-center gap-4">
+                          <label className="text-sm font-medium text-gray-700">Status:</label>
 
                           <Controller
                             control={control}
-                            name={`items.${index}.isCancelled`}
-                            render={({ field }) => (
-                              <input
-                                type="checkbox"
-                                checked={watchedItems[index]?.isCancelled}
-                                className="w-5 h-5 text-red-600 rounded border-gray-300 focus:ring-red-500"
-                                {...field}
-                              // keep checkbox enabled so user can toggle cancel state in edit mode
-                              />
-                            )}
-                          />
+                            name={`items.${index}.status`}
+                            render={({ field }) => {
+                              const currentValue = watchedItems[index]?.isCancelled
+                                ? 'cancelled'
+                                : watchedItems[index]?.isReturn
+                                  ? 'return'
+                                  : 'none';
 
+                              return (
+                                <div className="flex gap-3">
+                                  <label className="flex items-center gap-1 text-sm">
+                                    <input
+                                      type="radio"
+                                      value="none"
+                                      checked={currentValue === 'none'}
+                                      onChange={() => {
+                                        setValue(`items.${index}.isCancelled`, false);
+                                        setValue(`items.${index}.isReturn`, false);
+                                      }}
+                                    />
+                                    None
+                                  </label>
+
+                                  <label className="flex items-center gap-1 text-sm text-red-600">
+                                    <input
+                                      type="radio"
+                                      value="cancelled"
+                                      checked={currentValue === 'cancelled'}
+                                      onChange={() => {
+                                        setValue(`items.${index}.isCancelled`, true);
+                                        setValue(`items.${index}.isReturn`, false);
+                                      }}
+                                    />
+                                    Cancelled
+                                  </label>
+
+                                  <label className="flex items-center gap-1 text-sm text-yellow-600">
+                                    <input
+                                      type="radio"
+                                      value="return"
+                                      checked={currentValue === 'return'}
+                                      onChange={() => {
+                                        setValue(`items.${index}.isCancelled`, false);
+                                        setValue(`items.${index}.isReturn`, true);
+                                      }}
+                                    />
+                                    Return
+                                  </label>
+                                </div>
+                              );
+                            }}
+                          />
                         </div>
+
 
                       )}
 
@@ -523,7 +588,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
             />
 
             {/* Totals */}
-            <div className="bg-gray-50 p-4 rounded-lg">
+            {/* <div className="bg-gray-50 p-4 rounded-lg">
               <div className="space-y-2">
                 {calculateCancelledTotal() > 0 && (
                   <div className="flex justify-between text-red-500">
@@ -542,7 +607,36 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
                   <span>{formatCurrency(subtotal)}</span>
                 </div>
               </div>
+            </div> */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="space-y-2">
+                {cancelledTotal > 0 && (
+                  <div className="flex justify-between text-red-500">
+                    <span>Cancelled Total:</span>
+                    <span>{formatCurrency(cancelledTotal)}</span>
+                  </div>
+                )}
+
+                {returnTotal > 0 && (
+                  <div className="flex justify-between text-yellow-600">
+                    <span>Return Total:</span>
+                    <span>{formatCurrency(returnTotal)}</span>
+                  </div>
+                )}
+
+                <div className="flex justify-between">
+                  <span>Subtotal:</span>
+                  <span>{formatCurrency(subtotal)}</span>
+                </div>
+
+                <div className="flex justify-between font-bold text-lg border-t pt-2">
+                  <span>Grand Total:</span>
+                  <span>{formatCurrency(grandTotal)}</span>
+                </div>
+              </div>
             </div>
+
+
 
             <div className="flex justify-end space-x-3">
               <Button
@@ -562,7 +656,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
                 Cancel
               </Button>
               <Button type="submit" className="gradient-btn" loading={createMutation.isPending}>
-                {isEditing ? 'Update Purchase' : 'Record Purchase'}
+                {isEditing ? 'Update Purchase' : 'Create Purchase'}
               </Button>
             </div>
           </form>
@@ -652,14 +746,14 @@ export const Purchases: React.FC = () => {
       <Card>
         <CardHeader
           title={`Purchases`}
-          subtitle="Record and manage your purchases"
+          subtitle="Create and manage your purchases"
           action={
             <Button
               icon={Plus}
               className='gradient-btn'
               onClick={() => setIsModalOpen(true)}
             >
-              Record Purchase
+              Create Purchase
             </Button>
           }
         />
@@ -685,6 +779,9 @@ export const Purchases: React.FC = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  DB Number
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Receipt
                 </th>
@@ -714,7 +811,18 @@ export const Purchases: React.FC = () => {
 
                       <span className={`px-2 py-1 text-sm  font-medium rounded-full ${getStatusColor('delivered')}`}>
 
-                        {purchase.receiptNumber}
+                        {purchase?.ref_num}
+                      </span>
+
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      {/* <NotepadTextIcon className="h-5 w-5 text-gray-400 mr-3" /> */}
+
+                      <span className={`px-2 py-1 text-sm  font-medium rounded-full ${getStatusColor('delivered')}`}>
+
+                        {purchase?.receiptNumber}
                       </span>
 
                     </div>
@@ -819,7 +927,7 @@ export const Purchases: React.FC = () => {
             <ReceiptIndianRupee className="mx-auto h-12 w-12 text-gray-400" />
             <h3 className="mt-2 text-sm font-medium text-gray-900">No purchases found</h3>
             <p className="mt-1 text-sm text-gray-500">
-              Get started by recording your first purchase.
+              Get started by Createing your first purchase.
             </p>
           </div>
         )}

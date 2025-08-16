@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Trash2, RefreshCw, Search, Calendar, Package, ShoppingCart, FileText, AlertTriangle, CheckCircle, Users, IndianRupeeIcon, ChevronLeft, Che, IndianRupeeIconvronRight, Eye, ChevronRight, RefreshCcw } from 'lucide-react';
+import { Trash2, RefreshCw, Search, Calendar, Package, ShoppingCart, FileText, AlertTriangle, CheckCircle, Users, IndianRupeeIcon, ChevronLeft, Eye, ChevronRight, RefreshCcw } from 'lucide-react';
 import { apiService } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/common/Button';
@@ -85,7 +85,7 @@ const RecycleBin: React.FC = () => {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [actionType, setActionType] = useState<'restore' | 'permanent'>('restore');
-  const [moduleType,setModuleType] = useState("")
+  const [moduleType, setModuleType] = useState("")
   const [page, setPage] = useState(1);
   const limit = 10;
   const queryClient = useQueryClient();
@@ -103,7 +103,7 @@ const RecycleBin: React.FC = () => {
   const {
     data: poResponse = { purchaseOrders: [], pagination: { page: 1, pages: 1, total: 0, limit } },
     isLoading: isPOLoading,
-    refetch:reloadPO,
+    refetch: reloadPO,
   } = useQuery({
     queryKey: ['purchase-orders-deleted', page, debouncedSearch],
     queryFn: () => apiService.getDeletedPurchaseOrders({ page, limit, search: debouncedSearch }),
@@ -112,12 +112,12 @@ const RecycleBin: React.FC = () => {
 
   });
 
- 
 
-  const { 
-    data: purchasesData = { purchases: [], pagination: { page: 1, pages: 1, total: 0, limit} }, 
-    isLoading: isPurchasesLoading ,
-    refetch:reloadPurchases,
+
+  const {
+    data: purchasesData = { purchases: [], pagination: { page: 1, pages: 1, total: 0, limit } },
+    isLoading: isPurchasesLoading,
+    refetch: reloadPurchases,
   } = useQuery({
     queryKey: ['purchases-deleted', page, debouncedSearch],
     queryFn: () => apiService.getDeletedPurchases({ page, limit, search: debouncedSearch }),
@@ -129,7 +129,7 @@ const RecycleBin: React.FC = () => {
   const {
     data: salesResponse = { sales: [], pagination: { page: 1, pages: 1, total: 0, limit } },
     isLoading: isSalesLoading,
-    refetch:reloadSales,
+    refetch: reloadSales,
   } = useQuery({
     queryKey: ['sales-deleted', page, debouncedSearch],
     queryFn: () => apiService.getDeletedSales({ page, limit, search: debouncedSearch }),
@@ -140,7 +140,7 @@ const RecycleBin: React.FC = () => {
 
 
   // reload 
-  const reloadAll = ()=>{
+  const reloadAll = () => {
     reloadPO();
     reloadPurchases();
     reloadSales()
@@ -158,28 +158,28 @@ const RecycleBin: React.FC = () => {
   // Combine all items with type information
   const allItems: RecycleBinItem[] = useMemo(() => {
     const items: RecycleBinItem[] = [];
-    
+
     if (activeTab === 'all' || activeTab === 'purchaseOrder') {
       const purchaseOrders = (poResponse.purchaseOrders || [])
         .map(item => ({ ...item, type: 'purchaseOrder' as const }));
       console.log('Purchase Orders:', purchaseOrders);
       items.push(...purchaseOrders);
     }
-    
+
     if (activeTab === 'all' || activeTab === 'purchase') {
       const purchases = (purchasesData.purchases || [])
         .map(item => ({ ...item, type: 'purchase' as const }));
       console.log('Purchases:', purchases);
       items.push(...purchases);
     }
-    
+
     if (activeTab === 'all' || activeTab === 'sale') {
       const sales = (salesResponse.sales || [])
         .map(item => ({ ...item, type: 'sale' as const }));
       console.log('Sales:', sales);
       items.push(...sales);
     }
-    
+
     console.log('All combined items:', items);
     return items;
   }, [poResponse, purchasesData, salesResponse, activeTab]);
@@ -200,9 +200,9 @@ const RecycleBin: React.FC = () => {
           purchasesData.pagination?.pages || 1,
           salesResponse.pagination.pages
         );
-        const totalItems = (poResponse.pagination.total) + 
-                          (purchasesData.pagination?.total || 0) + 
-                          (salesResponse.pagination.total);
+        const totalItems = (poResponse.pagination.total) +
+          (purchasesData.pagination?.total || 0) +
+          (salesResponse.pagination.total);
         return {
           page,
           pages: maxPages,
@@ -217,9 +217,9 @@ const RecycleBin: React.FC = () => {
 
   const getItemCounts = () => {
     return {
-      all: (poResponse.pagination.total) + 
-           (purchasesData.pagination?.total || 0) + 
-           (salesResponse.pagination.total),
+      all: (poResponse.pagination.total) +
+        (purchasesData.pagination?.total || 0) +
+        (salesResponse.pagination.total),
       purchaseOrder: poResponse.pagination.total,
       purchase: purchasesData.pagination?.total || 0,
       sale: salesResponse.pagination.total,
@@ -236,8 +236,8 @@ const RecycleBin: React.FC = () => {
   ];
 
   const handleItemSelect = (itemId: string) => {
-    setSelectedItems(prev => 
-      prev.includes(itemId) 
+    setSelectedItems(prev =>
+      prev.includes(itemId)
         ? prev.filter(id => id !== itemId)
         : [...prev, itemId]
     );
@@ -249,19 +249,19 @@ const RecycleBin: React.FC = () => {
     setShowConfirmModal(true);
   };
 
-  const confirmAction = async() => {
+  const confirmAction = async () => {
     console.log(`${actionType} items:`, selectedItems);
     // Here you would implement the actual restore/delete API calls
-    console.log("module",moduleType)
-    if(moduleType=== "purchaseOrder"){
+    console.log("module", moduleType)
+    if (moduleType === "purchaseOrder") {
       await apiService.restorePO(selectedItems[0])
       queryClient.invalidateQueries({ queryKey: ['purchase-orders-deleted'] });
     }
-    if(moduleType=== "purchase"){
+    if (moduleType === "purchase") {
       await apiService.restorePurchase(selectedItems[0])
       queryClient.invalidateQueries({ queryKey: ['purchases-deleted'] });
     }
-    if(moduleType=== "sale"){
+    if (moduleType === "sale") {
       await apiService.restoreSales(selectedItems[0])
       queryClient.invalidateQueries({ queryKey: ['sales-deleted'] });
     }
@@ -304,7 +304,7 @@ const RecycleBin: React.FC = () => {
       className={`bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] group`}
     >
       {/* Card Header */}
-      <div className={`bg-gradient-to-r ${item.type === 'purchaseOrder' ? 'from-blue-500 to-blue-600' : 
+      <div className={`bg-gradient-to-r ${item.type === 'purchaseOrder' ? 'from-blue-500 to-blue-600' :
         item.type === 'purchase' ? 'from-green-500 to-green-600' : 'from-purple-500 to-purple-600'} p-5 text-white relative overflow-hidden`}>
         <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
         <div className="relative z-10">
@@ -315,8 +315,8 @@ const RecycleBin: React.FC = () => {
               {item.type === 'sale' && <ShoppingCart className="w-6 h-6" />}
               <div>
                 <h3 className="font-bold text-lg">
-                  {item.type === 'purchaseOrder' ? 'Purchase Order' : 
-                   item.type === 'purchase' ? 'Purchase' : 'Sale'}
+                  {item.type === 'purchaseOrder' ? 'Purchase Order' :
+                    item.type === 'purchase' ? 'Purchase' : 'Sale'}
                 </h3>
                 <p className="text-sm opacity-90">#{item.ref_num}</p>
               </div>
@@ -327,27 +327,27 @@ const RecycleBin: React.FC = () => {
               onChange={() => handleItemSelect(item._id)}
               className="w-5 h-5 rounded border-white/30 bg-white/20 text-white focus:ring-white/30 focus:ring-2"
             /> */}
-             <button
-                          onClick={() =>{
-                            if(item.type=== "purchaseOrder"){
-                              navigate(`/purchase-orders/${item._id}`)
-                            }
-                            if(item.type=== "purchase"){
-                              navigate(`/purchases/${item._id}`)
-                            }
-                            if(item.type=== "sale"){
-                              navigate(`/site/${item._id}`)
-                            }
-                            
-                          }}
-                          className="text-white flex items-center gap-x-1 hover:text-gray-900"
-                          aria-label="View Details"
-                        >
-                          <Eye size={20}  />
-                          View
-                        </button>
+            <button
+              onClick={() => {
+                if (item.type === "purchaseOrder") {
+                  navigate(`/purchase-orders/${item._id}`)
+                }
+                if (item.type === "purchase") {
+                  navigate(`/purchases/${item._id}`)
+                }
+                if (item.type === "sale") {
+                  navigate(`/site/${item._id}`)
+                }
+
+              }}
+              className="text-white flex items-center gap-x-1 hover:text-gray-900"
+              aria-label="View Details"
+            >
+              <Eye size={20} />
+              View
+            </button>
           </div>
-          
+
           <div className="text-sm opacity-90">
             {item.type === 'purchaseOrder' && (item as PurchaseOrder).poNumber}
             {item.type === 'purchase' && (item as Purchase).receiptNumber}
@@ -400,11 +400,10 @@ const RecycleBin: React.FC = () => {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Status:</span>
-              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                (item as PurchaseOrder).status === 'approved' ? 'bg-green-100 text-green-700' :
+              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${(item as PurchaseOrder).status === 'approved' ? 'bg-green-100 text-green-700' :
                 (item as PurchaseOrder).status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                'bg-gray-100 text-gray-700'
-              }`}>
+                  'bg-gray-100 text-gray-700'
+                }`}>
                 {(item as PurchaseOrder).status.toUpperCase()}
               </span>
             </div>
@@ -444,12 +443,12 @@ const RecycleBin: React.FC = () => {
       <div className="p-5 pt-0">
         <div className="flex gap-3">
           <button
-            onClick={async() => {
+            onClick={async () => {
               setSelectedItems([item._id]);
               setActionType('restore');
               setShowConfirmModal(true);
               setModuleType(item.type)
-             
+
             }}
             className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 transition-all shadow-lg hover:shadow-xl font-medium"
           >
@@ -489,27 +488,26 @@ const RecycleBin: React.FC = () => {
             <ChevronLeft className="w-4 h-4" />
             Previous
           </button>
-          
+
           {/* Page numbers */}
           {Array.from({ length: Math.min(5, paginationInfo.pages) }, (_, i) => {
             const pageNum = Math.max(1, paginationInfo.page - 2) + i;
             if (pageNum > paginationInfo.pages) return null;
-            
+
             return (
               <button
                 key={pageNum}
                 onClick={() => handlePageChange(pageNum)}
-                className={`px-4 py-2 rounded-lg transition-all ${
-                  pageNum === paginationInfo.page
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+                className={`px-4 py-2 rounded-lg transition-all ${pageNum === paginationInfo.page
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
               >
                 {pageNum}
               </button>
             );
           })}
-          
+
           <button
             onClick={() => handlePageChange(paginationInfo.page + 1)}
             disabled={paginationInfo.page >= paginationInfo.pages}
@@ -524,14 +522,14 @@ const RecycleBin: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
-        <div className='fixed bottom-8 flex items-center justify-center right-8 w-12 h-12 z-50'>
-      <Button onClick={()=>reloadAll()} className=' w-16 h-16 rounded-full gradient-btn ' style={{borderRadius:"50%"}}>
-      {
-        isLoading ?  <LoadingSpinner size="lg" color='white' />: <RefreshCcw size={40} color='white'/> 
-      }
-      
-      </Button>
+    <div className="min-h-screen  p-6">
+      <div className='fixed bottom-8 flex items-center justify-center right-8 w-12 h-12 z-50'>
+        <Button onClick={() => reloadAll()} className=' w-16 h-16 rounded-full gradient-btn ' style={{ borderRadius: "50%" }}>
+          {
+            isLoading ? <LoadingSpinner size="lg" color='white' /> : <RefreshCcw size={40} color='white' />
+          }
+
+        </Button>
       </div>
       <div className="max-w-8xl mx-auto">
         {/* Header */}
@@ -557,19 +555,17 @@ const RecycleBin: React.FC = () => {
                   <button
                     key={tab.key}
                     onClick={() => handleTabChange(tab.key as any)}
-                    className={`flex items-center gap-3 px-6 py-4 rounded-xl font-semibold transition-all duration-300 ${
-                      activeTab === tab.key
-                        ? `bg-gradient-to-r ${tab.color} text-white shadow-lg scale-105`
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
-                    }`}
+                    className={`flex items-center gap-3 px-6 py-4 rounded-xl font-semibold transition-all duration-300 ${activeTab === tab.key
+                      ? `bg-gradient-to-r ${tab.color} text-white shadow-lg scale-105`
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
+                      }`}
                   >
                     <Icon className="w-5 h-5" />
                     <span>{tab.label}</span>
-                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                      activeTab === tab.key
-                        ? 'bg-white/20 text-white'
-                        : 'bg-gray-200 text-gray-600'
-                    }`}>
+                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${activeTab === tab.key
+                      ? 'bg-white/20 text-white'
+                      : 'bg-gray-200 text-gray-600'
+                      }`}>
                       {tab.count}
                     </span>
                   </button>
@@ -639,7 +635,7 @@ const RecycleBin: React.FC = () => {
             </div>
             <h3 className="text-3xl font-bold text-gray-800 mb-4">No deleted items found</h3>
             <p className="text-gray-600 text-lg max-w-md mx-auto">
-              {debouncedSearch 
+              {debouncedSearch
                 ? 'Try adjusting your search criteria to find deleted items.'
                 : `No deleted ${activeTab === 'all' ? 'items' : tabs.find(t => t.key === activeTab)?.label.toLowerCase()} in your recycle bin.`}
             </p>
@@ -664,9 +660,9 @@ const RecycleBin: React.FC = () => {
                   {actionType === 'restore' ? 'Restore Items' : 'Permanent Delete'}
                 </h3>
               </div>
-              
+
               <p className="text-gray-600 mb-8 text-lg leading-relaxed">
-                {actionType === 'restore' 
+                {actionType === 'restore'
                   ? `Are you sure you want to restore ${selectedItems.length} item(s)? They will be moved back to their original location.`
                   : `Are you sure you want to permanently delete ${selectedItems.length} item(s)? This action cannot be undone.`
                 }
@@ -681,11 +677,10 @@ const RecycleBin: React.FC = () => {
                 </button>
                 <button
                   onClick={confirmAction}
-                  className={`flex-1 px-6 py-3 text-white rounded-xl transition-all font-semibold text-lg shadow-lg ${
-                    actionType === 'restore'
-                      ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700'
-                      : 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700'
-                  }`}
+                  className={`flex-1 px-6 py-3 text-white rounded-xl transition-all font-semibold text-lg shadow-lg ${actionType === 'restore'
+                    ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700'
+                    : 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700'
+                    }`}
                 >
                   {actionType === 'restore' ? 'Restore' : 'Delete Permanently'}
                 </button>

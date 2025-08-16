@@ -29,6 +29,8 @@ import { CancelledItems } from './pages/CancelledItems';
 import { CancelledItemsDetail } from './pages/CancelledPurchaseDetail';
 import RecycleBin from './pages/RecycleBin';
 import WelcomeLoader from './components/loader/WelcomeLoader';
+import { ReturnedItems } from './pages/ReturnedItems';
+import { PurchaseReturnedDetail } from './pages/PurchaseReturnedDetail';
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -41,18 +43,18 @@ export const queryClient = new QueryClient({
 
 const AppRoutes: React.FC = () => {
   const { isAuthenticated } = useAuth();
-  
+
   return (
     <Routes>
-      <Route 
-        path="/login" 
-        element={isAuthenticated ? <Navigate to="/purchase-orders" replace /> : <Login />} 
+      <Route
+        path="/login"
+        element={isAuthenticated ? <Navigate to="/purchase-orders" replace /> : <Login />}
       />
-      <Route 
-        path="/forgot-password" 
-        element={<ForgotPassword />} 
+      <Route
+        path="/forgot-password"
+        element={<ForgotPassword />}
       />
-      
+
       <Route path="/" element={
         <ProtectedRoute>
           <Layout />
@@ -71,8 +73,8 @@ const AppRoutes: React.FC = () => {
             <PurchaseOrderDetail />
           </ProtectedRoute>
         } />
-        <Route path="site" element={<Sales />} />
-        <Route path="site/:id" element={<SaleDetail />} />
+        {/* <Route path="site" element={<Sales />} />
+        <Route path="site/:id" element={<SaleDetail />} /> */}
         <Route path="purchases" element={
           <ProtectedRoute requiredRoles={['admin', 'manager']}>
             <Purchases />
@@ -105,52 +107,62 @@ const AppRoutes: React.FC = () => {
             <Settings />
           </ProtectedRoute>
         } />
-         <Route path="cancelled-items" element={
+        <Route path="cancelled-items" element={
           <ProtectedRoute requiredRoles={['admin', 'manager']}>
             <CancelledItems />
           </ProtectedRoute>
         } />
-         <Route path="cancelled-items/:id" element={
+        <Route path="purchase-return" element={
+          <ProtectedRoute requiredRoles={['admin', 'manager']}>
+            <ReturnedItems />
+          </ProtectedRoute>
+        } />
+        <Route path="purchase-return/:id" element={
+          <ProtectedRoute requiredRoles={['admin', 'manager']}>
+            <PurchaseReturnedDetail />
+          </ProtectedRoute>
+        } />
+        <Route path="cancelled-items/:id" element={
           <ProtectedRoute requiredRoles={['admin', 'manager']}>
             <CancelledItemsDetail />
           </ProtectedRoute>
         } />
-         <Route path="recycle-bin" element={
+        <Route path="recycle-bin" element={
           <ProtectedRoute requiredRoles={['admin', 'manager']}>
             <RecycleBin />
           </ProtectedRoute>
         } />
       </Route>
-      
+
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 };
 
 function App() {
-    // Initialize state based on localStorage immediately
-    const [showLoader, setShowLoader] = useState(() => {
-      if (typeof window !== 'undefined') {
-        const hasLoaded = localStorage.getItem('wingsAppLoaded');
-        return !hasLoaded; // Only show if hasn't loaded before
-      }
-      return true; // Default for SSR
-    });
-  
-    const handleLoadingComplete = () => {
-      setShowLoader(false);
-      // Mark as loaded in localStorage
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('wingsAppLoaded', 'true');
-      }
-    };
-  
-    const resetLoader = () => {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('wingsAppLoaded');
-        setShowLoader(true);
-      }
-    };
+  // Initialize state based on localStorage immediately
+  const [showLoader, setShowLoader] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const hasLoaded = localStorage.getItem('wingsAppLoaded');
+      return !hasLoaded; // Only show if hasn't loaded before
+    }
+    return true; // Default for SSR
+  });
+
+  const handleLoadingComplete = () => {
+    setShowLoader(false);
+    // Mark as loaded in localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('wingsAppLoaded', 'true');
+    }
+  };
+
+  const resetLoader = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('wingsAppLoaded');
+      setShowLoader(true);
+    }
+  };
   return (
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
@@ -159,12 +171,12 @@ function App() {
             <AppRoutes />
             <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop closeOnClick pauseOnFocusLoss draggable pauseOnHover />
           </div>
-          <WelcomeLoader 
+          <WelcomeLoader
             showLoader={showLoader}
             onLoadingComplete={handleLoadingComplete}
           />
         </Router>
-      </QueryClientProvider> 
+      </QueryClientProvider>
     </Provider>
   );
 }

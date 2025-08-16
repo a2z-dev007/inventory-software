@@ -322,7 +322,7 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
             </div>
             {/* Items */}
             <div>
-              <div className="flex items-center justify-between mb-4">
+              {/* <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-medium text-gray-900">Items</h3>
                 <Button
                   type="button"
@@ -333,7 +333,7 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
                 >
                   Add Item
                 </Button>
-              </div>
+              </div> */}
               <div className="space-y-4">
                 {fields.map((field, index) => (
                   <div key={field.id} className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 border border-gray-200 rounded-lg">
@@ -374,7 +374,7 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
                       error={errors.items?.[index]?.unitPrice}
                       required
                     />
-                    <div className="flex items-end">
+                    {/* <div className="flex items-end">
                       <Button
                         type="button"
                         variant="danger"
@@ -384,7 +384,7 @@ const SaleModal: React.FC<SaleModalProps> = ({ isOpen, onClose, sale }) => {
                       >
                         Remove
                       </Button>
-                    </div>
+                    </div> */}
                   </div>
                 ))}
               </div>
@@ -572,7 +572,7 @@ export const Sales: React.FC = () => {
                   Invoice
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Customer
+                  Client
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Delivery Date

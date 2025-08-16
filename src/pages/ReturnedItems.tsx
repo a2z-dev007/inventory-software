@@ -13,7 +13,7 @@ import { Button } from '../components/common/Button';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { FormField } from '../components/forms/FormField';
 import { SelectField } from '../components/forms/SelectField';
-import { extractCancelledItemsFromPurchases, formatCurrency, getStatusColor } from '../utils/constants';
+import { extractReturnItemsFromPurchases, formatCurrency, getStatusColor } from '../utils/constants';
 import { usePagination } from '../hooks/usePagination';
 import { useDebounce } from '../hooks/useDebounce';
 import { PurchaseOrder } from './PurchaseOrders';
@@ -129,7 +129,7 @@ interface PurchasesApiResponse {
 }
 
 
-export const CancelledItems: React.FC = () => {
+export const ReturnedItems: React.FC = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -147,7 +147,7 @@ export const CancelledItems: React.FC = () => {
   const purchases = purchasesData?.purchases || [];
   const pagination = purchasesData?.pagination || { page: 1, pages: 1, total: 0, limit: 10 };
 
-  const filteredPurchases = extractCancelledItemsFromPurchases(purchases, true);
+  const filteredPurchases = extractReturnItemsFromPurchases(purchases, true);
   console.log("filteredPurchases", filteredPurchases)
 
 
@@ -166,7 +166,7 @@ export const CancelledItems: React.FC = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader
-          title={`Cancelled Purchases`}
+          title={`Purchase Return`}
         />
 
         {/* Search */}
@@ -175,7 +175,7 @@ export const CancelledItems: React.FC = () => {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <input
               type="text"
-              placeholder="Search purchases..."
+              placeholder="Search purchase return..."
               className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               value={searchTerm}
               onChange={(e) => {
@@ -202,9 +202,7 @@ export const CancelledItems: React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Invoice File
                 </th>
-                {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Total
-                </th> */}
+
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
@@ -262,7 +260,7 @@ export const CancelledItems: React.FC = () => {
                       </button>
                     )}
                     <button
-                      onClick={() => navigate(`/cancelled-items/${purchase._id || purchase.id}`)}
+                      onClick={() => navigate(`/purchase-return/${purchase._id || purchase.id}`)}
                       className="text-gray-600 hover:text-gray-900"
                       title="View Details"
                     >

@@ -15,6 +15,7 @@ import {
   BookX,
   Trash,
   Undo2Icon,
+  NotebookPenIcon,
 
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
@@ -37,7 +38,7 @@ const navigation: NavItem[] = [
   { name: 'Reports', href: '/reports', icon: TrendingUp, roles: ['admin', 'manager'] },
   { name: 'Cancelled Items', href: '/cancelled-items', icon: BookX, roles: ['admin'] },
   { name: 'Purchase Retun', href: '/purchase-return', icon: Undo2Icon, roles: ['admin'] },
-  { name: 'Purpose', href: '/purpose', icon: TrendingUp, roles: ['admin', 'manager'] },
+  { name: 'Purpose', href: '/purpose', icon: NotebookPenIcon, roles: ['admin', 'manager'] },
   { name: 'Settings', href: '/settings', icon: Settings, roles: ['admin'] },
   { name: 'Recycle Bin', href: '/recycle-bin', icon: Trash, roles: ['admin'] },
 ];

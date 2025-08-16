@@ -126,7 +126,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
       }
     },
   });
-  
+
   const onSubmit = (data: ProductFormData) => {
     // Find the supplier name by ID
     // const selectedSupplier = suppliers.find(s => String(s.id ?? s._id) === data.supplier);
@@ -148,14 +148,14 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
   if (!isOpen) return null;
 
   return (
-    <div style={{marginTop:0}} className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-2xl w-full min-h-[30vh] overflow-y-auto">
+    <div style={{ marginTop: 0 }} className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white relative rounded-lg max-w-2xl w-full min-h-[50vh] overflow-y-auto">
         <div className="p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">
             {isEditing ? 'Edit Product' : 'Add New Product'}
           </h2>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 relative">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 label="Product Name"
@@ -171,6 +171,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
                 type="number"
                 placeholder="Enter purchase rate"
                 register={register}
+                min={0}
                 error={errors.purchaseRate}
                 required
               />
@@ -198,23 +199,24 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
                 )}
               />
             </div>
-            <div className="flex justify-end space-x-3 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                className='gradient-btn'
-                loading={createMutation.isPending || updateMutation.isPending}
-              >
-                {isEditing ? 'Update Product' : 'Add Product'}
-              </Button>
-            </div>
+
           </form>
+        </div>
+        <div className="flex justify-end absolute bottom-6 right-4 space-x-3 pt-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            className='gradient-btn'
+            loading={createMutation.isPending || updateMutation.isPending}
+          >
+            {isEditing ? 'Update Product' : 'Add Product'}
+          </Button>
         </div>
       </div>
     </div>
@@ -378,7 +380,7 @@ export const Products: React.FC = () => {
                         <Trash2 className="h-4 w-4" />
                       </button>
                     )}
-                    
+
                   </td>
                 </tr>
               ))}

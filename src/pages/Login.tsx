@@ -7,7 +7,7 @@ import { Package, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/common/Button';
 import { FormField } from '../components/forms/FormField';
-import logo from "../assets/images/logo.png"
+import logo from "../assets/images/logobnw.png"
 const loginSchema = z.object({
   username: z.string().min(1, 'Username is required'),
   password: z.string().min(1, 'Password is required'),
@@ -61,7 +61,7 @@ export const Login: React.FC = () => {
           <img src={logo} className='' />
           </div>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">
-          Wings Stock Management System
+          Wings Procurement Management
           </h2>
           <p className="mt-2 text-sm text-gray-600">
             Sign in to access your dashboard

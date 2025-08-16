@@ -16,7 +16,7 @@ import { DetailModal } from '../components/common/DetailModal';
 import { useAuth } from '../hooks/useAuth';
 
 const customerSchema = z.object({
-  name: z.string().min(1, 'Customer name is required'),
+  name: z.string().min(1, 'Client name is required'),
   contact: z.string().min(1, 'Contact person is required'),
   email: z.string().email('Valid email is required'),
   phone: z.string().min(1, 'Phone number is required'),
@@ -95,19 +95,19 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ isOpen, onClose, customer
   if (!isOpen) return null;
 
   return (
-    <div style={{marginTop:0}} className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div style={{ marginTop: 0 }} className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">
-            {isEditing ? 'Edit Customer' : 'Add New Customer'}
+            {isEditing ? 'Edit Client' : 'Add New Client'}
           </h2>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
-                label="Customer Name"
+                label="Client Name"
                 name="name"
-                placeholder="Enter customer name"
+                placeholder="Enter Client name"
                 register={register}
                 error={errors.name}
                 required
@@ -164,7 +164,7 @@ const CustomerModal: React.FC<CustomerModalProps> = ({ isOpen, onClose, customer
                 className='gradient-btn'
                 loading={createMutation.isPending || updateMutation.isPending}
               >
-                {isEditing ? 'Update Customer' : 'Add Customer'}
+                {isEditing ? 'Update Client' : 'Add Client'}
               </Button>
             </div>
           </form>
@@ -198,16 +198,16 @@ export const Customers: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const debouncedSearch = useDebounce(searchTerm, 800); 
+  const debouncedSearch = useDebounce(searchTerm, 800);
   const queryClient = useQueryClient();
   const { isAdmin } = useAuth();
   const {
-  page,
-  setPage,
-  handleNext,
-  handlePrev,
-  resetPage
-} = usePagination(1);
+    page,
+    setPage,
+    handleNext,
+    handlePrev,
+    resetPage
+  } = usePagination(1);
 
   const limit = 10;
 
@@ -218,6 +218,7 @@ export const Customers: React.FC = () => {
   } = useQuery<PaginatedCustomers>({
     queryKey: ['customers', page, debouncedSearch],
     queryFn: () => apiService.getCustomers({ page, limit, search: debouncedSearch }),
+    refetchOnMount: true,
   });
 
   // Always fallback to array/object to avoid map on undefined
@@ -228,6 +229,7 @@ export const Customers: React.FC = () => {
   const { data: salesData } = useQuery({
     queryKey: ['sales'],
     queryFn: () => apiService.getSales({}),
+
   });
   const sales = salesData?.sales || [];
 
@@ -269,15 +271,15 @@ export const Customers: React.FC = () => {
     <div className="space-y-6  pb-6">
       <Card>
         <CardHeader
-          title={`Customers (${customerResponse?.pagination?.total || 0})`}
-          subtitle="Manage your customer base"
+          title={`Clients`}
+          subtitle="Manage your client base"
           action={
             <Button
               icon={Plus}
               className='gradient-btn'
               onClick={() => setIsModalOpen(true)}
             >
-              Add Customer
+              Add Client
             </Button>
           }
         />
@@ -287,7 +289,7 @@ export const Customers: React.FC = () => {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <input
               type="text"
-              placeholder="Search customers..."
+              placeholder="Search Clients..."
               className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               value={searchTerm}
               onChange={(e) => {
@@ -297,7 +299,7 @@ export const Customers: React.FC = () => {
             />
           </div>
         </div>
-        {/* Customers Grid */}
+        {/* Clients Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {customers.map((customer: any) => {
             const stats = getCustomerStats(customer.name);
@@ -320,7 +322,7 @@ export const Customers: React.FC = () => {
                         className="text-blue-600 hover:text-blue-900"
                         title="Edit"
                       >
-                        <Edit className="h-4 w-4" />
+                        <Edit size={20} />
                       </button>
                     )}
                     <button
@@ -328,7 +330,7 @@ export const Customers: React.FC = () => {
                       className="text-gray-600 hover:text-gray-900"
                       title="View Details"
                     >
-                      <Eye className="h-4 w-4" />
+                      <Eye size={20} />
                     </button>
                     {isAdmin() && (
                       <button
@@ -340,7 +342,7 @@ export const Customers: React.FC = () => {
                         className="text-red-600 hover:text-red-900"
                         title="Delete"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 size={20} />
                       </button>
                     )}
                   </div>

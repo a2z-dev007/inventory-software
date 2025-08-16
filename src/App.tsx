@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Provider } from 'react-redux';
@@ -25,6 +25,12 @@ import { useAuth } from './hooks/useAuth';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { ForgotPassword } from './pages/ForgotPassword';
+import { CancelledItems } from './pages/CancelledItems';
+import { CancelledItemsDetail } from './pages/CancelledPurchaseDetail';
+import RecycleBin from './pages/RecycleBin';
+import WelcomeLoader from './components/loader/WelcomeLoader';
+import { ReturnedItems } from './pages/ReturnedItems';
+import { PurchaseReturnedDetail } from './pages/PurchaseReturnedDetail';
 import PurposePage from './pages/Purpose';
 
 export const queryClient = new QueryClient({
@@ -41,15 +47,15 @@ const AppRoutes: React.FC = () => {
 
   return (
     <Routes>
-      <Route 
-        path="/login" 
-        element={isAuthenticated ? <Navigate to="/purchase-orders" replace /> : <Login />} 
+      <Route
+        path="/login"
+        element={isAuthenticated ? <Navigate to="/purchase-orders" replace /> : <Login />}
       />
-      <Route 
-        path="/forgot-password" 
-        element={<ForgotPassword />} 
+      <Route
+        path="/forgot-password"
+        element={<ForgotPassword />}
       />
-      
+
       <Route path="/" element={
         <ProtectedRoute>
           <Layout />
@@ -68,8 +74,8 @@ const AppRoutes: React.FC = () => {
             <PurchaseOrderDetail />
           </ProtectedRoute>
         } />
-        <Route path="site" element={<Sales />} />
-        <Route path="site/:id" element={<SaleDetail />} />
+        {/* <Route path="site" element={<Sales />} />
+        <Route path="site/:id" element={<SaleDetail />} /> */}
         <Route path="purchases" element={
           <ProtectedRoute requiredRoles={['admin', 'manager']}>
             <Purchases />
@@ -107,14 +113,62 @@ const AppRoutes: React.FC = () => {
             <Settings />
           </ProtectedRoute>
         } />
+        <Route path="cancelled-items" element={
+          <ProtectedRoute requiredRoles={['admin', 'manager']}>
+            <CancelledItems />
+          </ProtectedRoute>
+        } />
+        <Route path="purchase-return" element={
+          <ProtectedRoute requiredRoles={['admin', 'manager']}>
+            <ReturnedItems />
+          </ProtectedRoute>
+        } />
+        <Route path="purchase-return/:id" element={
+          <ProtectedRoute requiredRoles={['admin', 'manager']}>
+            <PurchaseReturnedDetail />
+          </ProtectedRoute>
+        } />
+        <Route path="cancelled-items/:id" element={
+          <ProtectedRoute requiredRoles={['admin', 'manager']}>
+            <CancelledItemsDetail />
+          </ProtectedRoute>
+        } />
+        <Route path="recycle-bin" element={
+          <ProtectedRoute requiredRoles={['admin', 'manager']}>
+            <RecycleBin />
+          </ProtectedRoute>
+        } />
       </Route>
-      
+
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 };
 
 function App() {
+  // Initialize state based on localStorage immediately
+  const [showLoader, setShowLoader] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const hasLoaded = localStorage.getItem('wingsAppLoaded');
+      return !hasLoaded; // Only show if hasn't loaded before
+    }
+    return true; // Default for SSR
+  });
+
+  const handleLoadingComplete = () => {
+    setShowLoader(false);
+    // Mark as loaded in localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('wingsAppLoaded', 'true');
+    }
+  };
+
+  const resetLoader = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('wingsAppLoaded');
+      setShowLoader(true);
+    }
+  };
   return (
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
@@ -123,6 +177,10 @@ function App() {
             <AppRoutes />
             <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop closeOnClick pauseOnFocusLoss draggable pauseOnHover />
           </div>
+          <WelcomeLoader
+            showLoader={showLoader}
+            onLoadingComplete={handleLoadingComplete}
+          />
         </Router>
       </QueryClientProvider>
     </Provider>

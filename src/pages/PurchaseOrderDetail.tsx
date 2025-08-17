@@ -1,38 +1,29 @@
-import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { apiService } from '../services/api';
-import { DetailPage } from '../components/common/DetailPage';
-import { toast } from 'react-toastify';
 import {
-  Package,
-  Calendar,
-  User,
   Building,
-  FileText,
-  Truck,
+  Building2Icon,
+  Calendar,
   CheckCircle,
-  DollarSign,
-  Hash,
-  MapPin,
-  UserCheck,
-  Wrench,
+  Clock,
   Download,
   Eye,
-  MoreVertical,
-  Star,
-  TrendingUp,
-  Clock,
-  Shield,
+  FileText,
+  Hash,
   IndianRupeeIcon,
+  InfoIcon,
+  MapPin,
+  Package,
+  Truck,
+  User,
   User2Icon,
-  Building2Icon,
-  InfoIcon
+  UserCheck
 } from 'lucide-react';
-import { generatePDF } from '../utils/pdf';
-import moment from 'moment';
-import { formatCurrency, formatDate, formatINRCurrency, formatRelativeDate, getStatusColor } from '../utils/constants';
+import React from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import BackButton from '../components/common/BackButton';
+import { apiService } from '../services/api';
+import { formatCurrency, formatDate, formatINRCurrency, formatRelativeDate, getStatusColor } from '../utils/constants';
+import { generatePDF } from '../utils/pdf';
 
 export const PurchaseOrderDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -140,7 +131,13 @@ export const PurchaseOrderDetail: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Delivery In</p>
-                <p className="text-2xl font-bold text-gray-900">{formatRelativeDate(po?.deliveryDate, 'relative')}</p>
+                {
+                  po?.deliveryDate ? (
+                    <p className="text-2xl font-bold text-gray-900">{formatRelativeDate(po?.deliveryDate, 'relative')}</p>
+                  ) : (
+                    <p className="text-2xl font-bold text-gray-900">--</p>)
+                }
+                {/* <p className="text-2xl font-bold text-gray-900">{formatRelativeDate(po?.deliveryDate, 'relative')}</p> */}
               </div>
               <div className="bg-gradient-to-r from-purple-500 to-pink-600 p-3 rounded-xl shadow-lg shadow-purple-500/25">
                 <Clock className="h-6 w-6 text-white" />
@@ -227,6 +224,17 @@ export const PurchaseOrderDetail: React.FC = () => {
                       <div>
                         <p className="text-sm font-medium text-gray-600 mb-1">Client</p>
                         <p className="font-bold text-lg text-gray-900">{po?.customer}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="group hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-50 p-4 rounded-xl transition-all duration-200">
+                    <div className="flex items-start space-x-4">
+                      <div className="bg-gray-100 group-hover:bg-gray-200 p-2 rounded-lg transition-colors duration-200">
+                        <Building className="h-5 w-5 text-gray-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-600 mb-1">Client Address</p>
+                        <p className="font-bold text-lg text-gray-900">{po?.customerAddress}</p>
                       </div>
                     </div>
                   </div>

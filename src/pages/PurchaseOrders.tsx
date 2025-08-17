@@ -42,6 +42,7 @@ export const purchaseOrderSchema = z.object({
   ref_num: z.string().min(1, 'DB Number is required'),
   vendor: z.string().min(1, 'Supplier is required'),
   customer: z.string().min(1, 'Client is required'),
+  customerName: z.string().optional(),
   siteType: z.string().min(1, 'Site Type is required').default("Site"),
   status: z.enum(['draft', 'pending', 'approved', 'delivered', 'cancelled']),
   attachment: z.union([z.instanceof(File), z.string(), z.null()]).optional(),
@@ -83,7 +84,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
   // Add state for server-side error
   const [serverError, setServerError] = useState<string | null>(null);
   const [attachment, setAttachment] = useState<File | null>(null);
-
+  const [customerAddress,setCustomerAddress] = useState("")
   const { data: productsData } = useQuery({
     queryKey: ['products'],
     queryFn: () => apiService.getProducts({ all: true }),
@@ -130,6 +131,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
         attachment: purchaseOrder.attachment || '',
         vendor: purchaseOrder.vendor || '',
         customer: purchaseOrder.customer || '',
+        customerName: purchaseOrder.customerName || '',
         siteType: purchaseOrder.siteType || '',
         status: purchaseOrder.status || 'draft',
         deliveryDate: purchaseOrder.deliveryDate || '',
@@ -150,6 +152,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
         attachment: '',
         vendor: '',
         customer: '',
+        customerName:'',
         siteType: 'Site',
         status: 'draft',
         remarks: '',
@@ -269,6 +272,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
     formData.append('ref_num', data.ref_num);
     formData.append('vendor', data.vendor);
     formData.append('customer', data.customer);
+    formData.append('customerAddress', customerAddress || '');
     formData.append('siteType', data.siteType);
     formData.append('status', data.status);
     formData.append('subtotal', subtotal.toString());
@@ -300,6 +304,20 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
     }
   };
 
+  const selectedCustomerId = watch('customer');
+
+  useEffect(() => {
+    if (selectedCustomerId) {
+      const selectedCustomer = customers.find(c => c._id === selectedCustomerId);
+      if (selectedCustomer) {
+        setCustomerAddress(selectedCustomer.address)
+        setValue('customerAddress', selectedCustomer.address || '');
+      }
+    } else {
+      setValue('customerAddress', '');
+      setCustomerAddress("")
+    }
+  }, [selectedCustomerId, customers, setValue]);
 
   useEffect(() => {
     if (purchaseOrder) {
@@ -451,15 +469,21 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
                 label="Client"
                 name="customer"
                 options={customers?.map((customer: any) => ({
-                  value: customer.name,
+                  value: customer._id,  // ✅ use id
                   label: customer.name,
                 })) || []}
                 control={control}
                 error={errors.customer}
                 required
               />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                label="Client Address"
+                name="customerAddress"
+                placeholder="Client address will autofill"
+                type="text"
+                register={register}
+                disabled
+              />
               <SelectField<PurchaseOrderFormData>
                 label="Status"
                 name="status"
@@ -474,6 +498,9 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
                 error={errors.status}
                 required
               />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
 
               {/* Site/Unit radio buttons */}
               <div className="flex flex-col">
@@ -708,6 +735,7 @@ export interface PurchaseOrder {
   vendor: string;
   siteType?: string;
   customer?: string;
+  customerName?: string;
   status: 'draft' | 'approved' | 'delivered' | 'cancelled';
   orderDate: string;
   items: PurchaseOrderItem[];
@@ -1060,7 +1088,7 @@ export const PurchaseOrders: React.FC = () => {
             </div>
             <div className="flex items-center gap-3">
               {/* View Mode Toggle */}
-              <div className="hidden sm:flex bg-gray-100 rounded-lg p-1">
+              {/* <div className="hidden sm:flex bg-gray-100 rounded-lg p-1">
                 <button
                   onClick={() => setViewMode('table')}
                   className={`px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${viewMode === 'table'
@@ -1081,7 +1109,7 @@ export const PurchaseOrders: React.FC = () => {
                   <LayoutGrid size={16} className="inline mr-2" />
                   Grid
                 </button>
-              </div>
+              </div> */}
 
               <Button
                 icon={Plus}
@@ -1243,14 +1271,12 @@ export const PurchaseOrders: React.FC = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center space-x-1">
-                            {po.attachment && (
-                              <ActionButton
-                                onClick={() => generatePDF(po)}
-                                icon={Download}
-                                label="Download PDF"
-                                variant="success"
-                              />
-                            )}
+                            <ActionButton
+                              onClick={() => generatePDF(po)}
+                              icon={Download}
+                              label="Download PDF"
+                              variant="success"
+                            />
                             <ActionButton
                               onClick={() => navigate(`/purchase-orders/${po._id}`)}
                               icon={Eye}

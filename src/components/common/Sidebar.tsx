@@ -32,7 +32,7 @@ const navigation: NavItem[] = [
   { name: 'Products', href: '/products', icon: Package, roles: ['admin', 'manager', 'staff'] },
   { name: 'Cancelled Items', href: '/cancelled-items', icon: BookX, roles: ['admin'] },
   { name: 'Purchase Return', href: '/purchase-return', icon: Undo2Icon, roles: ['admin'] },
-  { name: 'Purpose', href: '/purpose', icon: NotebookPenIcon, roles: ['admin', 'manager'] },
+  { name: 'Purpose', href: '/purpose', icon: NotebookPenIcon, roles: ['admin',] },
   { name: 'Recycle Bin', href: '/recycle-bin', icon: Trash, roles: ['admin'] },
   { name: 'Reports', href: '/reports', icon: TrendingUp, roles: ['admin', 'manager'] },
   { name: 'Settings', href: '/settings', icon: Settings, roles: ['admin'] },

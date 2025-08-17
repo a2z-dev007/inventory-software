@@ -61,10 +61,10 @@ const AppRoutes: React.FC = () => {
           <Layout />
         </ProtectedRoute>
       }>
-        <Route index element={<Dashboard />} />
+        {/* <Route element={<Dashboard />} /> */}
         <Route path="products" element={<Products />} />
         <Route path="products/:id" element={<ProductDetail />} />
-        <Route path="purchase-orders" element={
+        <Route index path="purchase-orders" element={
           <ProtectedRoute requiredRoles={['admin', 'manager']}>
             <PurchaseOrders />
           </ProtectedRoute>
@@ -91,7 +91,7 @@ const AppRoutes: React.FC = () => {
             <Suppliers />
           </ProtectedRoute>
         } />
-          <Route path="purpose" element={
+        <Route path="purpose" element={
           <ProtectedRoute requiredRoles={['admin']}>
             <PurposePage />
           </ProtectedRoute>

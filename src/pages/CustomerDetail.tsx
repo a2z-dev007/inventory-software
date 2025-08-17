@@ -1,37 +1,19 @@
-import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { apiService } from '../services/api';
-import { DetailPage } from '../components/common/DetailPage';
-import { toast } from 'react-toastify';
 import {
-  Users,
+  Activity,
   Calendar,
-  User,
-  Phone,
+  FileText,
+  Hash,
   Mail,
   MapPin,
-  FileText,
-  DollarSign,
-  Hash,
-  TrendingUp,
-  Clock,
-  Shield,
-  CheckCircle,
-  Eye,
-  Edit,
-  Download,
-  MoreVertical,
-  Star,
-  Activity,
-  CreditCard,
-  AlertTriangle,
+  Phone,
+  User,
   UserCheck,
-  ShoppingCart,
-  Receipt,
-  Target,
-  Award
+  Users
 } from 'lucide-react';
+import React from 'react';
+import { useParams } from 'react-router-dom';
+import { apiService } from '../services/api';
 import { formatRelativeDate } from '../utils/constants';
 const getActiveStatus = (isActive) => {
   return isActive
@@ -77,7 +59,7 @@ export const CustomerDetail: React.FC = () => {
   const activeStatus = getActiveStatus(customer?.isActive);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen  p-4 sm:p-6 lg:p-8">
       <div className="relative max-w-7xl mx-auto">
         {/* Floating Header */}
         <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-8 mb-8 relative overflow-hidden">
@@ -101,7 +83,7 @@ export const CustomerDetail: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center space-x-4">
+            {/* <div className="flex items-center space-x-4">
               <div className={`px-6 py-3 rounded-2xl font-bold text-lg ${activeStatus.color} border transform hover:scale-105 transition-all duration-200`}>
                 <div className="flex items-center space-x-2">
                   <Activity className="h-5 w-5" />
@@ -109,7 +91,7 @@ export const CustomerDetail: React.FC = () => {
                 </div>
               </div>
 
-            </div>
+            </div> */}
           </div>
         </div>
 

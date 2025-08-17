@@ -1,215 +1,251 @@
 import jsPDF from "jspdf";
 import { getBase64 } from "./constants";
-import logo from '../assets/images/logo.png'; // static image import
+import logo from '../assets/images/logo.png';
 import { format } from "date-fns";
-import headerImage from '../assets/images/pdf_header.jpg'; // your new full header PNG
-
+import headerImage from '../assets/images/pdf_header.jpg';
 import autoTable from 'jspdf-autotable';
-// export const generatePDF = async (po) => {
-//   const doc = new jsPDF({ format: 'a4', unit: 'mm' });
-
-//   const base64Logo = await getBase64(logo);
-
-//   // === Styling ===
-//   const labelStyle = () => doc.setTextColor(0, 0, 0).setFont('helvetica', 'bold').setFontSize(11);
-//   const valueStyle = () => doc.setTextColor(80, 80, 80).setFont('helvetica', 'normal');
-
-//   const marginLeft = 20;
-//   const marginRight = 190;
-//   let y = 20;
-
-//   // === Header: Logo + Company Info ===
-//   doc.addImage(base64Logo, 'PNG', marginLeft, y, 30, 20);
-
-//   doc.setFontSize(14).setFont('helvetica', 'bold');
-//   doc.text('SPACE WINGS PVT. LTD', marginLeft + 35, y + 8);
-//   doc.text('PURCHASE ORDER (PO)', marginRight, y + 8, { align: 'right' });
-
-//   doc.setFontSize(10).setFont('helvetica', 'normal');
-//   doc.text('Contact - +91-7897391111  Email - Team@spacewings.com', 105, y + 18, { align: 'center' });
-//   doc.text('1/7, Vishwas Khand, Gomti Nagar, Lucknow, Uttar Pradesh 226010', 105, y + 24, { align: 'center' });
-//   // add devider with margin bottom
-//   // doc.line(marginLeft, y + 20, marginRight, y + 20);
-//   // add space below
-
-//   y = y + 32;
-
-//   // === Info Block ===
-//   labelStyle(); doc.text('PO Number:', marginLeft, y);
-//   valueStyle(); doc.text(po.poNumber, marginLeft + 35, y);
-
-//   labelStyle(); doc.text('Date:', 140, y);
-//   valueStyle(); doc.text(format(new Date(po.orderDate), 'yyyy-MM-dd'), 160, y);
-
-//   y += 8;
-//   labelStyle(); doc.text('Client Name:', marginLeft, y);
-//   valueStyle(); doc.text(po.clientName || po.vendor || '-', marginLeft + 35, y);
-
- 
-
-//   y += 8;
-//   labelStyle(); doc.text('Status:', marginLeft, y);
-//   valueStyle(); doc.text(po.status.toUpperCase(), marginLeft + 35, y);
-
-//   labelStyle(); doc.text('DB No:', 140, y);
-//   valueStyle(); doc.text(po.ref_num || '-', 160, y);
-
-//   y += 8;
-//   labelStyle(); doc.text('Site Incharge:', marginLeft, y);
-//   valueStyle(); doc.text(po.site_incharge || '-', marginLeft + 35, y);
-
-//   labelStyle(); doc.text('Contractor :  ', 140, y);
-//   valueStyle(); doc.text(po.contractor || '-',164, y);
-
-//   // === Items Table ===
-//   autoTable(doc, {
-//     startY: y + 12,
-//     margin: { left: marginLeft, right: 20 },
-//     head: [['Item Name', 'Unit Type', 'Quantity', 'Rate (INR)', 'Total Amount (INR)']],
-//     body: po.items.map((item) => [
-//       item.productName,
-//       item.unitType || '-',
-//       item.quantity,
-//       item.unitPrice.toLocaleString(),
-//       item.total.toLocaleString(),
-//     ]),
-//     styles: {
-//       fontSize: 10,
-//       halign: 'center',
-//       valign: 'middle',
-//       cellPadding: 3,
-//     },
-//     headStyles: {
-//       fillColor: [38, 0, 84],
-//       textColor: [255, 255, 255],
-//     },
-//     alternateRowStyles: { fillColor: [245, 245, 245] },
-//     bodyStyles: {
-//       textColor: [40, 40, 40],
-      
-//     },
-//   });
-
-//   const finalY = doc.lastAutoTable.finalY || 120;
-
-//   // === Totals Section ===
-//   // labelStyle(); doc.text('Subtotal:', marginLeft + 30, finalY + 10);
-//   // valueStyle(); doc.text(`₹ ${formatINRCurrency(po.subtotal, { withSymbol: false, fraction: false })}`, marginLeft + 30, finalY + 10, { align: 'right' });
-
-//   // labelStyle(); doc.text('Total:', marginLeft + 30, finalY + 18);
-//   // valueStyle(); doc.text(`₹ ${formatINRCurrency(po.total, { withSymbol: false, fraction: false })}`, marginLeft + 30, finalY + 18, { align: 'right' });
-
-//   // === Footer Details ===
-//   labelStyle(); doc.text('Ordered By:', marginLeft, finalY + 30);
-//   valueStyle(); doc.text(po.orderedBy || '-', marginLeft + 30, finalY + 30);
-
-//   labelStyle(); doc.text('Delivery Date:', marginLeft, finalY + 38);
-//   valueStyle(); doc.text(format(new Date(po.deliveryDate), 'yyyy-MM-dd'), marginLeft + 30, finalY + 38);
-  
-//   labelStyle(); doc.text('Purpose:', marginLeft, finalY + 48);
-//   valueStyle(); doc.text(po.purpose || '-', marginLeft + 30, finalY + 48);
-//   if (po.remarks) {
-//     labelStyle(); doc.text('Remarks:', marginLeft, finalY + 60);
-//     valueStyle(); doc.text(po.remarks, marginLeft, finalY + 70, { maxWidth: 170 });
-//   }
-
-//   // === Save File ===
-//   doc.save(`${po.poNumber}_Purchase_Order.pdf`);
-// };
-
-
-
-
 
 export const generatePDF = async (po) => {
   const doc = new jsPDF({ format: 'a4', unit: 'mm', compression: 'MEDIUM' });
 
-  // Convert header to base64 JPG
+  // Page dimensions and margins
+  const pageWidth = 210;
+  const pageHeight = 297;
+  const margin = 15;
+  const contentWidth = pageWidth - (margin * 2);
+
+  // Colors
+  const primaryColor = [38, 0, 84];
+  const secondaryColor = [102, 102, 102];
+  const lightGray = [245, 245, 245];
+  const darkText = [40, 40, 40];
+
+  // Convert header to base64 and add
   const base64Header = await getBase64(headerImage);
-  const marginX = 10;  // left/right margin in mm
-  const marginTop = 10; // top margin before header
-  const headerHeight = 35;
-  const headerBottomMargin = 15;
-  // Add header image (JPEG)
-  // doc.addImage(base64Header, 'JPEG', 0, 0, 210, 35, undefined, 'FAST'); 
-  // Add header image inside margins
-doc.addImage(
-  base64Header,
-  'JPEG',
-  marginX,                  // left margin
-  marginTop,                // top margin
-  210 - marginX * 2,        // width with left/right margin
-  headerHeight,
-  undefined,
-  'FAST'
-);
+  doc.addImage(
+    base64Header,
+    'JPEG',
+    margin,
+    10,
+    contentWidth,
+    30,
+    undefined,
+    'FAST'
+  );
 
-// Start content after header
-let y = marginTop + headerHeight + headerBottomMargin;
+  let currentY = 50;
 
-// Update all text drawing with marginX instead of fixed 20mm
-const labelX = marginX;;
+  // Main title
+  doc.setFillColor(...primaryColor);
+  doc.rect(margin, currentY, contentWidth, 12, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  // doc.text('PURCHASE ORDER (PO)', pageWidth / 2, currentY + 8, { align: 'center' });
 
-  const labelStyle = () => doc.setTextColor(0, 0, 0).setFont('helvetica', 'bold').setFontSize(11);
-  const valueStyle = () => doc.setTextColor(80, 80, 80).setFont('helvetica', 'normal');
-  const marginLeft = 20;
+  // currentY += 20;
 
-  labelStyle(); doc.text('PO Number:', marginLeft, y);
-  valueStyle(); doc.text(po.poNumber, marginLeft + 35, y);
+  // Items Section - Move to top after header
+  doc.setTextColor(...primaryColor);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  // doc.text('ORDER ITEMS', margin, currentY);
+  // currentY += 8;
 
-  labelStyle(); doc.text('Date:', 140, y);
-  valueStyle(); doc.text(format(new Date(po.orderDate), 'yyyy-MM-dd'), 160, y);
-
-  y += 8;
-  labelStyle(); doc.text('Supplier Name:', marginLeft, y);
-  valueStyle(); doc.text(po.vendor || '-', marginLeft + 35, y);
-
-  y += 8;
-  labelStyle(); doc.text('Status:', marginLeft, y);
-  valueStyle(); doc.text(po.status.toUpperCase(), marginLeft + 35, y);
-
-  labelStyle(); doc.text('DB No:', 140, y);
-  valueStyle(); doc.text(po.ref_num || '-', 160, y);
-
-  y += 8;
-  labelStyle(); doc.text('Site Incharge:', marginLeft, y);
-  valueStyle(); doc.text(po.site_incharge || '-', marginLeft + 35, y);
-
-  labelStyle(); doc.text('Contractor :', 140, y);
-  valueStyle(); doc.text(po.contractor || '-', 164, y);
-
+  // Enhanced table styling - back to original clean style
   autoTable(doc, {
-    startY: y + 12,
-    margin: { left: marginLeft, right: 20 },
+    startY: currentY,
+    margin: { left: margin, right: margin },
     head: [['Item Name', 'Unit Type', 'Quantity', 'Rate (INR)', 'Total Amount (INR)']],
-    body: po.items.map((item) => [
+    body: po.items.map((item, index) => [
       item.productName,
       item.unitType || '-',
-      item.quantity,
-      item.unitPrice.toLocaleString(),
-      item.total.toLocaleString(),
+      item.quantity.toString(),
+      item.unitPrice.toLocaleString('en-IN'),
+      item.total.toLocaleString('en-IN'),
     ]),
-    styles: { fontSize: 10, halign: 'center', valign: 'middle', cellPadding: 3 },
-    headStyles: { fillColor: [38, 0, 84], textColor: [255, 255, 255] },
-    alternateRowStyles: { fillColor: [245, 245, 245] },
-    bodyStyles: { textColor: [40, 40, 40] },
+    styles: { 
+      fontSize: 10, 
+      halign: 'center', 
+      valign: 'middle', 
+      cellPadding: 3,
+      font: 'helvetica'
+    },
+    headStyles: { 
+      fillColor: primaryColor, 
+      textColor: [255, 255, 255],
+      font: 'helvetica',
+      fontStyle: 'bold'
+    },
+    alternateRowStyles: { 
+      fillColor: [245, 245, 245] 
+    },
+    bodyStyles: { 
+      textColor: [40, 40, 40],
+      font: 'helvetica'
+    },
   });
 
-  const finalY = doc.lastAutoTable.finalY || 120;
+  // Calculate totals and add subtotal right below table
+  const subtotal = po.items.reduce((sum, item) => sum + item.total, 0);
+  const tableEndY = doc.lastAutoTable.finalY;
+  
+  // Add subtotal section right below the table - positioned on the left
+  const subtotalY = tableEndY + 5;
+  const subtotalBoxWidth = 60;
+  const subtotalBoxX = margin; // Position at left margin
+  
+  doc.setFillColor(...lightGray);
+  doc.rect(subtotalBoxX, subtotalY, subtotalBoxWidth, 8, 'F');
+  
+  doc.setTextColor(...primaryColor);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.text('Subtotal:', subtotalBoxX + 5, subtotalY + 5.5);
+  doc.text(`Rs ${subtotal.toLocaleString('en-IN')}`, subtotalBoxX + subtotalBoxWidth - 5, subtotalY + 5.5, { align: 'right' });
 
-  labelStyle(); doc.text('Ordered By:', marginLeft, finalY + 30);
-  valueStyle(); doc.text(po.orderedBy || '-', marginLeft + 30, finalY + 30);
+  currentY = subtotalY + 20;
 
-  labelStyle(); doc.text('Delivery Date:', marginLeft, finalY + 38);
-  valueStyle(); doc.text(format(new Date(po.deliveryDate), 'yyyy-MM-dd'), marginLeft + 30, finalY + 38);
+  // Helper functions for consistent styling
+  const addSectionTitle = (title, y) => {
+    doc.setFillColor(...lightGray);
+    doc.rect(margin, y, contentWidth, 8, 'F');
+    doc.setTextColor(...primaryColor);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text(title, margin + 3, y + 5.5);
+    return y + 15;
+  };
 
-  labelStyle(); doc.text('Purpose:', marginLeft, finalY + 48);
-  valueStyle(); doc.text(po.purpose || '-', marginLeft + 30, finalY + 48);
+  const addFieldRow = (label, value, y, rightLabel = '', rightValue = '') => {
+    // Left side
+    doc.setTextColor(...darkText);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text(label, margin, y);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...secondaryColor);
+    const leftValue = value || '-';
+    doc.text(leftValue, margin + 45, y, { maxWidth: 65 });
 
-  if (po.remarks) {
-    labelStyle(); doc.text('Remarks:', marginLeft, finalY + 60);
-    valueStyle(); doc.text(po.remarks, marginLeft, finalY + 70, { maxWidth: 170 });
+    // Right side (if provided)
+    if (rightLabel) {
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...darkText);
+      doc.text(rightLabel, margin + 115, y);
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...secondaryColor);
+      const rightVal = rightValue || '-';
+      doc.text(rightVal, margin + 155, y, { maxWidth: 40 });
+    }
+
+    return y + 7;
+  };
+
+  // Order Information Section
+  currentY = addSectionTitle('ORDER INFORMATION', currentY);
+  
+  currentY = addFieldRow(
+    'PO Number:', 
+    po.poNumber, 
+    currentY, 
+    'Date:', 
+    format(new Date(po.orderDate), 'dd-MM-yyyy')
+  );
+
+  currentY = addFieldRow(
+    'Status:', 
+    po.status.toUpperCase(), 
+    currentY, 
+    'DB No:', 
+    po.ref_num
+  );
+
+  currentY += 5;
+
+  // Customer Information Section
+  currentY = addSectionTitle('CUSTOMER INFORMATION', currentY);
+  
+  currentY = addFieldRow('Customer:', po.customer, currentY);
+  
+  // Handle multi-line address
+  if (po.customerAddress) {
+    doc.setTextColor(...darkText);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text('Address:', margin, currentY);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...secondaryColor);
+    const addressLines = doc.splitTextToSize(po.customerAddress, contentWidth - 50);
+    doc.text(addressLines, margin + 45, currentY);
+    currentY += addressLines.length * 5 + 2;
+  } else {
+    currentY = addFieldRow('Address:', po.customerAddress, currentY);
   }
 
+  currentY += 5;
+
+  // Project Information Section
+  currentY = addSectionTitle('PROJECT INFORMATION', currentY);
+  
+  currentY = addFieldRow('Supplier Name:', po.vendor, currentY);
+  currentY = addFieldRow(
+    'Site Incharge:', 
+    po.site_incharge, 
+    currentY, 
+    'Contractor:', 
+    po.contractor
+  );
+
+  if (po.purpose) {
+    currentY = addFieldRow('Purpose:', po.purpose, currentY);
+  }
+
+  currentY += 10;
+
+  // Order Details Section
+  let orderDetailsY = currentY;
+  orderDetailsY = addSectionTitle('ORDER DETAILS', orderDetailsY);
+  
+  orderDetailsY = addFieldRow(
+    'Ordered By:', 
+    po.orderedBy, 
+    orderDetailsY, 
+    'Delivery Date:', 
+    format(new Date(po.deliveryDate), 'dd-MM-yyyy')
+  );
+
+  // Remarks section (if exists)
+  if (po.remarks) {
+    orderDetailsY += 5;
+    doc.setTextColor(...darkText);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text('Remarks:', margin, orderDetailsY);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...secondaryColor);
+    doc.setFontSize(9);
+    const remarksLines = doc.splitTextToSize(po.remarks, contentWidth - 30);
+    doc.text(remarksLines, margin, orderDetailsY + 5);
+    orderDetailsY += remarksLines.length * 4 + 10;
+  }
+
+  // Footer
+  const footerY = pageHeight - 25;
+  doc.setDrawColor(...primaryColor);
+  doc.setLineWidth(0.5);
+  doc.line(margin, footerY, pageWidth - margin, footerY);
+  
+  doc.setTextColor(...secondaryColor);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.text('Generated on: ' + format(new Date(), 'dd-MM-yyyy HH:mm'), margin, footerY + 5);
+  doc.text('Space Wings Pvt. Ltd.', pageWidth - margin, footerY + 5, { align: 'right' });
+
+  // Save the PDF
   doc.save(`${po.poNumber}_Purchase_Order.pdf`);
 };

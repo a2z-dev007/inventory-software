@@ -1,38 +1,20 @@
-import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { apiService } from '../services/api';
-import { DetailPage } from '../components/common/DetailPage';
-import { toast } from 'react-toastify';
 import {
-  Building,
+  Activity,
   Calendar,
-  User,
-  Phone,
+  FileText,
+  Hash,
   Mail,
   MapPin,
-  FileText,
-  DollarSign,
-  Hash,
-  TrendingUp,
-  Clock,
-  Shield,
-  CheckCircle,
-  Eye,
-  Edit,
-  Download,
-  MoreVertical,
-  Star,
-  Activity,
-  CreditCard,
-  AlertTriangle,
-  Globe,
-  UserCheck,
-  Briefcase,
+  Phone,
+  User,
   User2Icon
 } from 'lucide-react';
-import { formatINRCurrency, formatRelativeDate } from '../utils/constants';
+import React from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import BackButton from '../components/common/BackButton';
+import { apiService } from '../services/api';
+import { formatRelativeDate } from '../utils/constants';
 export interface SupplierTypes {
   _id: string;
   name: string;
@@ -60,18 +42,12 @@ const getRatingColor = (rating) => {
   return 'from-red-500 to-red-600';
 };
 
-const formatPhoneNumber = (phone) => {
-  return phone.replace(/(\+\d{2})-(\d{2})-(\d{4})-(\d{4})/, '$1 $2 $3 $4');
-};
+
 export const SupplierDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-
 
   const {
     data: supplier,
-    isLoading,
-    error,
   } = useQuery<SupplierTypes>({
     queryKey: ['supplier', id],
     queryFn: () => apiService.getSupplierById(id!),
@@ -83,7 +59,7 @@ export const SupplierDetail: React.FC = () => {
   return (
     <div className="min-h-screen p-4 sm:p-6 lg:p-8">
       <div className='mb-6'>
-        <BackButton/>
+        <BackButton />
       </div>
       <div className="relative max-w-7xl mx-auto">
         {/* Floating Header */}
@@ -113,12 +89,12 @@ export const SupplierDetail: React.FC = () => {
                 <span className="font-bold text-yellow-800">{supplier?.rating}</span>
               </div> */}
 
-              <div className={`px-6 py-3 rounded-2xl font-bold text-lg ${activeStatus.color} border transform hover:scale-105 transition-all duration-200`}>
+              {/* <div className={`px-6 py-3 rounded-2xl font-bold text-lg ${activeStatus.color} border transform hover:scale-105 transition-all duration-200`}>
                 <div className="flex items-center space-x-2">
                   <Activity className="h-5 w-5" />
                   <span>{activeStatus.status}</span>
                 </div>
-              </div>
+              </div> */}
 
               {/* <div className="flex space-x-2">
                 <button className="p-3 bg-white/50 hover:bg-white/80 rounded-xl border border-white/20 backdrop-blur-sm transition-all duration-200 hover:shadow-lg">
@@ -164,43 +140,44 @@ export const SupplierDetail: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="group hover:bg-gradient-to-r hover:from-emerald-50 hover:to-green-50 p-4 rounded-xl transition-all duration-200">
-                    <div className="flex items-start space-x-4">
-                      <div className="bg-emerald-100 group-hover:bg-emerald-200 p-2 rounded-lg transition-colors duration-200">
-                        <User className="h-5 w-5 text-emerald-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-600 mb-1">Contact Person</p>
-                        <p className="font-bold text-lg text-gray-900">{supplier?.contact}</p>
-                      </div>
+
+                </div>
+                <div className="group hover:bg-gradient-to-r hover:from-emerald-50 hover:to-green-50 p-4 rounded-xl transition-all duration-200">
+                  <div className="flex items-start space-x-4">
+                    <div className="bg-emerald-100 group-hover:bg-emerald-200 p-2 rounded-lg transition-colors duration-200">
+                      <User className="h-5 w-5 text-emerald-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600 mb-1">Contact Person</p>
+                      <p className="font-bold text-lg text-gray-900">{supplier?.contact}</p>
                     </div>
                   </div>
+                </div>
 
-                  <div className="group hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 p-4 rounded-xl transition-all duration-200">
-                    <div className="flex items-start space-x-4">
-                      <div className="bg-purple-100 group-hover:bg-purple-200 p-2 rounded-lg transition-colors duration-200">
-                        <Mail className="h-5 w-5 text-purple-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-600 mb-1">Email</p>
-                        <a href={`mailto:${supplier?.email}`} className="font-bold text-lg text-gray-900 hover:text-purple-600 transition-colors duration-200">
-                          {supplier?.email}
-                        </a>
-                      </div>
+                <div className="group hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 p-4 rounded-xl transition-all duration-200">
+                  <div className="flex items-start space-x-4">
+                    <div className="bg-purple-100 group-hover:bg-purple-200 p-2 rounded-lg transition-colors duration-200">
+                      <Mail className="h-5 w-5 text-purple-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600 mb-1">Email</p>
+                      <a href={`mailto:${supplier?.email}`} className="font-bold text-lg text-gray-900 hover:text-purple-600 transition-colors duration-200">
+                        {supplier?.email}
+                      </a>
                     </div>
                   </div>
+                </div>
 
-                  <div className="group hover:bg-gradient-to-r hover:from-orange-50 hover:to-red-50 p-4 rounded-xl transition-all duration-200">
-                    <div className="flex items-start space-x-4">
-                      <div className="bg-orange-100 group-hover:bg-orange-200 p-2 rounded-lg transition-colors duration-200">
-                        <Phone className="h-5 w-5 text-orange-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-600 mb-1">Phone</p>
-                        <a href={`tel:${supplier?.phone}`} className="font-bold text-lg text-gray-900 hover:text-orange-600 transition-colors duration-200">
-                          {supplier?.phone}
-                        </a>
-                      </div>
+                <div className="group hover:bg-gradient-to-r hover:from-orange-50 hover:to-red-50 p-4 rounded-xl transition-all duration-200">
+                  <div className="flex items-start space-x-4">
+                    <div className="bg-orange-100 group-hover:bg-orange-200 p-2 rounded-lg transition-colors duration-200">
+                      <Phone className="h-5 w-5 text-orange-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600 mb-1">Phone</p>
+                      <a href={`tel:${supplier?.phone}`} className="font-bold text-lg text-gray-900 hover:text-orange-600 transition-colors duration-200">
+                        {supplier?.phone}
+                      </a>
                     </div>
                   </div>
                 </div>
@@ -272,7 +249,7 @@ export const SupplierDetail: React.FC = () => {
           </div>
         </div> */}
 
-  
+
     </div>
 
   );

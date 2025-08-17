@@ -1,34 +1,23 @@
-import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import React from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { apiService } from '../services/api';
-import { DetailPage } from '../components/common/DetailPage';
-import { toast } from 'react-toastify';
 
 import {
-  Package,
-  Calendar,
-  User,
   Building,
-  FileText,
-  Truck,
-  CheckCircle,
-  IndianRupeeIcon,
-  Hash,
-  MapPin,
-  UserCheck,
-  Wrench,
-  Download,
-  Eye,
-  MoreVertical,
-  Star,
-  TrendingUp,
+  Calendar,
   Clock,
-  Shield
+  Eye,
+  FileText,
+  Hash,
+  IndianRupeeIcon,
+  Package,
+  Shield,
+  User,
+  UserCheck
 } from 'lucide-react';
-import { formatCurrency, formatINRCurrency, formatRelativeDate } from '../utils/constants';
-import { generatePDF } from '../utils/pdf';
 import BackButton from '../components/common/BackButton';
+import { formatCurrency, formatINRCurrency, formatRelativeDate } from '../utils/constants';
 export interface PurchaseType {
   _id: string;
   ref_num: string;
@@ -183,9 +172,9 @@ export const PurchaseDetail: React.FC = () => {
         </div>
 
         {/* Main Content */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           {/* Order Details */}
-          <div className="xl:col-span-2   bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-8 relative overflow-hidden">
+          <div className="  bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-8 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-500/5 to-purple-500/5 rounded-full -translate-y-16 translate-x-16"></div>
 
             <div className="relative">
@@ -207,7 +196,7 @@ export const PurchaseDetail: React.FC = () => {
 
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="space-y-6">
                   <div className="group hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 p-4 rounded-xl transition-all duration-200">
                     <div className="flex items-start space-x-4">

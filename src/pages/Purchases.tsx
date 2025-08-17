@@ -112,17 +112,24 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
     queryKey: ['products'],
     queryFn: () => apiService.getProducts({ all: true }),
     refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
 
-  const { data: purchaseOrderData } = useQuery({
+  const { data: purchaseOrderData, refetch } = useQuery({
     queryKey: ['purchaseOrderData'],
     queryFn: () => apiService.getPurchaseOrders({ all: true }),
     refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
 
   const { data: suppliers } = useQuery({
     queryKey: ['suppliers'],
     queryFn: () => apiService.getSuppliers({ all: true }),
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
 
   // NEW: fetch latest purchase by id when editing to ensure cancelled flags are current
@@ -275,10 +282,10 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
     mutationFn: async (payload: any) => {
       const formData = new FormData();
       formData.append('ref_num', payload.ref_num);
-      formData.append(
-        'receiptNumber',
-        isEditing && currentPurchase ? currentPurchase.receiptNumber : generateReceiptNumber()
-      );
+      // formData.append(
+      //   'receiptNumber',
+      //   isEditing && currentPurchase ? currentPurchase.receiptNumber : generateReceiptNumber()
+      // );
       formData.append('vendor', payload.vendor || payload.supplier);
       formData.append('purchaseDate', isEditing && currentPurchase ? currentPurchase.purchaseDate : new Date().toISOString());
       formData.append('subtotal', String(subtotal));
@@ -310,6 +317,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
       queryClient.invalidateQueries({ queryKey: ['purchase', purchase?._id] });
       onClose();
       reset();
+      refetch();
     },
   });
 
@@ -342,10 +350,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
     };
   };
 
-  const generateReceiptNumber = () => {
-    const now = new Date();
-    return `PUR-${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}-${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}${now.getSeconds().toString().padStart(2, '0')}`;
-  };
+
 
   const onSubmit = async (data: any) => {
     const payload = {
@@ -370,6 +375,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
     };
 
     createMutation.mutate(payload);
+    refetch();
   };
 
   if (!isOpen) return null;
@@ -391,7 +397,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
               <SelectField<any>
                 label="DB Number"
                 name="ref_num"
-                options={purchaseOrderData?.purchaseOrders?.map((po: any) => ({ value: po.ref_num, label: po.ref_num })) || []}
+                options={purchaseOrderData?.purchaseOrders.filter(item => !item.isPurchasedCreated)?.map((po: any) => ({ value: po.ref_num, label: po.ref_num })) || []}
                 control={control}
                 error={errors.supplier}
                 required

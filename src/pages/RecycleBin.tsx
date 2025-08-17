@@ -131,25 +131,21 @@ const RecycleBin: React.FC = () => {
     staleTime: 0,
   });
 
-  const {
-    data: salesResponse = { sales: [], pagination: { page: 1, pages: 1, total: 0, limit } },
-    isLoading: isSalesLoading,
-    refetch: reloadSales,
-  } = useQuery({
-    queryKey: ['sales-deleted', page, debouncedSearch],
-    queryFn: () => apiService.getDeletedSales({ page, limit, search: debouncedSearch }),
-    // enabled: activeTab === 'all' || activeTab === 'sale',
-
-    // refetchInterval: 30000, // Refetch every 30 seconds (optional)
-    // refetchOnMount: true, // Add this line
-  });
+  // const {
+  //   data: salesResponse = { sales: [], pagination: { page: 1, pages: 1, total: 0, limit } },
+  //   isLoading: isSalesLoading,
+  //   refetch: reloadSales,
+  // } = useQuery({
+  //   queryKey: ['sales-deleted', page, debouncedSearch],
+  //   queryFn: () => apiService.getDeletedSales({ page, limit, search: debouncedSearch }),
+  // });
 
 
   // reload 
   const reloadAll = () => {
     reloadPO();
     reloadPurchases();
-    reloadSales()
+    // reloadSales()
   }
   // Debug logging
   // React.useEffect(() => {
@@ -188,7 +184,7 @@ const RecycleBin: React.FC = () => {
 
     console.log('All combined items:', items);
     return items;
-  }, [poResponse, purchasesData, salesResponse, activeTab]);
+  }, [poResponse, purchasesData, activeTab]);
 
   // Get pagination info based on active tab
   const paginationInfo = useMemo(() => {
@@ -204,11 +200,9 @@ const RecycleBin: React.FC = () => {
         const maxPages = Math.max(
           poResponse.pagination.pages,
           purchasesData.pagination?.pages || 1,
-          salesResponse.pagination.pages
         );
         const totalItems = (poResponse.pagination.total) +
-          (purchasesData.pagination?.total || 0) +
-          (salesResponse.pagination.total);
+          (purchasesData.pagination?.total || 0)
         return {
           page,
           pages: maxPages,
@@ -216,19 +210,17 @@ const RecycleBin: React.FC = () => {
           limit
         };
     }
-  }, [activeTab, poResponse, purchasesData, salesResponse, page]);
+  }, [activeTab, poResponse, purchasesData, page]);
 
-  const isLoading = isPOLoading || isPurchasesLoading || isSalesLoading;
+  const isLoading = isPOLoading || isPurchasesLoading
   const navigate = useNavigate();
 
   const getItemCounts = () => {
     return {
       all: (poResponse.pagination.total) +
-        (purchasesData.pagination?.total || 0) +
-        (salesResponse.pagination.total),
+        (purchasesData.pagination?.total || 0),
       purchaseOrder: poResponse.pagination.total,
       purchase: purchasesData.pagination?.total || 0,
-      sale: salesResponse.pagination.total,
     };
   };
 

@@ -1,24 +1,18 @@
-import React, { useEffect, useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Receipt, Download, Search, Trash2, Edit, Link, Eye, IndianRupeeIcon, ReceiptIndianRupeeIcon, ReceiptIndianRupee, NotepadTextDashedIcon, BadgeIndianRupeeIcon, NotepadTextIcon } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Edit, Eye, ReceiptIndianRupee, RefreshCcw, Search, Trash2 } from 'lucide-react';
+import React, { useState } from 'react';
 
-import { useForm, useFieldArray, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { useNavigate } from 'react-router-dom';
-import jsPDF from 'jspdf';
-import { apiService } from '../services/api';
-import { Card, CardHeader } from '../components/common/Card';
+import { z } from 'zod';
 import { Button } from '../components/common/Button';
+import { Card, CardHeader } from '../components/common/Card';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
-import { FormField } from '../components/forms/FormField';
-import { SelectField } from '../components/forms/SelectField';
-import { extractReturnItemsFromPurchases, formatCurrency, getStatusColor } from '../utils/constants';
-import { usePagination } from '../hooks/usePagination';
-import { useDebounce } from '../hooks/useDebounce';
-import { PurchaseOrder } from './PurchaseOrders';
 import { useAuth } from '../hooks/useAuth';
-import { Badge } from '../components/common/Badge';
+import { useDebounce } from '../hooks/useDebounce';
+import { usePagination } from '../hooks/usePagination';
+import { apiService } from '../services/api';
+import { extractReturnItemsFromPurchases } from '../utils/constants';
+import ReloadButton from '../components/common/ReloadButton';
 
 const purchaseItemSchema = z.object({
   productId: z.string().min(1, 'Product is required'),
@@ -139,7 +133,7 @@ export const ReturnedItems: React.FC = () => {
   const { page, handleNext, handlePrev } = usePagination(1);
   const { isAdmin } = useAuth();
 
-  const { data: purchasesData, isLoading } = useQuery<PurchasesApiResponse>({
+  const { data: purchasesData, isLoading, refetch } = useQuery<PurchasesApiResponse>({
     queryKey: ['purchases', page, debouncedSearch],
     queryFn: () => apiService.getPurchases({ page, limit: 10, search: debouncedSearch }),
   });
@@ -164,6 +158,7 @@ export const ReturnedItems: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <ReloadButton />
       <Card>
         <CardHeader
           title={`Purchase Return`}
@@ -191,6 +186,9 @@ export const ReturnedItems: React.FC = () => {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  DB Number
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Receipt
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -214,14 +212,19 @@ export const ReturnedItems: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       {/* <NotepadTextIcon className="h-5 w-5 text-gray-400 mr-3" /> */}
-
-                      <span className={`px-2 py-1 text-sm  font-medium rounded-full `}>
-
-                        {purchase.receiptNumber}
+                      <span className={`px-2 py-1 text-sm  font-medium rounded-full bg-red-300`}>
+                        {purchase?.ref_num}
                       </span>
-
                     </div>
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <span className={`px-2 py-1 text-sm  font-medium rounded-full bg-slate-400`}>
+                        {purchase.receiptNumber}
+                      </span>
+                    </div>
+                  </td>
+
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {purchase.vendor}
                   </td>

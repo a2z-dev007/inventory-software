@@ -4,10 +4,11 @@ import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { useForm } from "react-hook-form"
 
-import { Trash2, Edit, Plus } from "lucide-react"
+import { Trash2, Edit, Plus, RefreshCcw } from "lucide-react"
 import { apiService } from "../services/api"
 import { Button } from "../components/common/Button"
 import { Card } from "../components/common/Card"
+import ReloadButton from "../components/common/ReloadButton"
 
 const LoadingSpinner = () => (
   <div className="flex justify-center items-center p-4">
@@ -39,12 +40,12 @@ export default function PurposePage() {
   } = useForm<{ title: string }>()
 
   // Fetch Purposes
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, refetch } = useQuery({
     queryKey: ["purposes", page, search],
     queryFn: () => apiService.getPurposes({ page, limit, search }),
-    keepPreviousData: true,
+    refetchOnMount: true,
   })
-console.log('purpose data',data)
+  console.log('purpose data', data)
   const createMutation = useMutation({
     mutationFn: (payload: { title: string }) => apiService.createPurpose(payload),
     onSuccess: () => {
@@ -103,78 +104,78 @@ console.log('purpose data',data)
 
   return (
     <div className="space-y-6 ">
-
+      <ReloadButton />
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Purposes</h1>
-        <Button onClick={openCreateModal} className="gradient-btn">
-          <Plus className="w-4 h-4 mr-2 " /> Add Purpose
-        </Button>
-      </div>
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold">Purposes</h1>
+          <Button onClick={openCreateModal} className="gradient-btn">
+            <Plus className="w-4 h-4 mr-2 " /> Add Purpose
+          </Button>
+        </div>
 
-      {/* Search */}
-      <input
-        placeholder="Search purposes..."
-        value={search}
-        onChange={(e) => {
-          setSearch(e.target.value)
-          setPage(1)
-        }}
-        className="pl-10 pr-4 py-2 mb-6 w-full border focus:outline-none border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-      />
+        {/* Search */}
+        <input
+          placeholder="Search purposes..."
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value)
+            setPage(1)
+          }}
+          className="pl-10 pr-4 py-2 mb-6 w-full border focus:outline-none border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        />
 
-      {/* Table */}
-      <Card className="p-4 mb-6">
-        {isLoading ? (
-          <LoadingSpinner />
-        ) : (
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="border-b">
-                <th className="py-2 text-left">Title</th>
-                <th className="py-2 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {purposes.length > 0 ? (
-                purposes.map((purpose: Purpose) => (
-                  <tr key={purpose._id} className="border-b">
-                    <td className="py-2">{purpose.title}</td>
-                    <td className="py-2 text-right space-x-2">
-                      <button className=" text-blue-600 hover:text-blue-900" onClick={() => openEditModal(purpose)}>
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <Button size="sm" variant="destructive" onClick={() => handleDelete(purpose._id)}>
-                        <Trash2 className="w-4 h-4 text-red-600 hover:text-red-900" />
-                      </Button>
+        {/* Table */}
+        <Card className="p-4 mb-6">
+          {isLoading ? (
+            <LoadingSpinner />
+          ) : (
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="border-b">
+                  <th className="py-2 text-left">Title</th>
+                  <th className="py-2 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {purposes.length > 0 ? (
+                  purposes.map((purpose: Purpose) => (
+                    <tr key={purpose._id} className="border-b">
+                      <td className="py-2">{purpose.title}</td>
+                      <td className="py-2 text-right space-x-2">
+                        <button className=" text-blue-600 hover:text-blue-900" onClick={() => openEditModal(purpose)}>
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <Button size="sm" variant="destructive" onClick={() => handleDelete(purpose._id)}>
+                          <Trash2 className="w-4 h-4 text-red-600 hover:text-red-900" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={2} className="py-4 text-center text-gray-500">
+                      No purposes found
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={2} className="py-4 text-center text-gray-500">
-                    No purposes found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        )}
-      </Card>
+                )}
+              </tbody>
+            </table>
+          )}
+        </Card>
 
-      <div className="flex justify-end space-x-2">
-        <Button disabled={page === 1} onClick={() => setPage((p) => p - 1)} variant="outline">
-          Previous
-        </Button>
-        <Button
-          disabled={!pagination || page >= pagination.pages}
-          onClick={() => setPage((p) => p + 1)}
-          variant="outline"
-        >
-          Next
-        </Button>
-      </div>
+        <div className="flex justify-end space-x-2">
+          <Button disabled={page === 1} onClick={() => setPage((p) => p - 1)} variant="outline">
+            Previous
+          </Button>
+          <Button
+            disabled={!pagination || page >= pagination.pages}
+            onClick={() => setPage((p) => p + 1)}
+            variant="outline"
+          >
+            Next
+          </Button>
+        </div>
 
       </div>
 

@@ -15,7 +15,7 @@ const reportTypeOptions = [
   { value: 'purchases', label: 'Purchases Report' },
   { value: 'purchase-orders', label: 'Purchase Orders Report' },
   { value: 'products', label: 'Inventory Report' },
-  { value: 'customers', label: 'Customers Report' },
+  { value: 'customers', label: 'Clients Report' },
   { value: 'vendors', label: 'Suppliers Report' },
 ];
 
@@ -45,72 +45,72 @@ export const Reports = () => {
       endDate: end.toISOString(),
     };
   };
-const handleShowReport = async () => {
-  if (!reportType) return alert('Please select a report type');
-  if (dateRange === 'custom' && (!startDate || !endDate))
-    return alert('Please select a valid date range');
+  const handleShowReport = async () => {
+    if (!reportType) return alert('Please select a report type');
+    if (dateRange === 'custom' && (!startDate || !endDate))
+      return alert('Please select a valid date range');
 
-  setLoading(true);
+    setLoading(true);
 
-  try {
-    const { startDate: sDate, endDate: eDate } =
-      dateRange === 'custom' ? { startDate, endDate } : calculateDateRange();
+    try {
+      const { startDate: sDate, endDate: eDate } =
+        dateRange === 'custom' ? { startDate, endDate } : calculateDateRange();
 
-    const res = await apiService.exportToExcel({
-      moduleName: reportType,
-      startDate: sDate,
-      endDate: eDate,
-    });
+      const res = await apiService.exportToExcel({
+        moduleName: reportType,
+        startDate: sDate,
+        endDate: eDate,
+      });
 
-    const dataKeyMap = {
-      'purchase-orders': 'purchaseOrders',
-      purchases: 'purchases',
-      sales: 'sales',
-      products: 'topProducts',
-      vendors: 'topVendors',
-      customers: 'topCustomers',
-    };
+      const dataKeyMap = {
+        'purchase-orders': 'purchaseOrders',
+        purchases: 'purchases',
+        sales: 'sales',
+        products: 'topProducts',
+        vendors: 'topVendors',
+        customers: 'topCustomers',
+      };
 
-    const extractedData = res.data?.[dataKeyMap[reportType]] || [];
+      const extractedData = res.data?.[dataKeyMap[reportType]] || [];
 
-    if (!extractedData.length) {
-      alert('No data found for the selected criteria.');
-      setReportData([]);
-      return;
+      if (!extractedData.length) {
+        alert('No data found for the selected criteria.');
+        setReportData([]);
+        return;
+      }
+
+      setReportData(extractedData);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to fetch report. Please try again.');
+    } finally {
+      setLoading(false);
     }
-
-    setReportData(extractedData);
-  } catch (err) {
-    console.error(err);
-    alert('Failed to fetch report. Please try again.');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const downloadExcel = async () => {
     if (!reportType) {
       alert('Please select a report type');
       return;
     }
-  
+
     if (dateRange === 'custom' && (!startDate || !endDate)) {
       alert('Please select a valid date range');
       return;
     }
-  
+
     setLoading(true);
-  
+
     try {
       const { startDate: sDate, endDate: eDate } =
         dateRange === 'custom' ? { startDate, endDate } : calculateDateRange();
-  
+
       const res = await apiService.exportToExcel({
         moduleName: reportType,
         startDate: sDate,
         endDate: eDate,
       });
-  
+
       const reportData = res.data || {};
 
       // Map report type to data key
@@ -122,30 +122,30 @@ const handleShowReport = async () => {
         vendors: 'topVendors',
         customers: 'topCustomers',
       };
-  
+
       const dataKey = dataKeyMap[reportType];
       const exportData = reportData[dataKey] || [];
-  
+
       if (!exportData.length) {
         alert('No data found for the selected criteria.');
         return;
       }
-  
+
       // Generate Excel
       const worksheet = XLSX.utils.json_to_sheet(exportData);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Report');
-  
+
       const excelBuffer = XLSX.write(workbook, {
         bookType: 'xlsx',
         type: 'array',
       });
-  
+
       const blob = new Blob([excelBuffer], {
         type:
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       });
-  
+
       saveAs(blob, `${reportType}_report_${Date.now()}.xlsx`);
     } catch (err) {
       console.error(err);
@@ -154,7 +154,7 @@ const handleShowReport = async () => {
       setLoading(false);
     }
   };
-  
+
 
   return (
     <div className="space-y-6">

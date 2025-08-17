@@ -1,23 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, ShoppingCart, Download, Edit, Search, Receipt, Trash2, Eye } from 'lucide-react';
-import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Edit, Eye, Plus, Search, ShoppingCart, Trash2 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { useFieldArray, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-import jsPDF from 'jspdf';
-import { apiService } from '../services/api';
-import { Card, CardHeader } from '../components/common/Card';
+import { z } from 'zod';
 import { Button } from '../components/common/Button';
+import { Card, CardHeader } from '../components/common/Card';
+import { DetailModal } from '../components/common/DetailModal';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
+import Switch from '../components/common/Switch';
 import { FormField } from '../components/forms/FormField';
 import { SelectField } from '../components/forms/SelectField';
-import { formatCurrency } from '../utils/constants';
+import { useAuth } from '../hooks/useAuth';
 import { useDebounce } from '../hooks/useDebounce';
 import { usePagination } from '../hooks/usePagination';
-import { DetailModal } from '../components/common/DetailModal';
-import { useAuth } from '../hooks/useAuth';
-import Switch from '../components/common/Switch';
+import { apiService } from '../services/api';
+import { formatCurrency } from '../utils/constants';
 
 // --- SCHEMA & TYPES ---
 const saleItemSchema = z.object({

@@ -1,89 +1,19 @@
-import React, { useEffect, useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Receipt, Download, Search, Trash2, Edit, Link, Eye, IndianRupeeIcon, ReceiptIndianRupeeIcon, ReceiptIndianRupee, NotepadTextDashedIcon, BadgeIndianRupeeIcon, NotepadTextIcon } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Edit, Eye, ReceiptIndianRupee, RefreshCcw, Search, Trash2 } from 'lucide-react';
+import React, { useState } from 'react';
 
-import { useForm, useFieldArray, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { useNavigate } from 'react-router-dom';
-import jsPDF from 'jspdf';
-import { apiService } from '../services/api';
-import { Card, CardHeader } from '../components/common/Card';
+import { z } from 'zod';
 import { Button } from '../components/common/Button';
+import { Card, CardHeader } from '../components/common/Card';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
-import { FormField } from '../components/forms/FormField';
-import { SelectField } from '../components/forms/SelectField';
-import { extractCancelledItemsFromPurchases, formatCurrency, getStatusColor } from '../utils/constants';
-import { usePagination } from '../hooks/usePagination';
-import { useDebounce } from '../hooks/useDebounce';
-import { PurchaseOrder } from './PurchaseOrders';
 import { useAuth } from '../hooks/useAuth';
-import { Badge } from '../components/common/Badge';
+import { useDebounce } from '../hooks/useDebounce';
+import { usePagination } from '../hooks/usePagination';
+import { apiService } from '../services/api';
+import { extractCancelledItemsFromPurchases } from '../utils/constants';
+import ReloadButton from '../components/common/ReloadButton';
 
-const purchaseItemSchema = z.object({
-  productId: z.string().min(1, 'Product is required'),
-  quantity: z.number().min(1, 'Quantity must be at least 1'),
-  unitPrice: z.number().min(0, 'Unit price must be positive'),
-  unitType: z.string().min(1, 'Unit type is required'),
-  isCancelled: z.boolean().optional()
-});
-
-const purchaseSchema = z.object({
-  ref_num: z.string().min(1, 'DB Number is required'),
-  supplier: z.string().min(1, 'Supplier is required'),
-  items: z.array(purchaseItemSchema).min(1, 'At least one item is required'),
-  invoiceFile: z.any().optional(),
-  remarks: z.string().optional(),
-});
-
-type PurchaseFormData = {
-  ref_num: string;
-  supplier: string;
-  items: { productId: number; quantity: number; unitPrice: number, unitType: string, isCancelled: false }[];
-  invoiceFile: FileList;
-  remarks: string;
-  // add other fields as needed
-};
-
-interface PurchaseModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  purchase?: any;
-}
-
-// Types
-interface Supplier {
-  _id: string;
-  name: string;
-  contact: string;
-  email: string;
-  phone: string;
-  address: string;
-}
-interface SuppliersApiResponse {
-  vendors: Supplier[];
-  pagination: {
-    page: number;
-    pages: number;
-    total: number;
-    limit: number;
-  };
-}
-// interface Purchase {
-//   _id: string;
-//   receiptNumber: string;
-//   supplier: string;
-//   ref_num: string;
-//   createdBy: string;
-//   vendor?: string;
-//   purchaseDate: string;
-//   invoiceFile?: string;
-//   total: number;
-//   items: any[];
-//   subtotal: number;
-//   remarks?: string;
-//   // Removed tax
-// }
 export interface Purchase {
   _id: string;
   ref_num: string;
@@ -139,7 +69,7 @@ export const CancelledItems: React.FC = () => {
   const { page, handleNext, handlePrev } = usePagination(1);
   const { isAdmin } = useAuth();
 
-  const { data: purchasesData, isLoading } = useQuery<PurchasesApiResponse>({
+  const { data: purchasesData, isLoading, refetch } = useQuery<PurchasesApiResponse>({
     queryKey: ['purchases', page, debouncedSearch],
     queryFn: () => apiService.getPurchases({ page, limit: 10, search: debouncedSearch }),
   });
@@ -164,6 +94,7 @@ export const CancelledItems: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <ReloadButton />
       <Card>
         <CardHeader
           title={`Cancelled Purchases`}
@@ -190,6 +121,10 @@ export const CancelledItems: React.FC = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
+
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  DB Number
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Receipt
                 </th>
@@ -216,12 +151,16 @@ export const CancelledItems: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       {/* <NotepadTextIcon className="h-5 w-5 text-gray-400 mr-3" /> */}
-
-                      <span className={`px-2 py-1 text-sm  font-medium rounded-full `}>
-
+                      <span className={`px-2 py-1 text-sm  font-medium rounded-full bg-red-300`}>
+                        {purchase?.ref_num}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <span className={`px-2 py-1 text-sm  font-medium rounded-full bg-slate-400`}>
                         {purchase.receiptNumber}
                       </span>
-
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">

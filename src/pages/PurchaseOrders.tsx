@@ -1,30 +1,25 @@
-import React, { useState, useEffect, ChangeEvent } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, FileText, Download, Edit, Trash2, Search, Link2Icon, X, Eye, Fullscreen, RefreshCcwDotIcon, RefreshCcw } from 'lucide-react';
-import { useForm, useFieldArray, FieldError, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ArrowDown, ArrowUp, ArrowUpDown, Building, Calendar, CheckCircle, ChevronLeft, ChevronRight, Clock, DollarSign, Download, Edit, ExternalLink, Eye, FileText, Filter, Fullscreen, Hash, LayoutGrid, LayoutList, LockIcon, Paperclip, Plus, RefreshCcw, Search, SortAsc, Trash2, X } from 'lucide-react';
+import Select from "react-select"
+import React, { useEffect, useState } from 'react';
+import { Controller, useFieldArray, useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
-import jsPDF from 'jspdf';
-import { apiService } from '../services/api';
-import { Card, CardHeader } from '../components/common/Card';
 import { Button } from '../components/common/Button';
+import { Card, CardHeader } from '../components/common/Card';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { FormField } from '../components/forms/FormField';
 import { SelectField } from '../components/forms/SelectField';
-import { formatCurrency, formatINRCurrency, getBase64, getStatusColor } from '../utils/constants';
+import { PODetailModal } from '../components/PO/PODetailModal';
+import { useAuth } from '../hooks/useAuth';
 import { useDebounce } from '../hooks/useDebounce';
 import { usePagination } from '../hooks/usePagination';
-import { DetailModal } from '../components/common/DetailModal';
+import { apiService } from '../services/api';
 import { Product, Purposes, Supplier } from '../types';
-import { Badge } from '../components/common/Badge';
-import autoTable from 'jspdf-autotable';
-import logo from '../assets/images/logo.png'; // static image import
-import { format } from 'date-fns/format';
-import { useAuth } from '../hooks/useAuth';
-import OffCanvas from '../components/common/OffCanvas';
-import { PODetailModal } from '../components/PO/PODetailModal';
-import { useNavigate } from 'react-router-dom';
+import { formatCurrency, getStatusColor } from '../utils/constants';
 import { generatePDF } from '../utils/pdf';
+import ReloadButton from '../components/common/ReloadButton';
 
 // Define error types
 interface ApiError {
@@ -722,6 +717,7 @@ export interface PurchaseOrder {
   ref_no: string;
   remarks?: string;
   site_incharge?: string;
+  isPurchasedCreated?: boolean;
   contractor?: string;
   deliveryDate?: string;
   orderedBy?: string;
@@ -732,15 +728,21 @@ export const PurchaseOrders: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPO, setEditingPO] = useState<PurchaseOrder | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [open, setOpen] = useState(false)
-  const navigate = useNavigate()
+  const [open, setOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+  const [sortBy, setSortBy] = useState<string>('orderDate');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const navigate = useNavigate();
   const [selectedDetailItem, setSelectedDetailItem] = useState<PurchaseOrder | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const debouncedSearch = useDebounce(searchTerm, 800);
   const { page, handleNext, handlePrev, resetPage } = usePagination(1);
+  const [DBNum, setDBNum] = useState({
+    lable: "",
+    value: ""
+  })
   const limit = 10;
   const queryClient = useQueryClient();
-  // State for server-side error
   const [serverError, setServerError] = useState<string | null>(null);
   const { isAdmin } = useAuth();
 
@@ -748,16 +750,86 @@ export const PurchaseOrders: React.FC = () => {
     data: poResponse = { purchaseOrders: [], pagination: { page: 1, pages: 1, total: 0, limit } },
     isLoading,
     refetch,
-  } = useQuery<{ purchaseOrders: PurchaseOrder[]; pagination: { page: number; pages: number; total: number; limit: number, isDeleted: false } }>({
-    queryKey: ['purchase-orders', page, debouncedSearch],
-    // Use a function that ignores the context param for react-query v4 compatibility
-    queryFn: () => apiService.getPurchaseOrders({ page, limit, search: debouncedSearch }),
-    refetchOnMount: true, // Add this line
-
+  } = useQuery<{ purchaseOrders: PurchaseOrder[]; pagination: { page: number; pages: number; total: number; limit: number } }>({
+    queryKey: ['purchase-orders', debouncedSearch],
+    queryFn: () => apiService.getPurchaseOrders({
+      page: 1,
+      limit: 10, // Get all data for client-side sorting
+      search: debouncedSearch,
+      all: false // Use the all flag to get all records
+    }),
+    refetchOnMount: true,
   });
+
+  const {
+    data: allPOData,
+  } = useQuery<{ purchaseOrders: PurchaseOrder[] }>({
+    queryKey: ['purchase-orders-all',],
+    queryFn: () => apiService.getPurchaseOrders({
+      page: 1,
+      limit: 10, // Get all data for client-side sorting
+      search: debouncedSearch,
+      all: true // Use the all flag to get all records
+    }),
+    refetchOnMount: true,
+  });
+
+  console.log("allPOData", allPOData)
+
+  const optionPO = allPOData?.purchaseOrders?.map((item, index) => {
+    return {
+      label: item.ref_num,
+      value: item.ref_num,
+    }
+  })
   const filteredPurchaseOrders = poResponse?.purchaseOrders.filter((po: PurchaseOrder) => po.isDeleted === false || po.isDeleted !== undefined);
-  const purchaseOrders = Array.isArray(filteredPurchaseOrders) ? filteredPurchaseOrders : [];
-  const pagination = poResponse?.pagination || { page: 1, pages: 1, total: 0, limit };
+  const allPurchaseOrders = Array.isArray(filteredPurchaseOrders) ? filteredPurchaseOrders : [];
+
+  // Client-side sorting
+  const sortedPurchaseOrders = [...allPurchaseOrders].sort((a, b) => {
+    let aValue: any = a[sortBy as keyof PurchaseOrder];
+    let bValue: any = b[sortBy as keyof PurchaseOrder];
+
+    // Handle different data types
+    if (sortBy === 'orderDate') {
+      aValue = new Date(aValue);
+      bValue = new Date(bValue);
+    } else if (sortBy === 'total') {
+      aValue = Number(aValue) || 0;
+      bValue = Number(bValue) || 0;
+    } else if (sortBy === 'ref_num') {
+      // Handle numeric sorting for ref_num
+      aValue = Number(aValue) || 0;
+      bValue = Number(bValue) || 0;
+    } else {
+      // String sorting (case insensitive)
+      aValue = String(aValue || '').toLowerCase();
+      bValue = String(bValue || '').toLowerCase();
+    }
+
+    if (aValue < bValue) {
+      return sortOrder === 'asc' ? -1 : 1;
+    }
+    if (aValue > bValue) {
+      return sortOrder === 'asc' ? 1 : -1;
+    }
+    return 0;
+  });
+
+  // Client-side pagination
+  const startIndex = (page - 1) * limit;
+  const endIndex = startIndex + limit;
+  const purchaseOrders = sortedPurchaseOrders.slice(startIndex, endIndex);
+
+  // Update pagination object for client-side pagination
+  const totalItems = sortedPurchaseOrders.length;
+  const totalPages = Math.ceil(totalItems / limit);
+  const pagination = {
+    page,
+    pages: totalPages,
+    total: totalItems,
+    limit
+  };
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiService.deletePurchaseOrder(id),
@@ -766,17 +838,11 @@ export const PurchaseOrders: React.FC = () => {
     },
   });
 
-  const filteredPOs = purchaseOrders;
-
-
-  // generating the pdf🧮 
-
   const handleEdit = (po: PurchaseOrder) => {
     setEditingPO({ ...po, id: po.id ?? po._id });
     setIsModalOpen(true);
   };
 
-  // Function to handle deletion of purchase orders
   const handleDelete = (id: string | undefined) => {
     if (!id) {
       alert('Invalid purchase order ID');
@@ -793,243 +859,528 @@ export const PurchaseOrders: React.FC = () => {
     setServerError(null);
   };
 
+  const handleSort = (field: string) => {
+    if (sortBy === field) {
+      // Toggle sort order if same field
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Set new field with default desc order
+      setSortBy(field);
+      setSortOrder('desc');
+    }
+    resetPage(); // Reset to first page when sorting
+  };
+
+  const getSortIcon = (field: string) => {
+    if (sortBy !== field) {
+      return <ArrowUpDown size={14} className="text-gray-400 group-hover:text-gray-600" />;
+    }
+    return sortOrder === 'asc'
+      ? <ArrowUp size={14} className="text-blue-600" />
+      : <ArrowDown size={14} className="text-blue-600" />;
+  };
+
+  const SortableHeader = ({ field, children, className = "" }: {
+    field: string;
+    children: React.ReactNode;
+    className?: string;
+  }) => (
+    <th
+      className={`px-6 py-4 text-left flex-1 text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors duration-150 group ${className}`}
+      onClick={() => handleSort(field)}
+    >
+      <div className="flex items-center gap-2">
+        {children}
+        {getSortIcon(field)}
+      </div>
+    </th>
+  );
+
   if (isLoading) {
-    return <LoadingSpinner size="lg" />;
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <div className="text-center space-y-4">
+          <LoadingSpinner size="lg" />
+          <p className="text-gray-500 text-sm">Loading purchase orders...</p>
+        </div>
+      </div>
+    );
   }
 
-  return (
-    <div className="">
-      <div className='fixed bottom-8 flex items-center justify-center right-8 w-12 h-12 '>
-        <Button onClick={() => refetch()} className=' w-16 h-16 rounded-full gradient-btn ' style={{ borderRadius: "50%" }}>
-          {
-            isLoading ? <LoadingSpinner size="lg" color='white' /> : <RefreshCcw size={40} color='white' />
-          }
+  const ActionButton = ({ onClick, icon: Icon, label, variant = "default", disabled = false }: {
+    onClick: () => void;
+    icon: any;
+    label: string;
+    variant?: "default" | "danger" | "success" | "info";
+    disabled?: boolean;
+  }) => {
+    const variants = {
+      default: "text-gray-600 hover:text-gray-900 hover:bg-gray-100",
+      danger: "text-red-600 hover:text-red-900 hover:bg-red-50",
+      success: "text-green-600 hover:text-green-900 hover:bg-green-50",
+      info: "text-blue-600 hover:text-blue-900 hover:bg-blue-50"
+    };
 
-        </Button>
+    return (
+      <div className="relative group">
+        <button
+          onClick={onClick}
+          disabled={disabled}
+          className={`p-2 rounded-lg transition-all duration-200 ${variants[variant]} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+          aria-label={label}
+        >
+          <Icon size={18} />
+        </button>
+        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs bg-gray-900 text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-20">
+          {label}
+        </div>
       </div>
-      <Card >
-        <CardHeader
-          title={`Purchase Orders `}
-          subtitle="Manage your purchase orders"
-          action={
-            <Button
-              icon={Plus}
-              className='gradient-btn'
-              onClick={() => { setIsModalOpen(true); setServerError(null); }}
-            >
-              Create PO
-            </Button>
-          }
-        />
+    );
+  };
 
-        {/* Search */}
-        <div className="mb-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <input
-              type="text"
-              placeholder="Search purchase orders..."
-              className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                resetPage();
-              }}
-            />
+  const PurchaseOrderCard = ({ po }: { po: PurchaseOrder }) => (
+    <div className="bg-white rounded-xl border border-gray-200 hover:border-gray-300 transition-all duration-200  group">
+      <div className="p-6">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-blue-50 rounded-lg">
+              <FileText className="h-5 w-5 text-blue-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900">{po.ref_num || '--'}</h3>
+              {/* <p className="text-sm text-gray-500">#{po.ref_num || '--'}</p> */}
+            </div>
+          </div>
+          <span className={`px-3 py-1 text-xs font-medium rounded-full ${getStatusColor(po.status)}`}>
+            {po.status}
+          </span>
+        </div>
+
+        {/* Details */}
+        <div className="space-y-3 mb-4">
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-500">Supplier</span>
+            <span className="text-sm font-medium text-gray-900">{po.vendor}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-500">Order Date</span>
+            <span className="text-sm font-medium text-gray-900">
+              {new Date(po.orderDate).toLocaleDateString()}
+            </span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-500">Total</span>
+            <span className="text-lg font-bold text-gray-900">{formatCurrency(po.total)}</span>
           </div>
         </div>
 
-        {/* Purchase Orders Table */}
-        <div className="overflow-x-auto space-y-6">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  DB Num
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  PO Number
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Supplier
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Order Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Attachments
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Total
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredPOs.map((po) => (
-                <tr key={po.id ?? po._id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      {/* <FileText className="h-5 w-5 text-gray-400 mr-3" /> */}
-                      {/* <Badge variant="green" bordered size="sm" radius="full"> {po.ref_num || '--'}</Badge> */}
-                      <span className={`px-2 py-1 text-sm  font-medium rounded-full ${getStatusColor('delivered')}`}>
-                        {po.ref_num || '--'}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <FileText className="h-5 w-5 text-gray-400 mr-3" />
-                      <div className="text-sm font-medium text-gray-900">
-                        {po.poNumber}
-                      </div>
-                    </div>
-                  </td>
-
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {po.vendor}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(po.status)}`}>
-                      {po.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {new Date(po.orderDate).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {
-                      po.attachment && (<div className="relative group">
-
-                        <a
-                          target='_blank'
-                          className="text-white rounded-full p-1 px-2 text-xs  bg-blue-500 hover:text-green-900"
-
-                          href={po.attachment}
-                        >
-
-                          View File
-                        </a>
-
-                      </div>)
-                    }
-                  </td>
-
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {formatCurrency(po.total)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                    <div className="flex space-x-2">
-                      {
-                        po.attachment && (<div className="relative group">
-                          <button
-                            onClick={() => generatePDF(po)}
-                            className="text-green-600 flex items-center gap-x-1 hover:text-green-900"
-                            aria-label="Download PDF"
-                          >
-                            <Download size={20} />
-                            {/* Download */}
-                          </button>
-                          <span className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none z-10 whitespace-nowrap">Download PDF</span>
-                        </div>)
-                      }
-
-                      {isAdmin() && (
-                        <div className="relative group">
-                          <button
-                            onClick={() => handleEdit(po)}
-                            className="text-blue-600 flex items-center gap-x-1 hover:text-blue-900"
-                            aria-label="Edit"
-                          >
-                            <Edit size={20} />
-                            {/* Edit */}
-                          </button>
-                          <span className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none z-10 whitespace-nowrap">Edit</span>
-                        </div>
-                      )}
-
-                      <div className="relative group">
-                        <button
-                          onClick={() => navigate(`/purchase-orders/${po._id}`)}
-                          className="text-gray-600 flex items-center gap-x-1 hover:text-gray-900"
-                          aria-label="View Details"
-                        >
-                          <Eye size={20} />
-                          {/* View */}
-                        </button>
-                        <span className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none z-10 whitespace-nowrap">
-                          View Details
-                        </span>
-                      </div>
-                      {isAdmin() && (
-                        <div className="relative group">
-                          <button
-                            onClick={() => handleDelete(po.id ?? po._id)}
-                            className="text-red-600 flex items-center hover:text-red-900"
-                            aria-label="Delete"
-                          >
-                            <Trash2 size={20} />
-                            {/* Delete */}
-                          </button>
-                          <span className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none z-10 whitespace-nowrap">Delete</span>
-                        </div>
-                      )}
-                      <div className="relative group">
-                        <button
-                          onClick={() => { setSelectedDetailItem(po); setIsDetailModalOpen(true); }}
-                          className="text-gray-600 flex gap-x-1  items-center hover:text-gray-900"
-                          aria-label="View Details"
-                        >
-                          <Fullscreen size={20} />
-                          {/* Preview */}
-                        </button>
-                        <span className="absolute left-1/2 -translate-x-1/2 mt-1 px-2 py-1 text-xs bg-gray-800 text-white rounded opacity-0 group-hover:opacity-100 pointer-events-none z-10 whitespace-nowrap">Preview</span>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {filteredPOs.length === 0 && (
-          <div className="text-center py-8">
-            <FileText className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No purchase orders found</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Get started by creating your first purchase order.
-            </p>
+        {/* Attachment */}
+        {po.attachment && (
+          <div className="mb-4">
+            <a
+              href={po.attachment}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg transition-colors duration-200"
+            >
+              <Paperclip size={16} />
+              View Attachment
+            </a>
           </div>
         )}
 
-        {/* Pagination Controls */}
-        <div className="flex justify-center items-center space-x-2 mt-6">
-          <Button
-            type="button"
-            variant="outline"
-            disabled={pagination.page <= 1}
-            onClick={handlePrev}
-          >
-            Previous
-          </Button>
-          <span className="px-2">Page {pagination.page} of {pagination.pages}</span>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={pagination.page >= pagination.pages}
-            onClick={() => handleNext(pagination)}
-          >
-            Next
-          </Button>
+        {/* Actions */}
+        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+          <div className="flex space-x-1">
+            {po.attachment && (
+              <ActionButton
+                onClick={() => generatePDF(po)}
+                icon={Download}
+                label="Download PDF"
+                variant="success"
+              />
+            )}
+            <ActionButton
+              onClick={() => navigate(`/purchase-orders/${po._id}`)}
+              icon={Eye}
+              label="View Details"
+              variant="info"
+            />
+            <ActionButton
+              onClick={() => { setSelectedDetailItem(po); setIsDetailModalOpen(true); }}
+              icon={Fullscreen}
+              label="Preview"
+            />
+          </div>
+
+          {isAdmin() && !po.isPurchasedCreated && (
+            <div className="flex space-x-1">
+              <ActionButton
+                onClick={() => handleEdit(po)}
+                icon={Edit}
+                label="Edit"
+                variant="info"
+              />
+              <ActionButton
+                onClick={() => handleDelete(po.id ?? po._id)}
+                icon={Trash2}
+                label="Delete"
+                variant="danger"
+              />
+            </div>
+          )}
+
+          {po.isPurchasedCreated && (
+            <ActionButton
+              onClick={() => { }}
+              icon={LockIcon}
+              label="Locked"
+              variant="danger"
+              disabled
+            />
+          )}
         </div>
-      </Card>
-      {/* <button onClick={()=>setOpen(!open)}>Open </button> */}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-4 lg:p-6">
+      {/* Floating Refresh Button */}
+      <ReloadButton />
+
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Purchase Orders</h1>
+              <p className="text-gray-600 mt-1">Manage and track your purchase orders</p>
+            </div>
+            <div className="flex items-center gap-3">
+              {/* View Mode Toggle */}
+              <div className="hidden sm:flex bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => setViewMode('table')}
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${viewMode === 'table'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                >
+                  <LayoutList size={16} className="inline mr-2" />
+                  Table
+                </button>
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${viewMode === 'grid'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                >
+                  <LayoutGrid size={16} className="inline mr-2" />
+                  Grid
+                </button>
+              </div>
+
+              <Button
+                icon={Plus}
+                className="gradient-btn hover:from-blue-700 hover:to-purple-700 text-white px-6 py-2.5 rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+                onClick={() => { setIsModalOpen(true); setServerError(null); }}
+              >
+                Create PO
+              </Button>
+            </div>
+          </div>
+        </div>
+
+
+        {/* Search and Filters */}
+        <Card className="mb-6">
+          <div className="p-6">
+            <div className="flex flex-col lg:flex-row gap-4">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                <input
+                  type="search"
+                  placeholder="Search by PO number, supplier, or status..."
+                  className="pl-11 pr-4 py-3 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white"
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    resetPage();
+                  }}
+                />
+              </div>
+              {/* <div className="flex items-center gap-3">
+                <button className="flex items-center gap-2 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                  <Filter size={16} />
+                  <span className="hidden sm:inline">Filters</span>
+                </button>
+                <button className="flex items-center gap-2 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                  <SortAsc size={16} />
+                  <span className="hidden sm:inline">Sort</span>
+                </button>
+              </div> */}
+            </div>
+            {/* <div className=''>
+              <Select
+
+                options={optionPO}
+                value={optionPO.find((opt) => opt.value === DBNum)}
+                onChange={(option) => setDBNum(option?.value)}
+                classNamePrefix="react-select"
+                styles={{
+                  control: (base, state) => ({
+                    ...base,
+
+                    boxShadow: state.isFocused ? '0 0 0 2px #3b82f6' : base.boxShadow,
+                    '&:hover': { borderColor: '#3b82f6' },
+                    minHeight: '38px',
+                  }),
+                }}
+              />
+            </div> */}
+          </div>
+        </Card>
+
+        {/* Content */}
+        <Card>
+          {viewMode === 'table' ? (
+            // Table View
+            <div className="overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+
+                      <th className={`px-6 py-4 text-left flex-1 text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors duration-150 group `}>
+                        <div className="flex items-center gap-2">
+                          {/* <Hash size={14} /> */}
+                          DB Num
+                        </div>
+                      </th>
+
+                      <SortableHeader field="poNumber">
+                        <div className="flex items-center gap-2">
+                          {/* <FileText size={14} /> */}
+                          PO Number
+                        </div>
+                      </SortableHeader>
+                      <SortableHeader field="vendor" className="hidden sm:table-cell">
+                        <div className="flex items-center gap-2">
+                          {/* <Building size={14} /> */}
+                          Supplier
+                        </div>
+                      </SortableHeader>
+                      <SortableHeader field="status">
+                        Status
+                      </SortableHeader>
+                      <SortableHeader field="orderDate" className="hidden md:table-cell">
+                        <div className="flex items-center gap-2">
+                          {/* <Calendar size={14} /> */}
+                          Order Date
+                        </div>
+                      </SortableHeader>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider hidden lg:table-cell">
+                        <div className="flex items-center gap-2">
+                          {/* <Paperclip size={14} /> */}
+                          Files
+                        </div>
+                      </th>
+                      <SortableHeader field="total">
+                        <div className="flex items-center gap-2">
+                          {/* <DollarSign size={14} /> */}
+                          Total
+                        </div>
+                      </SortableHeader>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {purchaseOrders.map((po) => (
+                      <tr key={po.id ?? po._id} className="hover:bg-gray-50 transition-colors duration-150">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="px-3 py-1 text-sm font-medium rounded-full bg-gray-100 text-gray-800">
+                            {po.ref_num || '--'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="text-sm font-semibold text-gray-900">
+                              {po.poNumber}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 hidden sm:table-cell">
+                          {po.vendor}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-3 py-1 text-xs font-medium rounded-full ${getStatusColor(po.status)}`}>
+                            {po.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 hidden md:table-cell">
+                          {new Date(po.orderDate).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap hidden lg:table-cell">
+                          {po.attachment && (
+                            <a
+                              href={po.attachment}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-md transition-colors duration-200"
+                            >
+                              <ExternalLink size={12} />
+                              File
+                            </a>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
+                          {formatCurrency(po.total)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center space-x-1">
+                            {po.attachment && (
+                              <ActionButton
+                                onClick={() => generatePDF(po)}
+                                icon={Download}
+                                label="Download PDF"
+                                variant="success"
+                              />
+                            )}
+                            <ActionButton
+                              onClick={() => navigate(`/purchase-orders/${po._id}`)}
+                              icon={Eye}
+                              label="View Details"
+                              variant="info"
+                            />
+                            <ActionButton
+                              onClick={() => { setSelectedDetailItem(po); setIsDetailModalOpen(true); }}
+                              icon={Fullscreen}
+                              label="Preview"
+                            />
+                            {isAdmin() && !po.isPurchasedCreated && (
+                              <>
+                                <ActionButton
+                                  onClick={() => handleEdit(po)}
+                                  icon={Edit}
+                                  label="Edit"
+                                  variant="info"
+                                />
+                                <ActionButton
+                                  onClick={() => handleDelete(po.id ?? po._id)}
+                                  icon={Trash2}
+                                  label="Delete"
+                                  variant="danger"
+                                />
+                              </>
+                            )}
+                            {po.isPurchasedCreated && (
+                              <ActionButton
+                                onClick={() => { }}
+                                icon={LockIcon}
+                                label="Locked"
+                                variant="danger"
+                                disabled
+                              />
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            // Grid View
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {purchaseOrders.map((po) => (
+                  <PurchaseOrderCard key={po.id ?? po._id} po={po} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {purchaseOrders.length === 0 && (
+            <div className="text-center py-16">
+              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FileText className="h-10 w-10 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No purchase orders found</h3>
+              <p className="text-gray-500 mb-6 max-w-md mx-auto">
+                {searchTerm
+                  ? "Try adjusting your search terms or create a new purchase order."
+                  : "Get started by creating your first purchase order to track your procurement."}
+              </p>
+              <Button
+                icon={Plus}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-2.5 rounded-lg"
+                onClick={() => { setIsModalOpen(true); setServerError(null); }}
+              >
+                Create Your First PO
+              </Button>
+            </div>
+          )}
+
+          {/* Pagination */}
+          {purchaseOrders.length > 0 && (
+            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+              <div className="flex flex-col sm:flex-row items-center justify-end gap-4">
+
+                <div className="flex items-center space-x-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={pagination.page <= 1}
+                    onClick={handlePrev}
+                    className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                  >
+                    <ChevronLeft size={16} className="mr-1" />
+                    Previous
+                  </Button>
+
+                  <div className="hidden sm:flex items-center space-x-1">
+                    {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
+                      const pageNum = i + 1;
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => {/* Handle page click */ }}
+                          className={`w-10 h-10 rounded-lg text-sm font-medium transition-all duration-200 ${pageNum === pagination.page
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-600 hover:bg-gray-100'
+                            }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={pagination.page >= pagination.pages}
+                    onClick={() => handleNext(pagination)}
+                    className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                  >
+                    Next
+                    <ChevronRight size={16} className="ml-1" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </Card>
+      </div>
+
+      {/* Modals */}
       <POModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
@@ -1041,26 +1392,6 @@ export const PurchaseOrders: React.FC = () => {
         item={selectedDetailItem}
         title="Purchase Order Details"
       />
-
-
-      {/* <OffCanvas
-  isOpen={open}
-  onClose={() => setOpen(false)}
-  title="Bottom Drawer"
-  position="bottom"
-  size="lg"
-  footer={
-    <div className="flex justify-end gap-2">
-      <button onClick={() => setOpen(false)} className="px-4 py-2 border rounded">
-        Cancel
-      </button>
-      <button className="px-4 py-2 bg-blue-600 text-white rounded">Submit</button>
-    </div>
-  }
->
-  <p>This drawer slides from the bottom!</p>
-</OffCanvas> */}
-
     </div>
   );
 };

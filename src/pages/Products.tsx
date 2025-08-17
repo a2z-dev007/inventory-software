@@ -1,22 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Edit, Trash2, Search, Package, Eye } from 'lucide-react';
-import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Edit, Eye, Package, Plus, RefreshCcw, Search, Trash2 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-import { apiService } from '../services/api';
-import { Card, CardHeader } from '../components/common/Card';
+import Select from 'react-select';
+import { z } from 'zod';
 import { Button } from '../components/common/Button';
+import { Card, CardHeader } from '../components/common/Card';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { FormField } from '../components/forms/FormField';
-import { formatCurrency } from '../utils/constants';
-import { Product } from '../types';
+import { useAuth } from '../hooks/useAuth';
 import { useDebounce } from '../hooks/useDebounce';
 import { usePagination } from '../hooks/usePagination';
-import { DetailModal } from '../components/common/DetailModal';
-import { useAuth } from '../hooks/useAuth';
-import Select from 'react-select';
+import { apiService } from '../services/api';
+import { Product } from '../types';
+import { formatCurrency } from '../utils/constants';
 
 const UNIT_TYPE_OPTIONS = [
   { value: 'Nos', label: 'Nos' },
@@ -149,7 +148,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
 
   return (
     <div style={{ marginTop: 0 }} className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white relative rounded-lg max-w-2xl w-full min-h-[50vh] overflow-y-auto">
+      <div className="bg-white relative rounded-lg max-w-2xl w-full min-h-[auto] overflow-y-auto">
         <div className="p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">
             {isEditing ? 'Edit Product' : 'Add New Product'}
@@ -199,29 +198,30 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
                 )}
               />
             </div>
-
+            <div className="flex justify-end  space-x-3 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className='gradient-btn'
+                loading={createMutation.isPending || updateMutation.isPending}
+              >
+                {isEditing ? 'Update Product' : 'Add Product'}
+              </Button>
+            </div>
           </form>
         </div>
-        <div className="flex justify-end absolute bottom-6 right-4 space-x-3 pt-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onClose}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            className='gradient-btn'
-            loading={createMutation.isPending || updateMutation.isPending}
-          >
-            {isEditing ? 'Update Product' : 'Add Product'}
-          </Button>
-        </div>
+
       </div>
     </div>
   );
 };
+
 
 export const Products: React.FC = () => {
   const queryClient = useQueryClient();
@@ -238,6 +238,7 @@ export const Products: React.FC = () => {
   const {
     data: productResponse = { products: [], pagination: { page: 1, pages: 1, total: 0, limit } },
     isLoading,
+    refetch
   } = useQuery({
     queryKey: ['products', page, debouncedSearch],
     queryFn: () => apiService.getProducts({ page, limit, search: debouncedSearch }),
@@ -274,155 +275,158 @@ export const Products: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader
-          title={`Products (${productResponse?.pagination?.total || 0})`}
-          subtitle="Manage your product inventory"
-          action={
-            <Button
-              icon={Plus}
-              className='gradient-btn'
-              onClick={() => setIsModalOpen(true)}
-            >
-              Add Product
-            </Button>
-          }
-        />
-        {/* Search */}
-        <div className="mb-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <input
-              type="text"
-              placeholder="Search products..."
-              className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                resetPage();
-              }}
-            />
-          </div>
-        </div>
-        {/* Products Table */}
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Product
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Product Price
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Unit Type
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredProducts.map((product: Product) => (
-                <tr key={product._id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0 h-8 w-8">
-                        <div className="h-8 w-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                          <Package className="h-4 w-4 text-blue-600" />
-                        </div>
-                      </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">
-                          {product.name}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {product.vendor}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {formatCurrency(product.purchaseRate)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {product.unitType}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                    {isAdmin() && (
-                      <button
-                        onClick={() => handleEdit(product)}
-                        className="text-blue-600 hover:text-blue-900"
-                        title="Edit"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </button>
-                    )}
-                    <button
-                      onClick={() => navigate(`/products/${product._id}`)}
-                      className="text-gray-600 hover:text-gray-900"
-                      title="View Details"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </button>
-                    {isAdmin() && (
-                      <button
-                        onClick={() => {
-                          if (window.confirm('Are you sure you want to delete this product?')) {
-                            deleteMutation.mutate(product._id);
-                          }
-                        }}
-                        className="text-red-600 hover:text-red-900"
-                        title="Delete"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    )}
+    <>
+      <div className="space-y-6">
 
-                  </td>
+        <Card >
+          <CardHeader
+            title={`Products`}
+            subtitle="Manage your product inventory"
+            action={
+              <Button
+                icon={Plus}
+                className='gradient-btn'
+                onClick={() => setIsModalOpen(true)}
+              >
+                Add Product
+              </Button>
+            }
+          />
+          {/* Search */}
+          <div className="mb-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <input
+                type="text"
+                placeholder="Search products..."
+                className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  resetPage();
+                }}
+              />
+            </div>
+          </div>
+          {/* Products Table */}
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Product
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Product Price
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Unit Type
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {filteredProducts.length === 0 && (
-          <div className="text-center py-8">
-            <Package className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No products found</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Get started by adding your first product.
-            </p>
-          </div>
-        )}
-        {/* Pagination Controls */}
-        <div className="flex justify-center items-center space-x-2 mt-6">
-          <Button
-            type="button"
-            variant="outline"
-            disabled={pagination.page <= 1}
-            onClick={handlePrev}
-          >
-            Previous
-          </Button>
-          <span className="px-2">Page {pagination.page} of {pagination.pages}</span>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={pagination.page >= pagination.pages}
-            onClick={() => handleNext(pagination)}
-          >
-            Next
-          </Button>
-        </div>
-      </Card>
-      <ProductModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        product={editingProduct}
-      />
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredProducts.map((product: Product) => (
+                  <tr key={product._id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-8 w-8">
+                          <div className="h-8 w-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <Package className="h-4 w-4 text-blue-600" />
+                          </div>
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">
+                            {product.name}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {product.vendor}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {formatCurrency(product.purchaseRate)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {product.unitType}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                      {isAdmin() && (
+                        <button
+                          onClick={() => handleEdit(product)}
+                          className="text-blue-600 hover:text-blue-900"
+                          title="Edit"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => navigate(`/products/${product._id}`)}
+                        className="text-gray-600 hover:text-gray-900"
+                        title="View Details"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                      {isAdmin() && (
+                        <button
+                          onClick={() => {
+                            if (window.confirm('Are you sure you want to delete this product?')) {
+                              deleteMutation.mutate(product._id);
+                            }
+                          }}
+                          className="text-red-600 hover:text-red-900"
+                          title="Delete"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
 
-    </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {filteredProducts.length === 0 && (
+            <div className="text-center py-8">
+              <Package className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No products found</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Get started by adding your first product.
+              </p>
+            </div>
+          )}
+          {/* Pagination Controls */}
+          <div className="flex justify-center items-center space-x-2 mt-6">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={pagination.page <= 1}
+              onClick={handlePrev}
+            >
+              Previous
+            </Button>
+            <span className="px-2">Page {pagination.page} of {pagination.pages}</span>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={pagination.page >= pagination.pages}
+              onClick={() => handleNext(pagination)}
+            >
+              Next
+            </Button>
+          </div>
+        </Card>
+        <ProductModal
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          product={editingProduct}
+        />
+
+      </div>
+    </>
   );
 };

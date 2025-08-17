@@ -5,6 +5,7 @@ import { apiService } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/common/Button';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
+import ReloadButton from '../components/common/ReloadButton';
 
 // Assuming apiService is imported from your API service file
 // import { apiService } from './api/apiService';
@@ -135,7 +136,6 @@ const RecycleBin: React.FC = () => {
     queryFn: () => apiService.getDeletedSales({ page, limit, search: debouncedSearch }),
     enabled: activeTab === 'all' || activeTab === 'sale',
     refetchOnMount: true, // Add this line
-
   });
 
 
@@ -523,14 +523,7 @@ const RecycleBin: React.FC = () => {
 
   return (
     <div className="min-h-screen  p-6">
-      <div className='fixed bottom-8 flex items-center justify-center right-8 w-12 h-12 z-50'>
-        <Button onClick={() => reloadAll()} className=' w-16 h-16 rounded-full gradient-btn ' style={{ borderRadius: "50%" }}>
-          {
-            isLoading ? <LoadingSpinner size="lg" color='white' /> : <RefreshCcw size={40} color='white' />
-          }
-
-        </Button>
-      </div>
+      <ReloadButton />
       <div className="max-w-8xl mx-auto">
         {/* Header */}
         <div className="mb-8">

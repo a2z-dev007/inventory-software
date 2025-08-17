@@ -1,24 +1,23 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Edit, Eye, Plus, ReceiptIndianRupee, RefreshCcw, Search, Trash2 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Download, Search, Trash2, Edit, Link, Eye, IndianRupeeIcon, ReceiptIndianRupeeIcon, ReceiptIndianRupee, NotepadTextDashedIcon, BadgeIndianRupeeIcon, NotepadTextIcon, RefreshCcw } from 'lucide-react';
 
-import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { useNavigate } from 'react-router-dom';
 import jsPDF from 'jspdf';
-import { apiService } from '../services/api';
-import { Card, CardHeader } from '../components/common/Card';
+import { Controller, useFieldArray, useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
+import { z } from 'zod';
 import { Button } from '../components/common/Button';
+import { Card, CardHeader } from '../components/common/Card';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { FormField } from '../components/forms/FormField';
 import { SelectField } from '../components/forms/SelectField';
-import { extractCancelledItemsFromPurchases, formatCurrency, getStatusColor } from '../utils/constants';
-import { usePagination } from '../hooks/usePagination';
-import { useDebounce } from '../hooks/useDebounce';
-import { PurchaseOrder } from './PurchaseOrders';
 import { useAuth } from '../hooks/useAuth';
-import { Badge } from '../components/common/Badge';
+import { useDebounce } from '../hooks/useDebounce';
+import { usePagination } from '../hooks/usePagination';
+import { apiService } from '../services/api';
+import { extractCancelledItemsFromPurchases, formatCurrency, getStatusColor } from '../utils/constants';
+import ReloadButton from '../components/common/ReloadButton';
 
 const purchaseItemSchema = z.object({
   productId: z.string().min(1, 'Product is required'),
@@ -468,7 +467,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
                       <SelectField<any>
                         label="Product"
                         name={`items.${index}.productId`}
-                        options={products.map((product: any) => ({ value: String(product._id), label: `${product.name} (${product.sku})` })) || []}
+                        options={products.map((product: any) => ({ value: String(product._id), label: `${product.name}` })) || []}
                         control={control}
                         error={errors.items?.[index]?.productId}
                         required
@@ -735,14 +734,7 @@ export const Purchases: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className='absolute bottom-8 flex items-center justify-center right-8 w-12 h-12 '>
-        <Button onClick={() => refetch()} className=' w-16 h-16 rounded-full gradient-btn' style={{ borderRadius: "50%" }}>
-          {
-            isLoading ? <LoadingSpinner size="lg" color='white' /> : <RefreshCcw size={40} color='white' />
-          }
-
-        </Button>
-      </div>
+      <ReloadButton />
       <Card>
         <CardHeader
           title={`Purchases`}
@@ -808,12 +800,9 @@ export const Purchases: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       {/* <NotepadTextIcon className="h-5 w-5 text-gray-400 mr-3" /> */}
-
                       <span className={`px-2 py-1 text-sm  font-medium rounded-full ${getStatusColor('delivered')}`}>
-
                         {purchase?.ref_num}
                       </span>
-
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">

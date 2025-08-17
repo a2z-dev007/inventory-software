@@ -1,25 +1,20 @@
+import {
+  BookX,
+  FileText,
+  NotebookPenIcon,
+  Package,
+  ReceiptIndianRupee,
+  Settings,
+  Trash,
+  TrendingUp,
+  Truck,
+  Undo2Icon,
+  Users
+} from 'lucide-react';
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import {
-  LayoutDashboard,
-  Package,
-  ShoppingCart,
-  FileText,
-  Users,
-  TrendingUp,
-  Settings,
-  Truck,
-  ReceiptIndianRupee,
-  Receipt,
-  MapPinnedIcon,
-  BookX,
-  Trash,
-  Undo2Icon,
-  NotebookPenIcon,
-
-} from 'lucide-react';
+import logo from "../../assets/images/logo.png";
 import { useAuth } from '../../hooks/useAuth';
-import logo from "../../assets/images/logo.png"
 interface NavItem {
   name: string;
   href: string;
@@ -35,12 +30,12 @@ const navigation: NavItem[] = [
   { name: 'Suppliers', href: '/suppliers', icon: Truck, roles: ['admin', 'manager'] },
   { name: 'Clients', href: '/clients', icon: Users, roles: ['admin', 'manager', 'staff'] },
   { name: 'Products', href: '/products', icon: Package, roles: ['admin', 'manager', 'staff'] },
-  { name: 'Reports', href: '/reports', icon: TrendingUp, roles: ['admin', 'manager'] },
   { name: 'Cancelled Items', href: '/cancelled-items', icon: BookX, roles: ['admin'] },
-  { name: 'Purchase Retun', href: '/purchase-return', icon: Undo2Icon, roles: ['admin'] },
+  { name: 'Purchase Return', href: '/purchase-return', icon: Undo2Icon, roles: ['admin'] },
   { name: 'Purpose', href: '/purpose', icon: NotebookPenIcon, roles: ['admin', 'manager'] },
-  { name: 'Settings', href: '/settings', icon: Settings, roles: ['admin'] },
   { name: 'Recycle Bin', href: '/recycle-bin', icon: Trash, roles: ['admin'] },
+  { name: 'Reports', href: '/reports', icon: TrendingUp, roles: ['admin', 'manager'] },
+  { name: 'Settings', href: '/settings', icon: Settings, roles: ['admin'] },
 ];
 
 export const Sidebar: React.FC = () => {

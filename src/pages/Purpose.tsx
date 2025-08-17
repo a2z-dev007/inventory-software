@@ -104,7 +104,7 @@ export default function PurposePage() {
 
   return (
     <div className="space-y-6 ">
-      <ReloadButton />
+      <ReloadButton isLoading={isLoading} refetch={refetch} />
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">

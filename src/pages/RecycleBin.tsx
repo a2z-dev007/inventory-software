@@ -109,8 +109,10 @@ const RecycleBin: React.FC = () => {
     queryKey: ['purchase-orders-deleted', page, debouncedSearch],
     queryFn: () => apiService.getDeletedPurchaseOrders({ page, limit, search: debouncedSearch }),
     enabled: activeTab === 'all' || activeTab === 'purchaseOrder',
-    refetchOnMount: true, // Add this line
-
+    // refetchOnMount: true, // Add this line
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
 
 
@@ -123,8 +125,10 @@ const RecycleBin: React.FC = () => {
     queryKey: ['purchases-deleted', page, debouncedSearch],
     queryFn: () => apiService.getDeletedPurchases({ page, limit, search: debouncedSearch }),
     enabled: activeTab === 'all' || activeTab === 'purchase',
-    refetchOnMount: true, // Add this line
-
+    // refetchOnMount: true, // Add this line
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
 
   const {
@@ -134,8 +138,10 @@ const RecycleBin: React.FC = () => {
   } = useQuery({
     queryKey: ['sales-deleted', page, debouncedSearch],
     queryFn: () => apiService.getDeletedSales({ page, limit, search: debouncedSearch }),
-    enabled: activeTab === 'all' || activeTab === 'sale',
-    refetchOnMount: true, // Add this line
+    // enabled: activeTab === 'all' || activeTab === 'sale',
+
+    // refetchInterval: 30000, // Refetch every 30 seconds (optional)
+    // refetchOnMount: true, // Add this line
   });
 
 
@@ -146,14 +152,14 @@ const RecycleBin: React.FC = () => {
     reloadSales()
   }
   // Debug logging
-  React.useEffect(() => {
-    console.log('Debug - API Responses:', {
-      poResponse,
-      purchasesData,
-      salesResponse,
-      activeTab
-    });
-  }, [poResponse, purchasesData, salesResponse, activeTab]);
+  // React.useEffect(() => {
+  //   console.log('Debug - API Responses:', {
+  //     poResponse,
+  //     purchasesData,
+  //     salesResponse,
+  //     activeTab
+  //   });
+  // }, [poResponse, purchasesData, salesResponse, activeTab]);
 
   // Combine all items with type information
   const allItems: RecycleBinItem[] = useMemo(() => {
@@ -173,12 +179,12 @@ const RecycleBin: React.FC = () => {
       items.push(...purchases);
     }
 
-    if (activeTab === 'all' || activeTab === 'sale') {
-      const sales = (salesResponse.sales || [])
-        .map(item => ({ ...item, type: 'sale' as const }));
-      console.log('Sales:', sales);
-      items.push(...sales);
-    }
+    // if (activeTab === 'all' || activeTab === 'sale') {
+    //   const sales = (salesResponse.sales || [])
+    //     .map(item => ({ ...item, type: 'sale' as const }));
+    //   console.log('Sales:', sales);
+    //   items.push(...sales);
+    // }
 
     console.log('All combined items:', items);
     return items;
@@ -191,8 +197,8 @@ const RecycleBin: React.FC = () => {
         return poResponse.pagination;
       case 'purchase':
         return purchasesData.pagination;
-      case 'sale':
-        return salesResponse.pagination;
+      // case 'sale':
+      //   return salesResponse.pagination;
       default:
         // For 'all' tab, we'll use the max pagination info
         const maxPages = Math.max(
@@ -232,7 +238,7 @@ const RecycleBin: React.FC = () => {
     { key: 'all', label: 'All Items', icon: Trash2, count: counts.all, color: 'from-gray-500 to-gray-600' },
     { key: 'purchaseOrder', label: 'Purchase Orders', icon: FileText, count: counts.purchaseOrder, color: 'from-blue-500 to-blue-600' },
     { key: 'purchase', label: 'Purchases', icon: Package, count: counts.purchase, color: 'from-green-500 to-green-600' },
-    { key: 'sale', label: 'Sales', icon: ShoppingCart, count: counts.sale, color: 'from-purple-500 to-purple-600' }
+    // { key: 'sale', label: 'Sales', icon: ShoppingCart, count: counts.sale, color: 'from-purple-500 to-purple-600' }
   ];
 
   const handleItemSelect = (itemId: string) => {
@@ -253,17 +259,32 @@ const RecycleBin: React.FC = () => {
     console.log(`${actionType} items:`, selectedItems);
     // Here you would implement the actual restore/delete API calls
     console.log("module", moduleType)
-    if (moduleType === "purchaseOrder") {
-      await apiService.restorePO(selectedItems[0])
-      queryClient.invalidateQueries({ queryKey: ['purchase-orders-deleted'] });
+    if (actionType === "restore") {
+      console.log("restore------")
+      if (moduleType === "purchaseOrder") {
+        await apiService.restorePO(selectedItems[0])
+        queryClient.invalidateQueries({ queryKey: ['purchase-orders-deleted'] });
+      }
+      if (moduleType === "purchase") {
+        await apiService.restorePurchase(selectedItems[0])
+        queryClient.invalidateQueries({ queryKey: ['purchases-deleted'] });
+      }
+      // if (moduleType === "sale") {
+      //   await apiService.restoreSales(selectedItems[0])
+      //   queryClient.invalidateQueries({ queryKey: ['sales-deleted'] });
+      // }
     }
-    if (moduleType === "purchase") {
-      await apiService.restorePurchase(selectedItems[0])
-      queryClient.invalidateQueries({ queryKey: ['purchases-deleted'] });
-    }
-    if (moduleType === "sale") {
-      await apiService.restoreSales(selectedItems[0])
-      queryClient.invalidateQueries({ queryKey: ['sales-deleted'] });
+    if (actionType === "permanent") {
+      // console.log("Deleting------")
+      // console.log("moduleType----", moduleType)
+      if (moduleType === "purchaseOrder") {
+        await apiService.finalDeletePurchaseOrder(selectedItems[0])
+        queryClient.invalidateQueries({ queryKey: ['purchase-orders-deleted'] });
+      }
+      if (moduleType === "purchase") {
+        await apiService.finalDeletePurchase(selectedItems[0])
+        queryClient.invalidateQueries({ queryKey: ['purchases-deleted'] });
+      }
     }
     setSelectedItems([]);
     setShowConfirmModal(false);
@@ -460,6 +481,7 @@ const RecycleBin: React.FC = () => {
               setSelectedItems([item._id]);
               setActionType('permanent');
               setShowConfirmModal(true);
+              setModuleType(item.type)
             }}
             className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 transition-all shadow-lg hover:shadow-xl font-medium"
           >
@@ -523,7 +545,7 @@ const RecycleBin: React.FC = () => {
 
   return (
     <div className="min-h-screen  p-6">
-      <ReloadButton />
+      <ReloadButton isLoading={isLoading} refetch={reloadAll} />
       <div className="max-w-8xl mx-auto">
         {/* Header */}
         <div className="mb-8">

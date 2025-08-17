@@ -1048,7 +1048,7 @@ export const PurchaseOrders: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-4 lg:p-6">
       {/* Floating Refresh Button */}
-      <ReloadButton />
+      <ReloadButton isLoading={isLoading} refetch={refetch} />
 
       <div className="max-w-7xl mx-auto">
         {/* Header */}

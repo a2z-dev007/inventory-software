@@ -49,19 +49,19 @@ const SupplierModal: React.FC<SupplierModalProps> = ({ isOpen, onClose, supplier
       reset(
         supplier
           ? {
-              name: supplier.name || '',
-              contact: supplier.contact || '',
-              email: supplier.email || '',
-              phone: supplier.phone || '',
-              address: supplier.address || '',
-            }
+            name: supplier.name || '',
+            contact: supplier.contact || '',
+            email: supplier.email || '',
+            phone: supplier.phone || '',
+            address: supplier.address || '',
+          }
           : {
-              name: '',
-              contact: '',
-              email: '',
-              phone: '',
-              address: '',
-            }
+            name: '',
+            contact: '',
+            email: '',
+            phone: '',
+            address: '',
+          }
       );
     }
   }, [isOpen, supplier, reset]);
@@ -103,7 +103,7 @@ const SupplierModal: React.FC<SupplierModalProps> = ({ isOpen, onClose, supplier
   if (!isOpen) return null;
 
   return (
-    <div style={{marginTop:0}} className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div style={{ marginTop: 0 }} className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">
@@ -245,7 +245,7 @@ export const Suppliers: React.FC = () => {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <input
-              type="text"
+              type="search"
               placeholder="Search suppliers..."
               className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               value={searchInput}

@@ -332,6 +332,26 @@ restorePurchase: async (id: string) => {
     }
   },
 
+  // Final Delete
+  finalDeletePurchaseOrder: async (id: string) => {
+    try {
+      const res = await request<any>(API_ROUTES.PURCHASE_ORDER_FINAL_DELETE(id), {
+        method: 'DELETE',
+      });
+      if(res.success === false) {
+        throw new Error(res.message || 'Failed to delete purchase order');
+        return
+      }
+      if(res.success) {
+        toast.success(res.message || 'Purchase order deleted successfully');
+      }
+      return res;
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to delete purchase order');
+      throw error;
+    }
+  },
+
   // Sales
   getSales: async (params: { page?: number; limit?: number; search?: string; all?: boolean,isDeleted?:boolean } = { all: false }) => {
     try {
@@ -527,6 +547,23 @@ restorePurchase: async (id: string) => {
   deletePurchase: async (id: string) => {
     try {
       const res = await request<any>(API_ROUTES.PURCHASE(id), {
+        method: 'DELETE',
+      });
+      if(res.success){
+        toast.success(res.message || 'Purchase deleted successfully');
+      }
+      if(res.success === false){
+        throw new Error(res.message || 'Failed to delete purchase');
+      }
+      return res;
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to delete purchase');
+      throw error;
+    }
+  },
+  finalDeletePurchase: async (id: string) => {
+    try {
+      const res = await request<any>(API_ROUTES.PURCHASE_FINAL_DELETE(id), {
         method: 'DELETE',
       });
       if(res.success){

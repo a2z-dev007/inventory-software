@@ -72,6 +72,10 @@ export const CancelledItems: React.FC = () => {
   const { data: purchasesData, isLoading, refetch } = useQuery<PurchasesApiResponse>({
     queryKey: ['purchases', page, debouncedSearch],
     queryFn: () => apiService.getPurchases({ page, limit: 10, search: debouncedSearch }),
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
+    // refetchInterval: 30000, // Refetch every 30 seconds (optional)
   });
 
   const purchases = purchasesData?.purchases || [];
@@ -94,7 +98,7 @@ export const CancelledItems: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <ReloadButton />
+      <ReloadButton isLoading={isLoading} refetch={refetch} />
       <Card>
         <CardHeader
           title={`Cancelled Purchases`}
@@ -105,7 +109,7 @@ export const CancelledItems: React.FC = () => {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <input
-              type="text"
+              type="search"
               placeholder="Search purchases..."
               className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               value={searchTerm}

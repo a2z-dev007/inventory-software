@@ -5,14 +5,14 @@ import { apiService } from '../services/api';
 import { DetailPage } from '../components/common/DetailPage';
 import { toast } from 'react-toastify';
 
-import { 
-  Package, 
-  Calendar, 
-  User, 
-  Building, 
-  FileText, 
-  Truck, 
-  CheckCircle, 
+import {
+  Package,
+  Calendar,
+  User,
+  Building,
+  FileText,
+  Truck,
+  CheckCircle,
   IndianRupeeIcon,
   Hash,
   MapPin,
@@ -30,38 +30,38 @@ import { formatCurrency, formatINRCurrency, formatRelativeDate } from '../utils/
 import { generatePDF } from '../utils/pdf';
 import BackButton from '../components/common/BackButton';
 export interface PurchaseType {
-  _id:           string;
-  ref_num:       string;
-  invoiceFile:   null;
-  vendor:        string;
-  purchaseDate:  Date;
-  items:         Item[];
-  subtotal:      number;
-  total:         number;
+  _id: string;
+  ref_num: string;
+  invoiceFile: null;
+  vendor: string;
+  purchaseDate: Date;
+  items: Item[];
+  subtotal: number;
+  total: number;
   receiptNumber: string;
-  createdBy:     CreatedBy;
-  isDeleted:     boolean;
-  remarks:       string;
-  createdAt:     Date;
-  updatedAt:     Date;
-  __v:           number;
+  createdBy: CreatedBy;
+  isDeleted: boolean;
+  remarks: string;
+  createdAt: Date;
+  updatedAt: Date;
+  __v: number;
 }
 
 export interface CreatedBy {
-  _id:      string;
+  _id: string;
   username: string;
-  name:     string;
+  name: string;
 }
 
 export interface Item {
-  productId:   string;
+  productId: string;
   productName: string;
-  quantity:    number;
-  unitPrice:   number;
-  unitType:    string;
-  total:       number;
-  isCancelled?:boolean;
-  _id:         string;
+  quantity: number;
+  unitPrice: number;
+  unitType: string;
+  total: number;
+  isCancelled?: boolean;
+  _id: string;
 }
 
 export const CancelledItemsDetail: React.FC = () => {
@@ -71,6 +71,7 @@ export const CancelledItemsDetail: React.FC = () => {
   const {
     data: purchase,
     isLoading,
+    refetch,
     error,
   } = useQuery<PurchaseType>({
     queryKey: ['purchase', id],
@@ -86,21 +87,21 @@ export const CancelledItemsDetail: React.FC = () => {
   const getStatusColor = () => {
     return 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/25';
   };
-  let filterItems = po?.items?.filter(item=>item.isCancelled ===true)?.length
+  let filterItems = po?.items?.filter(item => item.isCancelled === true)?.length
 
   return (
     <div className="min-h-screen  p-4 sm:p-6 lg:p-8">
       {/* Background Pattern */}
-     <div className='mb-6'>
-     <BackButton/>
-     </div>
+      <div className='mb-6'>
+        <BackButton />
+      </div>
       <div className="relative max-w-7xl mx-auto">
         {/* Floating Header */}
         <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-8 mb-8 relative overflow-hidden">
           {/* Decorative Elements */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-blue-500/10 to-purple-500/10 rounded-full -translate-y-32 translate-x-32"></div>
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-emerald-500/10 to-teal-500/10 rounded-full translate-y-24 -translate-x-24"></div>
-          
+
           <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
             <div className="flex items-center space-x-4">
               <div className="relative">
@@ -111,13 +112,13 @@ export const CancelledItemsDetail: React.FC = () => {
               </div>
               <div>
                 <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-red-900 to-red-600 bg-clip-text text-transparent">
-                   Cancelled Items Details
+                  Cancelled Items Details
                 </h1>
                 {/* <p className="text-gray-600 mt-1 text-lg">Advanced Purchase Management</p> */}
               </div>
             </div>
-            
-           
+
+
           </div>
         </div>
 
@@ -133,7 +134,7 @@ export const CancelledItemsDetail: React.FC = () => {
                 <Hash className="h-6 w-6 text-white" />
               </div>
             </div>
-           
+
           </div>
 
           <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
@@ -146,7 +147,7 @@ export const CancelledItemsDetail: React.FC = () => {
                 <Calendar className="h-6 w-6 text-white" />
               </div>
             </div>
-           
+
           </div>
 
           <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
@@ -159,10 +160,10 @@ export const CancelledItemsDetail: React.FC = () => {
                 <Package className="h-6 w-6 text-white" />
               </div>
             </div>
-          
+
           </div>
 
-         
+
         </div>
 
         {/* Main Content */}
@@ -170,19 +171,19 @@ export const CancelledItemsDetail: React.FC = () => {
           {/* Order Details */}
           <div className="xl:col-span-2 bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-8 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-500/5 to-purple-500/5 rounded-full -translate-y-16 translate-x-16"></div>
-            
+
             <div className="relative">
               <div className="flex items-center justify-between mb-8">
                 <h2 className="text-2xl font-bold text-gray-900 flex items-center">
                   <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-2 rounded-xl mr-3 shadow-lg shadow-blue-500/25">
                     <FileText className="h-5 w-5 text-white" />
                   </div>
-                   Cancelled  Information
+                  Cancelled  Information
                 </h2>
-             
-               
+
+
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-6">
                   <div className="group hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 p-4 rounded-xl transition-all duration-200">
@@ -196,7 +197,7 @@ export const CancelledItemsDetail: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="group hover:bg-gradient-to-r hover:from-emerald-50 hover:to-green-50 p-4 rounded-xl transition-all duration-200">
                     <div className="flex items-start space-x-4">
                       <div className="bg-emerald-100 group-hover:bg-emerald-200 p-2 rounded-lg transition-colors duration-200">
@@ -208,7 +209,7 @@ export const CancelledItemsDetail: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="group hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 p-4 rounded-xl transition-all duration-200">
                     <div className="flex items-start space-x-4">
                       <div className="bg-purple-100 group-hover:bg-purple-200 p-2 rounded-lg transition-colors duration-200">
@@ -220,7 +221,7 @@ export const CancelledItemsDetail: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="group hover:bg-gradient-to-r hover:from-orange-50 hover:to-red-50 p-4 rounded-xl transition-all duration-200">
                     <div className="flex items-start space-x-4">
                       <div className="bg-orange-100 group-hover:bg-orange-200 p-2 rounded-lg transition-colors duration-200">
@@ -233,7 +234,7 @@ export const CancelledItemsDetail: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="space-y-6">
                   <div className="group hover:bg-gradient-to-r hover:from-indigo-50 hover:to-blue-50 p-4 rounded-xl transition-all duration-200">
                     <div className="flex items-start space-x-4">
@@ -246,7 +247,7 @@ export const CancelledItemsDetail: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="group hover:bg-gradient-to-r hover:from-teal-50 hover:to-cyan-50 p-4 rounded-xl transition-all duration-200">
                     <div className="flex items-start space-x-4">
                       <div className="bg-teal-100 group-hover:bg-teal-200 p-2 rounded-lg transition-colors duration-200">
@@ -258,7 +259,7 @@ export const CancelledItemsDetail: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="group hover:bg-gradient-to-r hover:from-rose-50 hover:to-pink-50 p-4 rounded-xl transition-all duration-200">
                     <div className="flex items-start space-x-4">
                       <div className="bg-rose-100 group-hover:bg-rose-200 p-2 rounded-lg transition-colors duration-200">
@@ -270,7 +271,7 @@ export const CancelledItemsDetail: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="group hover:bg-gradient-to-r hover:from-amber-50 hover:to-yellow-50 p-4 rounded-xl transition-all duration-200">
                     <div className="flex items-start space-x-4">
                       <div className="bg-amber-100 group-hover:bg-amber-200 p-2 rounded-lg transition-colors duration-200">
@@ -288,7 +289,7 @@ export const CancelledItemsDetail: React.FC = () => {
           </div>
 
           {/* Enhanced Summary Card */}
-       
+
         </div>
 
         {/* Premium Items Table */}
@@ -301,10 +302,10 @@ export const CancelledItemsDetail: React.FC = () => {
                 </div>
                 Purchase Cancelled Items
               </h2>
-             
+
             </div>
           </div>
-          
+
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -317,8 +318,8 @@ export const CancelledItemsDetail: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {po?.items.filter(item=>item.isCancelled===true)?.map((item, index) => (
-                  <tr key={item._id} className={`hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-purple-50/50 transition-all duration-300 border-b border-gray-100 ${ item?.isCancelled ? 'bg-red-100 ':'' } `}>
+                {po?.items.filter(item => item.isCancelled === true)?.map((item, index) => (
+                  <tr key={item._id} className={`hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-purple-50/50 transition-all duration-300 border-b border-gray-100 ${item?.isCancelled ? 'bg-red-100 ' : ''} `}>
                     <td className="px-8 py-6">
                       <div className="flex items-center space-x-4">
                         <div className="bg-gradient-to-r from-red-500 to-purple-600 p-3 rounded-xl shadow-lg shadow-blue-500/25">
@@ -326,15 +327,15 @@ export const CancelledItemsDetail: React.FC = () => {
                         </div>
                         <div>
                           <p className="font-bold text-gray-900 text-lg">{item.productName}</p>
-                         {
-                          item?.isCancelled && (
-                                <span className='text-red-500 font-bold'>({item?.isCancelled ? "Item Cancelled":''})</span>
-                          )
-                         } 
+                          {
+                            item?.isCancelled && (
+                              <span className='text-red-500 font-bold'>({item?.isCancelled ? "Item Cancelled" : ''})</span>
+                            )
+                          }
                         </div>
                       </div>
                     </td>
-                  
+
                     <td className="px-8 py-6 text-center">
                       <span className="font-bold text-gray-900 text-lg">{item.quantity}</span>
                     </td>

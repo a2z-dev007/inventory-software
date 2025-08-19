@@ -14,6 +14,8 @@ import { usePagination } from '../hooks/usePagination';
 import { useDebounce } from '../hooks/useDebounce';
 import { DetailModal } from '../components/common/DetailModal';
 import { useAuth } from '../hooks/useAuth';
+import { useDeleteModal } from '../hooks/useDeleteModal';
+import { ReusableDeleteModal } from '../components/modals/ReusableDeleteModal';
 
 const supplierSchema = z.object({
   name: z.string().min(1, 'Supplier name is required'),
@@ -194,10 +196,20 @@ export const Suppliers: React.FC = () => {
   const { page, setPage, handleNext, handlePrev } = usePagination(1);
   const queryClient = useQueryClient();
   const { isAdmin } = useAuth();
+
+  // ✅ useDeleteModal hook
+  const {
+    isDeleteModalOpen,
+    itemToDelete: supplierToDelete,
+    openDeleteModal,
+    closeDeleteModal,
+  } = useDeleteModal<any>();
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiService.deleteSupplier(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+      closeDeleteModal();
     },
   });
 
@@ -208,14 +220,10 @@ export const Suppliers: React.FC = () => {
   } = useQuery<SuppliersApiResponse>({
     queryKey: ['suppliers', page, debouncedSearch],
     queryFn: () => apiService.getSuppliers({ page, limit: 9, search: debouncedSearch }),
-    // keepPreviousData: true, // Remove or move to options if your React Query version supports it
   });
 
   const suppliers = data?.vendors || [];
   const pagination = data?.pagination || { page: 1, pages: 1, total: 0, limit: 9 };
-
-  console.log('📦 Current Page State:', page);
-  console.log('📄 Pagination Response:', pagination);
 
   const handleEdit = (supplier: any) => {
     setEditingSupplier(supplier);
@@ -227,146 +235,163 @@ export const Suppliers: React.FC = () => {
     setEditingSupplier(null);
   };
 
+  const handleDeleteConfirm = () => {
+    if (supplierToDelete) {
+      deleteMutation.mutate(supplierToDelete._id || supplierToDelete.id);
+    }
+  };
+
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader
-          title={`Suppliers`}
-          subtitle="Manage your supplier network"
-          action={
-            <Button icon={Plus} className='gradient-btn' onClick={() => setIsModalOpen(true)}>
-              Add Supplier
-            </Button>
-          }
+    <>
+      <div className="space-y-6">
+        <Card>
+          <CardHeader
+            title={`Suppliers`}
+            subtitle="Manage your supplier network"
+            action={
+              <Button icon={Plus} className='gradient-btn' onClick={() => setIsModalOpen(true)}>
+                Add Supplier
+              </Button>
+            }
+          />
+
+          {/* Search */}
+          <div className="mb-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <input
+                type="search"
+                placeholder="Search suppliers..."
+                className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                value={searchInput}
+                onChange={(e) => {
+                  setSearchInput(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+          </div>
+
+          {isLoading || isFetching ? (
+            <LoadingSpinner size="lg" />
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {suppliers.map((supplier: any) => (
+                  <Card key={supplier.id} className="hover:shadow-md transition-shadow">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center">
+                        <div className="h-10 w-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <Truck className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div className="ml-3">
+                          <h3 className="text-lg font-medium text-gray-900">{supplier.name}</h3>
+                          <p className="text-sm text-gray-500">{supplier.contact}</p>
+                        </div>
+                      </div>
+                      <div className="flex space-x-2">
+                        {isAdmin() && (
+                          <button
+                            onClick={() => handleEdit(supplier)}
+                            className="text-blue-600 hover:text-blue-900"
+                            title="Edit"
+                          >
+                            <Edit size={20} />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => navigate(`/suppliers/${supplier._id || supplier.id}`)}
+                          className="text-gray-600 hover:text-gray-900"
+                          title="View Details"
+                        >
+                          <Eye size={20} />
+                        </button>
+                        {isAdmin() && (
+                          <button
+                            onClick={() => openDeleteModal(supplier)}
+                            className="text-red-600 hover:text-red-900"
+                            title="Delete"
+                          >
+                            <Trash2 size={20} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Mail className="h-4 w-4 mr-2" />
+                        {supplier.email}
+                      </div>
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Phone className="h-4 w-4 mr-2" />
+                        {supplier.phone}
+                      </div>
+                      <div className="flex items-start text-sm text-gray-600">
+                        <MapPin className="h-4 w-4 mr-2 mt-0.5" />
+                        <span className="line-clamp-2">{supplier.address}</span>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+
+              {suppliers.length === 0 && (
+                <div className="text-center py-12">
+                  <Truck className="mx-auto h-12 w-12 text-gray-400" />
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">No suppliers found</h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Get started by adding your first supplier.
+                  </p>
+                </div>
+              )}
+
+              {/* Pagination Controls */}
+              {pagination.pages > 1 && (
+                <div className="flex justify-center items-center space-x-4 mt-6">
+                  <Button
+                    variant="outline"
+                    onClick={() => handlePrev()}
+                    disabled={page === 1}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-sm text-gray-700">
+                    Page {pagination.page} of {pagination.pages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleNext(pagination)}
+                    disabled={page === pagination.pages}
+                  >
+                    Next
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </Card>
+
+        <SupplierModal
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          supplier={editingSupplier}
         />
 
-        {/* Search */}
-        <div className="mb-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <input
-              type="search"
-              placeholder="Search suppliers..."
-              className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              value={searchInput}
-              onChange={(e) => {
-                setSearchInput(e.target.value);
-                setPage(1); // reset to first page on search
-              }}
-            />
-          </div>
-        </div>
 
-        {isLoading || isFetching ? (
-          <LoadingSpinner size="lg" />
-        ) : (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {suppliers.map((supplier: any) => (
-                <Card key={supplier.id} className="hover:shadow-md transition-shadow">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center">
-                      <div className="h-10 w-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <Truck className="h-5 w-5 text-blue-600" />
-                      </div>
-                      <div className="ml-3">
-                        <h3 className="text-lg font-medium text-gray-900">{supplier.name}</h3>
-                        <p className="text-sm text-gray-500">{supplier.contact}</p>
-                      </div>
-                    </div>
-                    <div className="flex space-x-2">
-                      {isAdmin() && (
-                        <button
-                          onClick={() => handleEdit(supplier)}
-                          className="text-blue-600 hover:text-blue-900"
-                          title="Edit"
-                        >
-                          <Edit size={20} />
-                        </button>
-                      )}
-                      <button
-                        onClick={() => navigate(`/suppliers/${supplier._id || supplier.id}`)}
-                        className="text-gray-600 hover:text-gray-900"
-                        title="View Details"
-                      >
-                        <Eye size={20} />
-                      </button>
-                      {isAdmin() && (
-                        <button
-                          onClick={() => {
-                            if (window.confirm('Are you sure you want to delete this supplier?')) {
-                              deleteMutation.mutate(supplier._id || supplier.id);
-                            }
-                          }}
-                          className="text-red-600 hover:text-red-900"
-                          title="Delete"
-                        >
-                          <Trash2 size={20} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Mail className="h-4 w-4 mr-2" />
-                      {supplier.email}
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Phone className="h-4 w-4 mr-2" />
-                      {supplier.phone}
-                    </div>
-                    <div className="flex items-start text-sm text-gray-600">
-                      <MapPin className="h-4 w-4 mr-2 mt-0.5" />
-                      <span className="line-clamp-2">{supplier.address}</span>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-
-            {suppliers.length === 0 && (
-              <div className="text-center py-12">
-                <Truck className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No suppliers found</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Get started by adding your first supplier.
-                </p>
-              </div>
-            )}
-
-            {/* Pagination Controls */}
-            {pagination.pages > 1 && (
-              <div className="flex justify-center items-center space-x-4 mt-6">
-                <Button
-                  variant="outline"
-                  onClick={() => handlePrev()}
-                  disabled={page === 1}
-                >
-                  Previous
-                </Button>
-                <span className="text-sm text-gray-700">
-                  Page {pagination.page} of {pagination.pages}
-                </span>
-                <Button
-                  variant="outline"
-                  onClick={() => handleNext(pagination)}
-                  disabled={page === pagination.pages}
-                >
-                  Next
-                </Button>
-              </div>
-            )}
-          </>
-        )}
-      </Card>
-
-      <SupplierModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        supplier={editingSupplier}
+      </div>
+      {/* ✅ Reusable Delete Modal */}
+      <ReusableDeleteModal
+        isOpen={isDeleteModalOpen}
+        onClose={closeDeleteModal}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Supplier"
+        message="Are you sure you want to delete this supplier?"
+        itemName={supplierToDelete?.name}
+        isDeleting={deleteMutation.isPending}
+        confirmText="Delete Supplier"
       />
-
-    </div>
+    </>
   );
 };
+

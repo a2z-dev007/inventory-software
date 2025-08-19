@@ -20,6 +20,7 @@ import { Product, Purposes, Supplier } from '../types';
 import { formatCurrency, getStatusColor } from '../utils/constants';
 import { generatePDF } from '../utils/pdf';
 import ReloadButton from '../components/common/ReloadButton';
+import { ReusableDeleteModal } from '../components/modals/ReusableDeleteModal';
 
 // Define error types
 interface ApiError {
@@ -84,7 +85,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
   // Add state for server-side error
   const [serverError, setServerError] = useState<string | null>(null);
   const [attachment, setAttachment] = useState<File | null>(null);
-  const [customerAddress,setCustomerAddress] = useState("")
+  const [customerAddress, setCustomerAddress] = useState("")
   const { data: productsData } = useQuery({
     queryKey: ['products'],
     queryFn: () => apiService.getProducts({ all: true }),
@@ -152,7 +153,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
         attachment: '',
         vendor: '',
         customer: '',
-        customerName:'',
+        customerName: '',
         siteType: 'Site',
         status: 'draft',
         remarks: '',
@@ -774,6 +775,10 @@ export const PurchaseOrders: React.FC = () => {
   const [serverError, setServerError] = useState<string | null>(null);
   const { isAdmin } = useAuth();
 
+  // Delete modal state
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [purchaseOrderToDelete, setPurchaseOrderToDelete] = useState<PurchaseOrder | null>(null);
+
   const {
     data: poResponse = { purchaseOrders: [], pagination: { page: 1, pages: 1, total: 0, limit } },
     isLoading,
@@ -863,7 +868,13 @@ export const PurchaseOrders: React.FC = () => {
     mutationFn: (id: string) => apiService.deletePurchaseOrder(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchase-orders'], exact: false });
+      setIsDeleteModalOpen(false);
+      setPurchaseOrderToDelete(null);
     },
+    onError: (error: unknown) => {
+      console.error('Delete error:', error);
+      // You can add toast notification here instead of alert
+    }
   });
 
   const handleEdit = (po: PurchaseOrder) => {
@@ -871,14 +882,25 @@ export const PurchaseOrders: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: string | undefined) => {
-    if (!id) {
-      alert('Invalid purchase order ID');
-      return;
-    }
-    if (window.confirm('Are you sure you want to delete this purchase order?')) {
+  const handleDeleteClick = (po: PurchaseOrder) => {
+    setPurchaseOrderToDelete(po);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (purchaseOrderToDelete) {
+      const id = purchaseOrderToDelete.id ?? purchaseOrderToDelete._id;
+      if (!id) {
+        alert('Invalid purchase order ID');
+        return;
+      }
       deleteMutation.mutate(String(id));
     }
+  };
+
+  const handleDeleteCancel = () => {
+    setIsDeleteModalOpen(false);
+    setPurchaseOrderToDelete(null);
   };
 
   const handleCloseModal = () => {
@@ -1051,7 +1073,7 @@ export const PurchaseOrders: React.FC = () => {
                 variant="info"
               />
               <ActionButton
-                onClick={() => handleDelete(po.id ?? po._id)}
+                onClick={() => handleDeleteClick(po)}
                 icon={Trash2}
                 label="Delete"
                 variant="danger"
@@ -1087,30 +1109,6 @@ export const PurchaseOrders: React.FC = () => {
               <p className="text-gray-600 mt-1">Manage and track your purchase orders</p>
             </div>
             <div className="flex items-center gap-3">
-              {/* View Mode Toggle */}
-              {/* <div className="hidden sm:flex bg-gray-100 rounded-lg p-1">
-                <button
-                  onClick={() => setViewMode('table')}
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${viewMode === 'table'
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                >
-                  <LayoutList size={16} className="inline mr-2" />
-                  Table
-                </button>
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${viewMode === 'grid'
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                >
-                  <LayoutGrid size={16} className="inline mr-2" />
-                  Grid
-                </button>
-              </div> */}
-
               <Button
                 icon={Plus}
                 className="gradient-btn hover:from-blue-700 hover:to-purple-700 text-white px-6 py-2.5 rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
@@ -1121,7 +1119,6 @@ export const PurchaseOrders: React.FC = () => {
             </div>
           </div>
         </div>
-
 
         {/* Search and Filters */}
         <Card className="mb-6">
@@ -1140,35 +1137,7 @@ export const PurchaseOrders: React.FC = () => {
                   }}
                 />
               </div>
-              {/* <div className="flex items-center gap-3">
-                <button className="flex items-center gap-2 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200">
-                  <Filter size={16} />
-                  <span className="hidden sm:inline">Filters</span>
-                </button>
-                <button className="flex items-center gap-2 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200">
-                  <SortAsc size={16} />
-                  <span className="hidden sm:inline">Sort</span>
-                </button>
-              </div> */}
             </div>
-            {/* <div className=''>
-              <Select
-
-                options={optionPO}
-                value={optionPO.find((opt) => opt.value === DBNum)}
-                onChange={(option) => setDBNum(option?.value)}
-                classNamePrefix="react-select"
-                styles={{
-                  control: (base, state) => ({
-                    ...base,
-
-                    boxShadow: state.isFocused ? '0 0 0 2px #3b82f6' : base.boxShadow,
-                    '&:hover': { borderColor: '#3b82f6' },
-                    minHeight: '38px',
-                  }),
-                }}
-              />
-            </div> */}
           </div>
         </Card>
 
@@ -1181,23 +1150,19 @@ export const PurchaseOrders: React.FC = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-
                       <th className={`px-6 py-4 text-left flex-1 text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors duration-150 group `}>
                         <div className="flex items-center gap-2">
-                          {/* <Hash size={14} /> */}
                           DB Num
                         </div>
                       </th>
 
                       <SortableHeader field="poNumber">
                         <div className="flex items-center gap-2">
-                          {/* <FileText size={14} /> */}
                           PO Number
                         </div>
                       </SortableHeader>
                       <SortableHeader field="vendor" className="hidden sm:table-cell">
                         <div className="flex items-center gap-2">
-                          {/* <Building size={14} /> */}
                           Supplier
                         </div>
                       </SortableHeader>
@@ -1206,19 +1171,16 @@ export const PurchaseOrders: React.FC = () => {
                       </SortableHeader>
                       <SortableHeader field="orderDate" className="hidden md:table-cell">
                         <div className="flex items-center gap-2">
-                          {/* <Calendar size={14} /> */}
                           Order Date
                         </div>
                       </SortableHeader>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider hidden lg:table-cell">
                         <div className="flex items-center gap-2">
-                          {/* <Paperclip size={14} /> */}
                           Files
                         </div>
                       </th>
                       <SortableHeader field="total">
                         <div className="flex items-center gap-2">
-                          {/* <DollarSign size={14} /> */}
                           Total
                         </div>
                       </SortableHeader>
@@ -1297,7 +1259,7 @@ export const PurchaseOrders: React.FC = () => {
                                   variant="info"
                                 />
                                 <ActionButton
-                                  onClick={() => handleDelete(po.id ?? po._id)}
+                                  onClick={() => handleDeleteClick(po)}
                                   icon={Trash2}
                                   label="Delete"
                                   variant="danger"
@@ -1358,7 +1320,6 @@ export const PurchaseOrders: React.FC = () => {
           {purchaseOrders.length > 0 && (
             <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
               <div className="flex flex-col sm:flex-row items-center justify-end gap-4">
-
                 <div className="flex items-center space-x-2">
                   <Button
                     type="button"
@@ -1417,6 +1378,19 @@ export const PurchaseOrders: React.FC = () => {
         onClose={() => setIsDetailModalOpen(false)}
         item={selectedDetailItem}
         title="Purchase Order Details"
+      />
+
+      {/* Reusable Delete Modal */}
+      <ReusableDeleteModal
+        isOpen={isDeleteModalOpen}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Purchase Order"
+        message="Are you sure you want to delete"
+        itemName={purchaseOrderToDelete?.ref_num}
+        isDeleting={deleteMutation.isPending}
+        confirmText="Delete Purchase Order"
+        extraInfo='This item will be move to Recycle Bin.'
       />
     </div>
   );

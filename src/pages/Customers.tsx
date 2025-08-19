@@ -14,6 +14,7 @@ import { useDebounce } from '../hooks/useDebounce';
 import { usePagination } from '../hooks/usePagination';
 import { DetailModal } from '../components/common/DetailModal';
 import { useAuth } from '../hooks/useAuth';
+import { ReusableDeleteModal } from '../components/modals/ReusableDeleteModal';
 
 const customerSchema = z.object({
   name: z.string().min(1, 'Client name is required'),
@@ -201,17 +202,14 @@ export const Customers: React.FC = () => {
   const debouncedSearch = useDebounce(searchTerm, 800);
   const queryClient = useQueryClient();
   const { isAdmin } = useAuth();
-  const {
-    page,
-    setPage,
-    handleNext,
-    handlePrev,
-    resetPage
-  } = usePagination(1);
-
+  const { page, handleNext, handlePrev, resetPage } = usePagination(1);
   const limit = 10;
 
-  // Fetch paginated customers with correct useQuery syntax and types
+  // Delete modal state
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [customerToDelete, setCustomerToDelete] = useState<any>(null);
+
+  // Fetch customers
   const {
     data: customerResponse = { customers: [], pagination: { page: 1, pages: 1, total: 0, limit } },
     isLoading,
@@ -221,32 +219,19 @@ export const Customers: React.FC = () => {
     refetchOnMount: true,
   });
 
-  // Always fallback to array/object to avoid map on undefined
   const customers = Array.isArray(customerResponse?.customers) ? customerResponse.customers : [];
   const pagination = customerResponse?.pagination || { page: 1, pages: 1, total: 0, limit };
 
-  // Use this instead to avoid the overload error:
-  const { data: salesData } = useQuery({
-    queryKey: ['sales'],
-    queryFn: () => apiService.getSales({}),
-
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => apiService.deleteClient(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      setIsDeleteModalOpen(false);
+      setCustomerToDelete(null);
+    },
   });
-  const sales = salesData?.sales || [];
-
-  const getCustomerStats = (customerName: string) => {
-    const customerSales = sales.filter((sale: Sale) => sale.customerName === customerName) || [];
-    const totalSales = customerSales.reduce((sum: number, sale: Sale) => sum + sale.total, 0);
-    const lastSale = customerSales.sort((a: Sale, b: Sale) => new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime())[0];
-    return {
-      totalSales,
-      totalOrders: customerSales.length,
-      lastSale: lastSale?.saleDate,
-    };
-  };
 
   const handleEdit = (customer: any) => {
-    // Debug: log customer object
-    console.log('handleEdit called with:', customer);
     setEditingCustomer(customer);
     setIsModalOpen(true);
   };
@@ -256,54 +241,63 @@ export const Customers: React.FC = () => {
     setEditingCustomer(null);
   };
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => apiService.deleteClient(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
-    },
-  });
+  // Delete handlers
+  const handleDeleteClick = (customer: any) => {
+    setCustomerToDelete(customer);
+    setIsDeleteModalOpen(true);
+  };
 
-  if (isLoading) {
-    return <LoadingSpinner size="lg" />;
-  }
+  const handleDeleteConfirm = () => {
+    if (customerToDelete) {
+      deleteMutation.mutate(customerToDelete._id || customerToDelete.id);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setIsDeleteModalOpen(false);
+    setCustomerToDelete(null);
+  };
+
+  if (isLoading) return <LoadingSpinner size="lg" />;
 
   return (
-    <div className="space-y-6  pb-6">
-      <Card>
-        <CardHeader
-          title={`Clients`}
-          subtitle="Manage your client base"
-          action={
-            <Button
-              icon={Plus}
-              className='gradient-btn'
-              onClick={() => setIsModalOpen(true)}
-            >
-              Add Client
-            </Button>
-          }
-        />
-        {/* Search */}
-        <div className="mb-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <input
-              type="search"
-              placeholder="Search Clients..."
-              className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                resetPage();
-              }}
-            />
+    <>
+      <div className="space-y-6 pb-6">
+        <Card>
+          <CardHeader
+            title={`Clients`}
+            subtitle="Manage your client base"
+            action={
+              <Button
+                icon={Plus}
+                className='gradient-btn'
+                onClick={() => setIsModalOpen(true)}
+              >
+                Add Client
+              </Button>
+            }
+          />
+
+          {/* Search */}
+          <div className="mb-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <input
+                type="search"
+                placeholder="Search Clients..."
+                className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  resetPage();
+                }}
+              />
+            </div>
           </div>
-        </div>
-        {/* Clients Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {customers.map((customer: any) => {
-            const stats = getCustomerStats(customer.name);
-            return (
+
+          {/* Clients Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {customers.map((customer: any) => (
               <Card key={customer._id || customer.id} className="hover:shadow-md transition-shadow">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center">
@@ -334,11 +328,7 @@ export const Customers: React.FC = () => {
                     </button>
                     {isAdmin() && (
                       <button
-                        onClick={() => {
-                          if (window.confirm('Are you sure you want to delete this customer?')) {
-                            deleteMutation.mutate(customer._id || customer.id);
-                          }
-                        }}
+                        onClick={() => handleDeleteClick(customer)}
                         className="text-red-600 hover:text-red-900"
                         title="Delete"
                       >
@@ -361,71 +351,48 @@ export const Customers: React.FC = () => {
                     <span className="line-clamp-2">{customer.address}</span>
                   </div>
                 </div>
-                {/* Customer Stats */}
-                {/* <div className="border-t pt-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs text-gray-500">Total Sales</p>
-                      <p className="text-sm font-medium text-gray-900">
-                        ${stats.totalSales.toLocaleString()}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Orders</p>
-                      <p className="text-sm font-medium text-gray-900">
-                        {stats.totalOrders}
-                      </p>
-                    </div>
-                  </div>
-                  {stats.lastSale && (
-                    <div className="mt-2">
-                      <p className="text-xs text-gray-500">Last Sale</p>
-                      <p className="text-sm text-gray-700">
-                        {new Date(stats.lastSale).toLocaleDateString()}
-                      </p>
-                    </div>
-                  )}
-                </div> */}
               </Card>
-            );
-          })}
-        </div>
-        {customers.length === 0 && (
-          <div className="text-center py-12">
-            <Users className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No customers found</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Get started by adding your first customer.
-            </p>
+            ))}
           </div>
-        )}
-        {/* Pagination Controls */}
-        <div className="flex justify-center items-center space-x-2 mt-6 mb-6">
-          <Button
-            type="button"
-            variant="outline"
-            disabled={pagination.page <= 1}
-            onClick={handlePrev}
-          >
-            Previous
-          </Button>
-          <span className="px-2">Page {pagination.page} of {pagination.pages}</span>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={pagination.page >= pagination.pages}
-            onClick={() => handleNext(pagination)}
-          >
-            Next
-          </Button>
-        </div>
-      </Card>
-      <CustomerModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        customer={editingCustomer}
-      />
 
-    </div>
+          {/* Pagination */}
+          <div className="flex justify-center items-center space-x-2 mt-6 mb-6">
+            <Button type="button" variant="outline" disabled={pagination.page <= 1} onClick={handlePrev}>
+              Previous
+            </Button>
+            <span className="px-2">Page {pagination.page} of {pagination.pages}</span>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={pagination.page >= pagination.pages}
+              onClick={() => handleNext(pagination)}
+            >
+              Next
+            </Button>
+          </div>
+        </Card>
+
+        {/* Customer Modal */}
+        <CustomerModal
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          customer={editingCustomer}
+        />
+
+
+      </div>
+      {/* Reusable Delete Modal */}
+      <ReusableDeleteModal
+        isOpen={isDeleteModalOpen}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Client"
+        message="Are you sure you want to delete this client?"
+        itemName={customerToDelete?.name}
+        isDeleting={deleteMutation.isPending}
+        confirmText="Delete Client"
+      // extraInfo="You can restore this client from Recycle Bin"
+      />
+    </>
   );
 };

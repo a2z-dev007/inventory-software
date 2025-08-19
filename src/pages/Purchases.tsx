@@ -18,6 +18,7 @@ import { usePagination } from '../hooks/usePagination';
 import { apiService } from '../services/api';
 import { extractCancelledItemsFromPurchases, formatCurrency, getStatusColor } from '../utils/constants';
 import ReloadButton from '../components/common/ReloadButton';
+import { ReusableDeleteModal } from '../components/modals/ReusableDeleteModal';
 
 const purchaseItemSchema = z.object({
   productId: z.string().min(1, 'Product is required'),
@@ -164,7 +165,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
     defaultValues: {
       ref_num: '',
       supplier: '',
-      items: [{ productId: 0, quantity: 1, unitPrice: 0, unitType: '', isCancelled: false, isReturn: false }],
+      items: [{ productId: '', quantity: 1, unitPrice: 0, unitType: '', isCancelled: false, isReturn: false }],
       invoiceFile: '',
       remarks: '',
       receivedBy: '',
@@ -244,7 +245,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
         ...prevValues,
         ref_num: matchedPO.ref_num,
         supplier: matchedPO.vendor,
-        items: mergedItems.length ? mergedItems : [{ productId: 0, quantity: 1, unitPrice: 0, unitType: '', isCancelled: false, isReturn: false }],
+        items: mergedItems.length ? mergedItems : [{ productId: '', quantity: 1, unitPrice: 0, unitType: '', isCancelled: false, isReturn: false }],
         invoiceFile: prevValues.invoiceFile || matchedPO.attachment || '',
         remarks: prevValues.remarks,
         receivedBy: prevValues.receivedBy,
@@ -261,7 +262,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
       reset({
         ref_num: '',
         supplier: '',
-        items: [{ productId: 0, quantity: 1, unitPrice: 0, unitType: '', isCancelled: false, isReturn: false }],
+        items: [{ productId: '', quantity: 1, unitPrice: 0, unitType: '', isCancelled: false, isReturn: false }],
         invoiceFile: '',
         remarks: '',
         receivedBy: '',
@@ -397,10 +398,34 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
               <SelectField<any>
                 label="DB Number"
                 name="ref_num"
-                options={purchaseOrderData?.purchaseOrders.filter(item => !item.isPurchasedCreated)?.map((po: any) => ({ value: po.ref_num, label: po.ref_num })) || []}
+                options={
+                  isEditing
+                    ? [
+                      // current DB number (disabled)
+                      {
+                        value: currentPurchase?.ref_num,
+                        label: `${currentPurchase?.ref_num} (locked)`,
+                        disabled: true,
+                      },
+                      // other available DB numbers for create mode
+                      ...(purchaseOrderData?.purchaseOrders
+                        .filter(item => !item.isPurchasedCreated)
+                        .map((po: any) => ({
+                          value: po.ref_num,
+                          label: po.ref_num,
+                        })) || []),
+                    ]
+                    : purchaseOrderData?.purchaseOrders
+                      .filter(item => !item.isPurchasedCreated)
+                      .map((po: any) => ({
+                        value: po.ref_num,
+                        label: po.ref_num,
+                      })) || []
+                }
                 control={control}
-                error={errors.supplier}
+                error={errors.ref_num}
                 required
+                disabled={isEditing} // 👈 lock the dropdown entirely when editing
               />
 
               <div className="">
@@ -651,7 +676,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
                   reset({
                     ref_num: '',
                     supplier: '',
-                    items: [{ productId: 0, quantity: 1, unitPrice: 0, unitType: '' }],
+                    items: [{ productId: '', quantity: 1, unitPrice: 0, unitType: '' }],
                     invoiceFile: undefined,
                     remarks: '',
                   });
@@ -678,10 +703,14 @@ export const Purchases: React.FC = () => {
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedEditPurchase, setSelectedEditPurchase] = useState<Purchase | null>(null); // <-- New state
+  const [selectedEditPurchase, setSelectedEditPurchase] = useState<Purchase | null>(null);
   const debouncedSearch = useDebounce(searchTerm, 800);
   const { page, handleNext, handlePrev } = usePagination(1);
   const { isAdmin } = useAuth();
+
+  // Delete modal state
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [purchaseToDelete, setPurchaseToDelete] = useState<Purchase | null>(null);
 
   const { data: purchasesData, isLoading, refetch } = useQuery<PurchasesApiResponse>({
     queryKey: ['purchases', page, debouncedSearch],
@@ -697,6 +726,7 @@ export const Purchases: React.FC = () => {
 
   const filteredPurchases = extractCancelledItemsFromPurchases(purchases, false);
   console.log("filteredPurchases", filteredPurchases)
+
   const generateReceiptPDF = (purchase: any) => {
     const doc = new jsPDF();
 
@@ -735,209 +765,227 @@ export const Purchases: React.FC = () => {
     mutationFn: (id: string) => apiService.deletePurchase(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchases'] });
+      setIsDeleteModalOpen(false);
+      setPurchaseToDelete(null);
     },
+    onError: (error: unknown) => {
+      console.error('Delete error:', error);
+      // You can add toast notification here instead of alert
+    }
   });
+
+  const handleDeleteClick = (purchase: Purchase) => {
+    setPurchaseToDelete(purchase);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (purchaseToDelete) {
+      deleteMutation.mutate(purchaseToDelete._id);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setIsDeleteModalOpen(false);
+    setPurchaseToDelete(null);
+  };
 
   if (isLoading) {
     return <LoadingSpinner size="lg" />;
   }
 
   return (
-    <div className="space-y-6">
-      <ReloadButton isLoading={isLoading} refetch={refetch} />
-      <Card>
-        <CardHeader
-          title={`Purchases`}
-          subtitle="Create and manage your purchases"
-          action={
-            <Button
-              icon={Plus}
-              className='gradient-btn'
-              onClick={() => setIsModalOpen(true)}
-            >
-              Create Purchase
-            </Button>
-          }
+    <>
+      <div className="space-y-6">
+        <ReloadButton isLoading={isLoading} refetch={refetch} />
+        <Card>
+          <CardHeader
+            title={`Purchases`}
+            subtitle="Create and manage your purchases"
+            action={
+              <Button
+                icon={Plus}
+                className='gradient-btn'
+                onClick={() => setIsModalOpen(true)}
+              >
+                Create Purchase
+              </Button>
+            }
+          />
+
+          {/* Search */}
+          <div className="mb-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <input
+                type="search"
+                placeholder="Search purchases..."
+                className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Purchases Table */}
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    DB Number
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Receipt
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Supplier
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Purchase Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Invoice File
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Total
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredPurchases.map((purchase, index) => (
+                  <tr key={purchase._id} className={`hover:bg-gray-50`}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <span className={`px-2 py-1 text-sm font-medium rounded-full ${getStatusColor('delivered')}`}>
+                          {purchase?.ref_num}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <span className={`px-2 py-1 text-sm font-medium rounded-full ${getStatusColor('delivered')}`}>
+                          {purchase?.receiptNumber}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {purchase.vendor}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {new Date(purchase.purchaseDate).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {purchase.invoiceFile ? (
+                        <a
+                          target='_blank'
+                          className="text-white rounded-full p-1 px-2 text-xs bg-blue-500 hover:text-green-900"
+                          href={purchase.invoiceFile}
+                        >
+                          View File
+                        </a>
+                      ) : (
+                        <span className="text-sm text-gray-400">No file</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {formatCurrency(purchase.total)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                      {isAdmin() && (
+                        <button
+                          onClick={() => {
+                            setSelectedEditPurchase(purchase);
+                            setIsModalOpen(true);
+                          }}
+                          className="text-blue-600 hover:text-blue-900"
+                          title="Edit"
+                        >
+                          <Edit size={20} />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => navigate(`/purchases/${purchase._id}`)}
+                        className="text-gray-600 hover:text-gray-900"
+                        title="View Details"
+                      >
+                        <Eye size={20} />
+                      </button>
+                      {isAdmin() && (
+                        <button
+                          onClick={() => handleDeleteClick(purchase)}
+                          className="text-red-600 hover:text-red-900"
+                          title="Delete"
+                        >
+                          <Trash2 size={20} />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination Controls */}
+          {pagination.pages > 1 && (
+            <div className="flex justify-center items-center space-x-4 mt-6">
+              <Button
+                variant="outline"
+                onClick={() => handlePrev()}
+                disabled={page === 1}
+              >
+                Previous
+              </Button>
+              <span className="text-sm text-gray-700">
+                Page {pagination.page} of {pagination.pages}
+              </span>
+              <Button
+                variant="outline"
+                onClick={() => handleNext(pagination)}
+                disabled={page === pagination.pages}
+              >
+                Next
+              </Button>
+            </div>
+          )}
+
+          {filteredPurchases.length === 0 && (
+            <div className="text-center py-8">
+              <ReceiptIndianRupee className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No purchases found</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Get started by creating your first purchase.
+              </p>
+            </div>
+          )}
+        </Card>
+
+        <PurchaseModal
+          isOpen={isModalOpen}
+          onClose={() => { setIsModalOpen(false); setSelectedEditPurchase(null); }}
+          purchase={selectedEditPurchase}
         />
 
-        {/* Search */}
-        <div className="mb-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <input
-              type="search"
-              placeholder="Search purchases..."
-              className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-              }}
-            />
-          </div>
-        </div>
 
-        {/* Purchases Table */}
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  DB Number
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Receipt
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Supplier
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Purchase Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Invoice File
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Total
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredPurchases.map((purchase, index) => (
-                <tr key={purchase._id} className={`hover:bg-gray-50`}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      {/* <NotepadTextIcon className="h-5 w-5 text-gray-400 mr-3" /> */}
-                      <span className={`px-2 py-1 text-sm  font-medium rounded-full ${getStatusColor('delivered')}`}>
-                        {purchase?.ref_num}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      {/* <NotepadTextIcon className="h-5 w-5 text-gray-400 mr-3" /> */}
-
-                      <span className={`px-2 py-1 text-sm  font-medium rounded-full ${getStatusColor('delivered')}`}>
-
-                        {purchase?.receiptNumber}
-                      </span>
-
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {purchase.vendor}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {new Date(purchase.purchaseDate).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {purchase.invoiceFile ? (
-                      <a
-                        target='_blank'
-                        className="text-white rounded-full p-1 px-2 text-xs  bg-blue-500 hover:text-green-900"
-
-                        href={purchase.invoiceFile}
-                      >
-
-                        View File
-                      </a>
-                    ) : (
-                      <span className="text-sm text-gray-400">No file</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {formatCurrency(purchase.total)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                    {/* <button
-                      onClick={() => generateReceiptPDF(purchase)}
-                      className="text-green-600 hover:text-green-900"
-                      title="Download Receipt"
-                    >
-                      <Download size={20} />
-                    </button> */}
-
-                    {isAdmin() && (
-                      <button
-                        onClick={() => {
-                          setSelectedEditPurchase(purchase); // <-- Set for editing
-                          setIsModalOpen(true);
-                        }}
-                        className="text-blue-600 hover:text-blue-900"
-                        title="Edit"
-                      >
-                        <Edit size={20} />
-                      </button>
-                    )}
-                    <button
-                      onClick={() => navigate(`/purchases/${purchase._id}`)}
-                      className="text-gray-600 hover:text-gray-900"
-                      title="View Details"
-                    >
-                      <Eye size={20} />
-                    </button>
-                    {isAdmin() && (
-                      <button
-                        onClick={() => {
-                          if (window.confirm('Are you sure you want to delete this purchase?')) {
-                            deleteMutation.mutate(purchase._id);
-                          }
-                        }}
-                        className="text-red-600 hover:text-red-900"
-                        title="Delete"
-                      >
-                        <Trash2 size={20} />
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination Controls */}
-        {pagination.pages > 1 && (
-          <div className="flex justify-center items-center space-x-4 mt-6">
-            <Button
-              variant="outline"
-              onClick={() => handlePrev()}
-              disabled={page === 1}
-            >
-              Previous
-            </Button>
-            <span className="text-sm text-gray-700">
-              Page {pagination.page} of {pagination.pages}
-            </span>
-            <Button
-              variant="outline"
-              onClick={() => handleNext(pagination)}
-              disabled={page === pagination.pages}
-            >
-              Next
-            </Button>
-          </div>
-        )}
-
-        {filteredPurchases.length === 0 && (
-          <div className="text-center py-8">
-            <ReceiptIndianRupee className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No purchases found</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Get started by Createing your first purchase.
-            </p>
-          </div>
-        )}
-      </Card>
-
-      <PurchaseModal
-        isOpen={isModalOpen}
-        onClose={() => { setIsModalOpen(false); setSelectedEditPurchase(null); }}
-        purchase={selectedEditPurchase}
+      </div>
+      {/* Reusable Delete Modal */}
+      <ReusableDeleteModal
+        isOpen={isDeleteModalOpen}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Purchase"
+        message="Are you sure you want to delete purchase"
+        itemName={purchaseToDelete?.receiptNumber || purchaseToDelete?.ref_num}
+        isDeleting={deleteMutation.isPending}
+        confirmText="Delete Purchase"
+        extraInfo='You can restore this item from Recycle Bin'
       />
-
-    </div>
+    </>
   );
 };

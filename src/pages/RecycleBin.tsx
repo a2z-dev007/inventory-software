@@ -107,9 +107,11 @@ const RecycleBin: React.FC = () => {
     refetch: reloadPO,
   } = useQuery({
     queryKey: ['purchase-orders-deleted', page, debouncedSearch],
-    queryFn: () => apiService.getDeletedPurchaseOrders({ page, limit, search: debouncedSearch }),
+    queryFn: async () => {
+      const res = await apiService.getDeletedPurchaseOrders({ page, limit, search: debouncedSearch });
+      return res.data; // 👈 unwrap here
+    },
     enabled: activeTab === 'all' || activeTab === 'purchaseOrder',
-    // refetchOnMount: true, // Add this line
     refetchOnMount: true,
     refetchOnWindowFocus: true,
     staleTime: 0,
@@ -582,7 +584,7 @@ const RecycleBin: React.FC = () => {
           </div>
 
           {/* Search and Actions */}
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6">
+          {/* <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6">
             <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
               <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -614,7 +616,7 @@ const RecycleBin: React.FC = () => {
                 </div>
               )}
             </div>
-          </div>
+          </div> */}
         </div>
 
         {/* Loading State */}

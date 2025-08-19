@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Edit, Eye, Package, Plus, RefreshCcw, Search, Trash2 } from 'lucide-react';
+import { Edit, Eye, Package, Plus, RefreshCcw, Search, Trash2, AlertTriangle } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
@@ -16,6 +16,7 @@ import { usePagination } from '../hooks/usePagination';
 import { apiService } from '../services/api';
 import { Product } from '../types';
 import { formatCurrency } from '../utils/constants';
+import DeleteModal from '../components/modals/DeleteModal';
 
 const UNIT_TYPE_OPTIONS = [
   { value: 'Nos', label: 'Nos' },
@@ -50,6 +51,7 @@ interface ProductModalProps {
   onClose: () => void;
   product?: Product;
 }
+
 
 const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product }) => {
   const queryClient = useQueryClient();
@@ -235,6 +237,10 @@ export const Products: React.FC = () => {
   // const queryClient = useQueryClient();
   const { isAdmin } = useAuth();
 
+  // Delete modal state
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+
   const {
     data: productResponse = { products: [], pagination: { page: 1, pages: 1, total: 0, limit } },
     isLoading,
@@ -255,7 +261,13 @@ export const Products: React.FC = () => {
     mutationFn: apiService.deleteProduct,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      setIsDeleteModalOpen(false);
+      setProductToDelete(null);
     },
+    onError: (error: unknown) => {
+      console.error('Delete error:', error);
+      // You can add toast notification here instead of alert
+    }
   });
 
   const filteredProducts: Product[] = products;
@@ -268,6 +280,22 @@ export const Products: React.FC = () => {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingProduct(undefined);
+  };
+
+  const handleDeleteClick = (product: Product) => {
+    setProductToDelete(product);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (productToDelete) {
+      deleteMutation.mutate(productToDelete._id);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setIsDeleteModalOpen(false);
+    setProductToDelete(null);
   };
 
   if (isLoading) {
@@ -360,7 +388,7 @@ export const Products: React.FC = () => {
                           className="text-blue-600 hover:text-blue-900"
                           title="Edit"
                         >
-                          <Edit className="h-4 w-4" />
+                          <Edit size={20} />
                         </button>
                       )}
                       <button
@@ -368,19 +396,15 @@ export const Products: React.FC = () => {
                         className="text-gray-600 hover:text-gray-900"
                         title="View Details"
                       >
-                        <Eye className="h-4 w-4" />
+                        <Eye size={20} />
                       </button>
                       {isAdmin() && (
                         <button
-                          onClick={() => {
-                            if (window.confirm('Are you sure you want to delete this product?')) {
-                              deleteMutation.mutate(product._id);
-                            }
-                          }}
+                          onClick={() => handleDeleteClick(product)}
                           className="text-red-600 hover:text-red-900"
                           title="Delete"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 size={20} />
                         </button>
                       )}
 
@@ -420,13 +444,23 @@ export const Products: React.FC = () => {
             </Button>
           </div>
         </Card>
+
         <ProductModal
           isOpen={isModalOpen}
           onClose={handleCloseModal}
           product={editingProduct}
         />
 
+
+
       </div>
+      <DeleteModal
+        isOpen={isDeleteModalOpen}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        productName={productToDelete?.name || ''}
+        isDeleting={deleteMutation.isPending}
+      />
     </>
   );
 };

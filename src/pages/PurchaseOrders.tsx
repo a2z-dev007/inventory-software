@@ -1,16 +1,17 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowDown, ArrowUp, ArrowUpDown, Building, Calendar, CheckCircle, ChevronLeft, ChevronRight, Clock, DollarSign, Download, Edit, ExternalLink, Eye, FileText, Filter, Fullscreen, Hash, LayoutGrid, LayoutList, LockIcon, Paperclip, Plus, RefreshCcw, Search, SortAsc, Trash2, X } from 'lucide-react';
-import Select from "react-select"
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Download, Edit, ExternalLink, Eye, FileText, Fullscreen, LockIcon, Paperclip, Plus, Search, Trash2, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { Button } from '../components/common/Button';
-import { Card, CardHeader } from '../components/common/Card';
+import { Card } from '../components/common/Card';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
+import ReloadButton from '../components/common/ReloadButton';
 import { FormField } from '../components/forms/FormField';
 import { SelectField } from '../components/forms/SelectField';
+import { ReusableDeleteModal } from '../components/modals/ReusableDeleteModal';
 import { PODetailModal } from '../components/PO/PODetailModal';
 import { useAuth } from '../hooks/useAuth';
 import { useDebounce } from '../hooks/useDebounce';
@@ -19,8 +20,6 @@ import { apiService } from '../services/api';
 import { Product, Purposes, Supplier } from '../types';
 import { formatCurrency, getStatusColor } from '../utils/constants';
 import { generatePDF } from '../utils/pdf';
-import ReloadButton from '../components/common/ReloadButton';
-import { ReusableDeleteModal } from '../components/modals/ReusableDeleteModal';
 
 // Define error types
 interface ApiError {
@@ -44,6 +43,7 @@ export const purchaseOrderSchema = z.object({
   vendor: z.string().min(1, 'Supplier is required'),
   customer: z.string().min(1, 'Client is required'),
   customerName: z.string().optional(),
+  customerAddress: z.string().optional(), // <-- Add this line
   siteType: z.string().min(1, 'Site Type is required').default("Site"),
   status: z.enum(['draft', 'pending', 'approved', 'delivered', 'cancelled']),
   attachment: z.union([z.instanceof(File), z.string(), z.null()]).optional(),
@@ -86,6 +86,8 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
   const [serverError, setServerError] = useState<string | null>(null);
   const [attachment, setAttachment] = useState<File | null>(null);
   const [customerAddress, setCustomerAddress] = useState("")
+  const [customerName, setCustomerName] = useState("");
+
   const { data: productsData } = useQuery({
     queryKey: ['products'],
     queryFn: () => apiService.getProducts({ all: true }),
@@ -133,6 +135,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
         vendor: purchaseOrder.vendor || '',
         customer: purchaseOrder.customer || '',
         customerName: purchaseOrder.customerName || '',
+        customerAddress: purchaseOrder.customerAddress || '',
         siteType: purchaseOrder.siteType || '',
         status: purchaseOrder.status || 'draft',
         deliveryDate: purchaseOrder.deliveryDate || '',
@@ -154,6 +157,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
         vendor: '',
         customer: '',
         customerName: '',
+        customerAddress: '',
         siteType: 'Site',
         status: 'draft',
         remarks: '',
@@ -267,12 +271,13 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
         total: item.quantity * item.unitPrice,
       };
     });
-
+    console.log("data", data)
     const formData = new FormData();
 
     formData.append('ref_num', data.ref_num);
     formData.append('vendor', data.vendor);
-    formData.append('customer', data.customer);
+    formData.append('customer', data?.customer || '');
+    formData.append('customerName', customerName || ''); // ✅ send name
     formData.append('customerAddress', customerAddress || '');
     formData.append('siteType', data.siteType);
     formData.append('status', data.status);
@@ -312,10 +317,12 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
       const selectedCustomer = customers.find(c => c._id === selectedCustomerId);
       if (selectedCustomer) {
         setCustomerAddress(selectedCustomer.address)
+        setCustomerName(selectedCustomer.name || "");   // ✅ set name too
         setValue('customerAddress', selectedCustomer.address || '');
       }
     } else {
       setValue('customerAddress', '');
+      setCustomerName("");  // ✅ reset
       setCustomerAddress("")
     }
   }, [selectedCustomerId, customers, setValue]);
@@ -343,13 +350,15 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
         attachment: purchaseOrder.attachment || null, // Use null instead of empty string for no attachment
         vendor: purchaseOrder.vendor,
         customer: purchaseOrder.customer,
+        customerName: purchaseOrder.customerName,
+        customerAddress: purchaseOrder.customerAddress,
         siteType: purchaseOrder.siteType,
         status: purchaseOrder.status,
         remarks: purchaseOrder.remarks,
         site_incharge: purchaseOrder.site_incharge,
         contractor: purchaseOrder.contractor,
         orderedBy: purchaseOrder.orderedBy,
-        deliveryDate: purchaseOrder.deliveryDate,
+        deliveryDate: purchaseOrder.deliveryDate || '',
         purpose: purchaseOrder.purpose,
         items: purchaseOrder.items.map((item: PurchaseOrderItem) => ({
           productId: String(item.productId),
@@ -366,6 +375,8 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
         attachment: null, // Use null instead of empty string for no attachment
         vendor: '',
         customer: '',
+        customerName: '',
+        customerAddress: '',
         siteType: 'Site',
         status: 'draft',
         remarks: '',
@@ -386,6 +397,7 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
   const subtotal = calculateSubtotal();
   const total = subtotal;
 
+  console.log('Selected customer address:', purchaseOrder?.customer);
   return (
     <div style={{ marginTop: 0 }} className="fixed inset-0 bg-black bg-opacity-50 flex items-center backdrop-blur-sm justify-center p-4 z-50">
 
@@ -737,6 +749,7 @@ export interface PurchaseOrder {
   siteType?: string;
   customer?: string;
   customerName?: string;
+  customerAddress?: string;
   status: 'draft' | 'approved' | 'delivered' | 'cancelled';
   orderDate: string;
   items: PurchaseOrderItem[];

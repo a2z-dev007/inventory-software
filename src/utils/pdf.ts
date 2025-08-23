@@ -168,7 +168,7 @@ export const generatePDF = async (po) => {
   // Customer Information Section
   currentY = addSectionTitle('CUSTOMER INFORMATION', currentY);
   
-  currentY = addFieldRow('Customer:', po.customer, currentY);
+  currentY = addFieldRow('Customer:', po.customerName, currentY);
   
   // Handle multi-line address
   if (po.customerAddress) {

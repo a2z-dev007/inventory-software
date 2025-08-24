@@ -27,6 +27,7 @@ export const API_ROUTES = {
   CUSTOMER: (id: string) => `/customers/${id}`,
 
   PURCHASE_ORDERS: '/purchase-orders',
+
   DELETED_PURCHASE_ORDERS: '/purchase-orders/recycle-bin',
   DELETED_SALES: '/sales/recycle-bin',
   DELETED_PURCHASES: '/purchases/recycle-bin',
@@ -44,6 +45,12 @@ export const API_ROUTES = {
   PURCHASE: (id: string) => `/purchases/${id}`,
   PURCHASE_FINAL_DELETE: (id: string) => `/purchases/final-delete/${id}`,
 
+  // Purchase Returns
+  PURCHASE_RETURNS: '/purchase-returns',
+  DELETED_PURCHASE_RETURNS: '/purchase-returns/recycle-bin',
+  PURCHASE_RETURN: (id: string) => `/purchase-returns/${id}`,
+  PURCHASE_RETURN_FINAL_DELETE: (id: string) => `/purchase-returns/final-delete/${id}`,
+  RESTORE_PURCHASE_RETURN: (id: string) => `/purchase-returns/${id}/restore`,
 
 
   REPORTS_DASHBOARD: '/reports/dashboard',

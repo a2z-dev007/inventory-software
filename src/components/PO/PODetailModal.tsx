@@ -24,7 +24,7 @@ export const PODetailModal: React.FC<DetailModalProps> = ({ isOpen, onClose, ite
   };
 
   return (
-    <div  className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
 
       <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200">
         {/* Header */}
@@ -93,7 +93,7 @@ export const PODetailModal: React.FC<DetailModalProps> = ({ isOpen, onClose, ite
                 <h3 className="text-sm font-medium text-gray-500">Delivery Date</h3>
               </div>
               <p className="text-lg font-semibold text-gray-900">
-                {item.deliveryDate ? 
+                {item.deliveryDate ?
                   new Date(item.deliveryDate).toLocaleDateString('en-US', {
                     year: 'numeric',
                     month: 'short',
@@ -234,19 +234,14 @@ export const PODetailModal: React.FC<DetailModalProps> = ({ isOpen, onClose, ite
 
           {/* Footer */}
           <div className="flex justify-end space-x-3">
-            {
-              item.attachment && (
-                <button
-                onClick={() => generatePDF(item)}
-                className="flex items-center px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:shadow-md transition-all"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Download PDF
-              </button>
-              )
-            }
+            <button
+              onClick={() => generatePDF(item)}
+              className="flex items-center px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:shadow-md transition-all"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Download PDF
+            </button>
 
-          
             <button
               onClick={onClose}
               className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"

@@ -32,19 +32,17 @@ import BackButton from '../components/common/BackButton';
 export interface PurchaseType {
   _id: string;
   ref_num: string;
-  invoiceFile: null;
   vendor: string;
-  purchaseDate: Date;
   items: Item[];
   subtotal: number;
   total: number;
-  receiptNumber: string;
   createdBy: CreatedBy;
   isDeleted: boolean;
-  remarks: string;
+  returnDate: Date;
   createdAt: Date;
   updatedAt: Date;
   __v: number;
+  receiptNumber: string;
 }
 
 export interface CreatedBy {
@@ -60,8 +58,6 @@ export interface Item {
   unitPrice: number;
   unitType: string;
   total: number;
-  isCancelled?: boolean;
-  isReturn?: boolean;
   _id: string;
 }
 
@@ -75,7 +71,10 @@ export const PurchaseReturnedDetail: React.FC = () => {
     error,
   } = useQuery<PurchaseType>({
     queryKey: ['purchase', id],
-    queryFn: () => apiService.getPurchaseById(id!),
+    queryFn: async () => {
+      const res = await apiService.getPurchaseReturnById(id!);
+      return res.data.purchaseReturn; // 👈 unwrap here
+    },
     enabled: !!id,
   });
 
@@ -84,10 +83,11 @@ export const PurchaseReturnedDetail: React.FC = () => {
   };
 
   const po = purchase;
+  console.log('Purchase Return Details:', po);
   const getStatusColor = () => {
     return 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/25';
   };
-  let filterItems = po?.items?.filter(item => item.isReturn === true)?.length
+  let filterItems = po?.items?.length
 
   return (
     <div className="min-h-screen  p-4 sm:p-6 lg:p-8">
@@ -141,7 +141,7 @@ export const PurchaseReturnedDetail: React.FC = () => {
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div>
                 <p className="text-sm font-medium text-gray-600">Return Date</p>
-                <p className="text-lg font-bold text-gray-900">{formatRelativeDate(po?.purchaseDate)}</p>
+                <p className="text-lg font-bold text-gray-900">{formatRelativeDate(po?.returnDate)}</p>
               </div>
               <div className="bg-gradient-to-r from-purple-500 to-pink-600 p-3 rounded-xl shadow-lg shadow-purple-500/25">
                 <Calendar className="h-6 w-6 text-white" />
@@ -217,7 +217,7 @@ export const PurchaseReturnedDetail: React.FC = () => {
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-600 mb-1">Purchase Date</p>
-                        <p className="font-bold text-lg text-gray-900">{formatRelativeDate(po?.purchaseDate)}</p>
+                        <p className="font-bold text-lg text-gray-900">{formatRelativeDate(po?.returnDate)}</p>
                       </div>
                     </div>
                   </div>
@@ -318,21 +318,14 @@ export const PurchaseReturnedDetail: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {po?.items.filter(item => item.isReturn === true)?.map((item, index) => (
-                  <tr key={item._id} className={`hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-purple-50/50 transition-all duration-300 border-b border-gray-100 ${item?.isReturn ? 'bg-red-100 ' : ''} `}>
+                {po?.items?.map((item, index) => (
+                  <tr key={item._id} className={`hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-purple-50/50 transition-all duration-300 border-b border-gray-100 `}>
                     <td className="px-8 py-6">
                       <div className="flex items-center space-x-4">
                         <div className="bg-gradient-to-r from-red-500 to-purple-600 p-3 rounded-xl shadow-lg shadow-blue-500/25">
                           <Package className="h-5 w-5 text-white" />
                         </div>
-                        <div>
-                          <p className="font-bold text-gray-900 text-lg">{item.productName}</p>
-                          {
-                            item?.isCancelled && (
-                              <span className='text-red-500 font-bold'>({item?.isCancelled ? "Item Cancelled" : ''})</span>
-                            )
-                          }
-                        </div>
+
                       </div>
                     </td>
 

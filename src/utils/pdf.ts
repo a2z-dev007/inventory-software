@@ -64,23 +64,23 @@ export const generatePDF = async (po) => {
       item.unitPrice.toLocaleString('en-IN'),
       item.total.toLocaleString('en-IN'),
     ]),
-    styles: { 
-      fontSize: 10, 
-      halign: 'center', 
-      valign: 'middle', 
+    styles: {
+      fontSize: 10,
+      halign: 'center',
+      valign: 'middle',
       cellPadding: 3,
       font: 'helvetica'
     },
-    headStyles: { 
-      fillColor: primaryColor, 
+    headStyles: {
+      fillColor: primaryColor,
       textColor: [255, 255, 255],
       font: 'helvetica',
       fontStyle: 'bold'
     },
-    alternateRowStyles: { 
-      fillColor: [245, 245, 245] 
+    alternateRowStyles: {
+      fillColor: [245, 245, 245]
     },
-    bodyStyles: { 
+    bodyStyles: {
       textColor: [40, 40, 40],
       font: 'helvetica'
     },
@@ -89,15 +89,15 @@ export const generatePDF = async (po) => {
   // Calculate totals and add subtotal right below table
   const subtotal = po.items.reduce((sum, item) => sum + item.total, 0);
   const tableEndY = doc.lastAutoTable.finalY;
-  
+
   // Add subtotal section right below the table - positioned on the left
   const subtotalY = tableEndY + 5;
   const subtotalBoxWidth = 60;
   const subtotalBoxX = margin; // Position at left margin
-  
+
   doc.setFillColor(...lightGray);
   doc.rect(subtotalBoxX, subtotalY, subtotalBoxWidth, 8, 'F');
-  
+
   doc.setTextColor(...primaryColor);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
@@ -123,7 +123,7 @@ export const generatePDF = async (po) => {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.text(label, margin, y);
-    
+
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...secondaryColor);
     const leftValue = value || '-';
@@ -134,7 +134,7 @@ export const generatePDF = async (po) => {
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(...darkText);
       doc.text(rightLabel, margin + 115, y);
-      
+
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(...secondaryColor);
       const rightVal = rightValue || '-';
@@ -146,20 +146,20 @@ export const generatePDF = async (po) => {
 
   // Order Information Section
   currentY = addSectionTitle('ORDER INFORMATION', currentY);
-  
+
   currentY = addFieldRow(
-    'PO Number:', 
-    po.poNumber, 
-    currentY, 
-    'Date:', 
+    'PO Number:',
+    po.poNumber,
+    currentY,
+    'Date:',
     format(new Date(po.orderDate), 'dd-MM-yyyy')
   );
 
   currentY = addFieldRow(
-    'Status:', 
-    po.status.toUpperCase(), 
-    currentY, 
-    'DB No:', 
+    'Status:',
+    po.status.toUpperCase(),
+    currentY,
+    'DB No:',
     po.ref_num
   );
 
@@ -167,16 +167,16 @@ export const generatePDF = async (po) => {
 
   // Customer Information Section
   currentY = addSectionTitle('CUSTOMER INFORMATION', currentY);
-  
+
   currentY = addFieldRow('Customer:', po.customerName, currentY);
-  
+
   // Handle multi-line address
   if (po.customerAddress) {
     doc.setTextColor(...darkText);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.text('Address:', margin, currentY);
-    
+
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...secondaryColor);
     const addressLines = doc.splitTextToSize(po.customerAddress, contentWidth - 50);
@@ -190,13 +190,13 @@ export const generatePDF = async (po) => {
 
   // Project Information Section
   currentY = addSectionTitle('PROJECT INFORMATION', currentY);
-  
+
   currentY = addFieldRow('Supplier Name:', po.vendor, currentY);
   currentY = addFieldRow(
-    'Site Incharge:', 
-    po.site_incharge, 
-    currentY, 
-    'Contractor:', 
+    'Site Incharge:',
+    po.site_incharge,
+    currentY,
+    'Contractor:',
     po.contractor
   );
 
@@ -209,12 +209,12 @@ export const generatePDF = async (po) => {
   // Order Details Section
   let orderDetailsY = currentY;
   orderDetailsY = addSectionTitle('ORDER DETAILS', orderDetailsY);
-  
+
   orderDetailsY = addFieldRow(
-    'Ordered By:', 
-    po.orderedBy, 
-    orderDetailsY, 
-    'Delivery Date:', 
+    'Ordered By:',
+    po.orderedBy,
+    orderDetailsY,
+    'Delivery Date:',
     format(new Date(po.deliveryDate), 'dd-MM-yyyy')
   );
 
@@ -225,7 +225,7 @@ export const generatePDF = async (po) => {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.text('Remarks:', margin, orderDetailsY);
-    
+
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...secondaryColor);
     doc.setFontSize(9);
@@ -239,7 +239,7 @@ export const generatePDF = async (po) => {
   doc.setDrawColor(...primaryColor);
   doc.setLineWidth(0.5);
   doc.line(margin, footerY, pageWidth - margin, footerY);
-  
+
   doc.setTextColor(...secondaryColor);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);

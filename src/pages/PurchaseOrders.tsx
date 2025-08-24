@@ -1056,14 +1056,12 @@ export const PurchaseOrders: React.FC = () => {
         {/* Actions */}
         <div className="flex items-center justify-between pt-4 border-t border-gray-100">
           <div className="flex space-x-1">
-            {po.attachment && (
-              <ActionButton
-                onClick={() => generatePDF(po)}
-                icon={Download}
-                label="Download PDF"
-                variant="success"
-              />
-            )}
+            <ActionButton
+              onClick={() => generatePDF(po)}
+              icon={Download}
+              label="Download PDF"
+              variant="success"
+            />
             <ActionButton
               onClick={() => navigate(`/purchase-orders/${po._id}`)}
               icon={Eye}
@@ -1321,7 +1319,7 @@ export const PurchaseOrders: React.FC = () => {
               </p>
               <Button
                 icon={Plus}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-2.5 rounded-lg"
+                className="gradient-btn hover:from-blue-700 hover:to-purple-700 text-white px-6 py-2.5 rounded-lg"
                 onClick={() => { setIsModalOpen(true); setServerError(null); }}
               >
                 Create Your First PO

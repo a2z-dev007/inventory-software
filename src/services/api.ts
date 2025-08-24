@@ -59,21 +59,21 @@ export const apiService = {
   // Authentication
   login: async (username: string, password: string, rememberMe: boolean) => {
     try {
-      const res = await request<{ 
-        success: boolean; 
+      const res = await request<{
+        success: boolean;
         message: string;
-        data?: { 
-          user: any; 
+        data?: {
+          user: any;
           token: string;
           expiresIn: string;
-        }; 
-        error?: { type: string; value: string; msg: string; path: string; location: string } 
+        };
+        error?: { type: string; value: string; msg: string; path: string; location: string }
       }>(API_ROUTES.LOGIN, {
         method: 'POST',
         body: JSON.stringify({ username, password, rememberMe }),
       });
 
-      if(res.success === false) {
+      if (res.success === false) {
         throw new Error(res.message);
       }
       if (res.success) {
@@ -93,7 +93,7 @@ export const apiService = {
         page: params.page?.toString() || '1',
         limit: params.limit?.toString() || '10',
         search: params.search || '',
-        all:params.all?.toString() || 'false',
+        all: params.all?.toString() || 'false',
       }).toString();
       const res = await request<any>(`${API_ROUTES.PRODUCTS}?${query}`);
       return res.data; // { products, pagination }
@@ -119,7 +119,7 @@ export const apiService = {
         method: 'POST',
         body: JSON.stringify(product),
       });
-      if(res.success === false) {
+      if (res.success === false) {
         throw new Error(res.message);
       }
       if (res.success) {
@@ -160,14 +160,14 @@ export const apiService = {
   },
 
   // Purchase Orders
-  getPurchaseOrders: async (params: { page?: number; limit?: number; search?: string; all?: boolean,isDeleted?:boolean } = { all: false }) => {
+  getPurchaseOrders: async (params: { page?: number; limit?: number; search?: string; all?: boolean, isDeleted?: boolean } = { all: false }) => {
     try {
       const query = new URLSearchParams({
         page: params.page?.toString() || '1',
         limit: params.limit?.toString() || '10',
         search: params?.search || '',
-        all:params.all?.toString() || 'false',
-        isDeleted:params?.isDeleted?.toString() || 'false',
+        all: params.all?.toString() || 'false',
+        isDeleted: params?.isDeleted?.toString() || 'false',
       }).toString();
       const res = await request<any>(`${API_ROUTES.PURCHASE_ORDERS}?${query}`);
       return res.data; // { purchaseOrders, pagination }
@@ -177,14 +177,14 @@ export const apiService = {
     }
   },
 
-  getDeletedPurchaseOrders: async (params: { page?: number; limit?: number; search?: string; all?: boolean,isDeleted?:boolean } = { all: false }) => {
+  getDeletedPurchaseOrders: async (params: { page?: number; limit?: number; search?: string; all?: boolean, isDeleted?: boolean } = { all: false }) => {
     try {
       const query = new URLSearchParams({
         page: params.page?.toString() || '1',
         limit: params.limit?.toString() || '10',
         search: params?.search || '',
-        all:params.all?.toString() || 'false',
-        isDeleted:params?.isDeleted?.toString() || 'false',
+        all: params.all?.toString() || 'false',
+        isDeleted: params?.isDeleted?.toString() || 'false',
       }).toString();
       const res = await request<any>(`${API_ROUTES.DELETED_PURCHASE_ORDERS}?${query}`);
       return res.data; // { purchaseOrders, pagination }
@@ -204,125 +204,144 @@ export const apiService = {
     }
   },
 
-createPurchaseOrder: async (po: Omit<any, 'id'> | FormData) => {
-  try {
-    const isFormData = po instanceof FormData;
+  createPurchaseOrder: async (po: Omit<any, 'id'> | FormData) => {
+    try {
+      const isFormData = po instanceof FormData;
 
-    const res = await request<any>(API_ROUTES.PURCHASE_ORDERS, {
-      method: 'POST',
-      body: isFormData ? po : JSON.stringify(po),
-      headers: isFormData ? undefined : { 'Content-Type': 'application/json' },
-    });
+      const res = await request<any>(API_ROUTES.PURCHASE_ORDERS, {
+        method: 'POST',
+        body: isFormData ? po : JSON.stringify(po),
+        headers: isFormData ? undefined : { 'Content-Type': 'application/json' },
+      });
 
-    if (res.success === false) {
-      throw new Error(res.message || 'Failed to create purchase order');
+      if (res.success === false) {
+        throw new Error(res.message || 'Failed to create purchase order');
+      }
+
+      if (res.success) {
+        toast.success(res.message || 'Purchase order created successfully');
+        return res;
+      }
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to create purchase order');
+      throw error;
     }
+  },
 
-    if (res.success) {
-      toast.success(res.message || 'Purchase order created successfully');
-      return res;
+  updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
+    try {
+      const isFormData = po instanceof FormData;
+
+      const res = await request<any>(API_ROUTES.PURCHASE_ORDER(id), {
+        method: 'PUT',
+        body: isFormData ? po : JSON.stringify(po),
+        headers: isFormData ? undefined : { 'Content-Type': 'application/json' },
+      });
+
+      if (res.success === false) {
+        throw new Error(res.message || 'Failed to update purchase order');
+      }
+
+      if (res.success) {
+        toast.success(res.message || 'Purchase order updated successfully');
+        return res;
+      }
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to update purchase order');
+      throw error;
     }
-  } catch (error: any) {
-    toast.error(error?.response?.data?.message || error.message || 'Failed to create purchase order');
-    throw error;
-  }
-},
+  },
 
-updatePurchaseOrder: async (id: string, po: Partial<any> | FormData) => {
-  try {
-    const isFormData = po instanceof FormData;
+  restorePO: async (id: string) => {
+    try {
 
-    const res = await request<any>(API_ROUTES.PURCHASE_ORDER(id), {
-      method: 'PUT',
-      body: isFormData ? po : JSON.stringify(po),
-      headers: isFormData ? undefined : { 'Content-Type': 'application/json' },
-    });
+      const res = await request<any>(API_ROUTES.RESTORE_PURCHASE_ORDER(id), {
+        method: 'PUT',
+      });
 
-    if (res.success === false) {
-      throw new Error(res.message || 'Failed to update purchase order');
+      if (res.success === false) {
+        throw new Error(res.message || 'Failed to restore purchase order');
+      }
+
+      if (res.success) {
+        toast.success(res.message || 'Purchase order restore successfully');
+        return res;
+      }
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to update purchase order');
+      throw error;
     }
+  },
+  restoreSales: async (id: string) => {
+    try {
 
-    if (res.success) {
-      toast.success(res.message || 'Purchase order updated successfully');
-      return res;
+      const res = await request<any>(API_ROUTES.RESTORE_SALES(id), {
+        method: 'PUT',
+      });
+
+      if (res.success === false) {
+        throw new Error(res.message || 'Failed restore Sales');
+      }
+
+      if (res.success) {
+        toast.success(res.message || 'Sales restore successfully');
+        return res;
+      }
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to restore sales');
+      throw error;
     }
-  } catch (error: any) {
-    toast.error(error?.response?.data?.message || error.message || 'Failed to update purchase order');
-    throw error;
-  }
-},
+  },
+  restorePurchase: async (id: string) => {
+    try {
 
-restorePO: async (id: string) => {
-  try {
+      const res = await request<any>(API_ROUTES.RESTORE_PURCHASES(id), {
+        method: 'PUT',
+      });
 
-    const res = await request<any>(API_ROUTES.RESTORE_PURCHASE_ORDER(id), {
-      method: 'PUT',
-    });
+      if (res.success === false) {
+        throw new Error(res.message || 'Failed to restore purchases');
+      }
 
-    if (res.success === false) {
-      throw new Error(res.message || 'Failed to restore purchase order');
+      if (res.success) {
+        toast.success(res.message || 'Purchases  restore successfully');
+        return res;
+      }
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to restore purchases');
+      throw error;
     }
+  },
+  restorePurchaseReturn: async (id: string) => {
+    try {
 
-    if (res.success) {
-      toast.success(res.message || 'Purchase order restore successfully');
-      return res;
+      const res = await request<any>(API_ROUTES.RESTORE_PURCHASE_RETURN(id), {
+        method: 'PUT',
+      });
+
+      if (res.success === false) {
+        throw new Error(res.message || 'Failed to restore purchase return');
+      }
+
+      if (res.success) {
+        toast.success(res.message || 'Purchase Return  restore successfully');
+        return res;
+      }
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to restore purchase return');
+      throw error;
     }
-  } catch (error: any) {
-    toast.error(error?.response?.data?.message || error.message || 'Failed to update purchase order');
-    throw error;
-  }
-},
-restoreSales: async (id: string) => {
-  try {
-
-    const res = await request<any>(API_ROUTES.RESTORE_SALES(id), {
-      method: 'PUT',
-    });
-
-    if (res.success === false) {
-      throw new Error(res.message || 'Failed restore Sales');
-    }
-
-    if (res.success) {
-      toast.success(res.message || 'Sales restore successfully');
-      return res;
-    }
-  } catch (error: any) {
-    toast.error(error?.response?.data?.message || error.message || 'Failed to restore sales');
-    throw error;
-  }
-},
-restorePurchase: async (id: string) => {
-  try {
-
-    const res = await request<any>(API_ROUTES.RESTORE_PURCHASES(id), {
-      method: 'PUT',
-    });
-
-    if (res.success === false) {
-      throw new Error(res.message || 'Failed to restore purchases');
-    }
-
-    if (res.success) {
-      toast.success(res.message || 'Purchases  restore successfully');
-      return res;
-    }
-  } catch (error: any) {
-    toast.error(error?.response?.data?.message || error.message || 'Failed to restore purchases');
-    throw error;
-  }
-},
-
+  },
   deletePurchaseOrder: async (id: string) => {
     try {
       const res = await request<any>(API_ROUTES.PURCHASE_ORDER(id), {
         method: 'DELETE',
       });
-      if(res.success === false) {
+      if (res.success === false) {
         throw new Error(res.message || 'Failed to delete purchase order');
         return
       }
-      if(res.success) {
+      if (res.success) {
         toast.success(res.message || 'Purchase order deleted successfully');
       }
       return res;
@@ -338,11 +357,11 @@ restorePurchase: async (id: string) => {
       const res = await request<any>(API_ROUTES.PURCHASE_ORDER_FINAL_DELETE(id), {
         method: 'DELETE',
       });
-      if(res.success === false) {
+      if (res.success === false) {
         throw new Error(res.message || 'Failed to delete purchase order');
         return
       }
-      if(res.success) {
+      if (res.success) {
         toast.success(res.message || 'Purchase order deleted successfully');
       }
       return res;
@@ -353,14 +372,14 @@ restorePurchase: async (id: string) => {
   },
 
   // Sales
-  getSales: async (params: { page?: number; limit?: number; search?: string; all?: boolean,isDeleted?:boolean } = { all: false }) => {
+  getSales: async (params: { page?: number; limit?: number; search?: string; all?: boolean, isDeleted?: boolean } = { all: false }) => {
     try {
       const query = new URLSearchParams({
         page: params.page?.toString() || '1',
         limit: params.limit?.toString() || '10',
         search: params.search || '',
-        all:params.all?.toString() || 'false',
-        isDeleted:params.isDeleted?.toString() || 'false',
+        all: params.all?.toString() || 'false',
+        isDeleted: params.isDeleted?.toString() || 'false',
       }).toString();
       const res = await request<any>(`${API_ROUTES.SALES}?${query}`);
       return res.data; // { sales, pagination }
@@ -370,14 +389,14 @@ restorePurchase: async (id: string) => {
     }
   },
 
-  getDeletedSales: async (params: { page?: number; limit?: number; search?: string; all?: boolean,isDeleted?:boolean } = { all: false }) => {
+  getDeletedSales: async (params: { page?: number; limit?: number; search?: string; all?: boolean, isDeleted?: boolean } = { all: false }) => {
     try {
       const query = new URLSearchParams({
         page: params.page?.toString() || '1',
         limit: params.limit?.toString() || '10',
         search: params.search || '',
-        all:params.all?.toString() || 'false',
-        isDeleted:params.isDeleted?.toString() || 'false',
+        all: params.all?.toString() || 'false',
+        isDeleted: params.isDeleted?.toString() || 'false',
       }).toString();
       const res = await request<any>(`${API_ROUTES.DELETED_SALES}?${query}`);
       return res.data; // { sales, pagination }
@@ -403,10 +422,10 @@ restorePurchase: async (id: string) => {
         method: 'POST',
         body: JSON.stringify(sale),
       });
-      if(res.success){
-      toast.success(res.message || 'Sale created successfully');
+      if (res.success) {
+        toast.success(res.message || 'Sale created successfully');
       }
-      if(res.success === false){
+      if (res.success === false) {
         throw new Error(res.message || 'Failed to create sale');
       }
       return res;
@@ -422,10 +441,10 @@ restorePurchase: async (id: string) => {
         method: 'PUT',
         body: JSON.stringify(sale),
       });
-      if(res.success){
-      toast.success(res.message || 'Sale updated successfully');
+      if (res.success) {
+        toast.success(res.message || 'Sale updated successfully');
       }
-      if(res.success === false){
+      if (res.success === false) {
         throw new Error(res.message || 'Failed to update sale');
         return
       }
@@ -441,10 +460,10 @@ restorePurchase: async (id: string) => {
       const res = await request<any>(API_ROUTES.SALE(id), {
         method: 'DELETE',
       });
-      if(res.success){
-      toast.success(res.message || 'Sale deleted successfully');
+      if (res.success) {
+        toast.success(res.message || 'Sale deleted successfully');
       }
-      if(res.success === false){
+      if (res.success === false) {
         throw new Error(res.message || 'Failed to delete sale');
         return
       }
@@ -456,13 +475,13 @@ restorePurchase: async (id: string) => {
   },
 
   // Purchases
-  getPurchases: async (params: { page?: number; limit?: number; search?: string,all?:boolean,isDeleted?:boolean } = {}) => {
+  getPurchases: async (params: { page?: number; limit?: number; search?: string, all?: boolean, isDeleted?: boolean } = {}) => {
     try {
       const query = new URLSearchParams({
         page: params.page?.toString() || '1',
         limit: params.limit?.toString() || '10',
         search: params.search || '',
-        isDeleted:params?.isDeleted?.toString() || 'false',
+        isDeleted: params?.isDeleted?.toString() || 'false',
       }).toString();
       const res = await request<any>(`${API_ROUTES.PURCHASES}?${query}`);
       return res.data;
@@ -471,13 +490,13 @@ restorePurchase: async (id: string) => {
       throw error;
     }
   },
-  getDeletedPurchases: async (params: { page?: number; limit?: number; search?: string,all?:boolean,isDeleted?:boolean } = {}) => {
+  getDeletedPurchases: async (params: { page?: number; limit?: number; search?: string, all?: boolean, isDeleted?: boolean } = {}) => {
     try {
       const query = new URLSearchParams({
         page: params.page?.toString() || '1',
         limit: params.limit?.toString() || '10',
         search: params.search || '',
-        isDeleted:params?.isDeleted?.toString() || 'false',
+        isDeleted: params?.isDeleted?.toString() || 'false',
       }).toString();
       const res = await request<any>(`${API_ROUTES.DELETED_PURCHASES}?${query}`);
       return res.data;
@@ -497,7 +516,7 @@ restorePurchase: async (id: string) => {
     }
   },
 
-  createPurchase: async (purchase:Omit<any, 'id'> | FormData) => {
+  createPurchase: async (purchase: Omit<any, 'id'> | FormData) => {
     try {
       const isFormData = purchase instanceof FormData;
       const res = await request<any>(API_ROUTES.PURCHASES, {
@@ -505,12 +524,12 @@ restorePurchase: async (id: string) => {
         body: isFormData ? purchase : JSON.stringify(purchase),
         headers: isFormData ? undefined : { 'Content-Type': 'application/json' },
       });
-     if(res.success){
-      toast.success(res.message || 'Purchase created successfully');
-     }
-     if(res.success === false){
-      throw new Error(res.message || 'Failed to create purchase');
-     }
+      if (res.success) {
+        toast.success(res.message || 'Purchase created successfully');
+      }
+      if (res.success === false) {
+        throw new Error(res.message || 'Failed to create purchase');
+      }
 
       return res;
     } catch (error: any) {
@@ -528,16 +547,16 @@ restorePurchase: async (id: string) => {
         body: isFormData ? purchase : JSON.stringify(purchase),
         headers: isFormData ? undefined : { 'Content-Type': 'application/json' },
       });
-      if(res.success){
+      if (res.success) {
         toast.success(res.message || 'Purchase updated successfully');
         return res;
       }
-      if(res.success === false){
+      if (res.success === false) {
         throw new Error(res.message || 'Failed to update purchase');
         return
 
       }
-      
+
     } catch (error: any) {
       toast.error(error?.response?.data?.message || error.message || 'Failed to update purchase');
       throw error;
@@ -549,10 +568,10 @@ restorePurchase: async (id: string) => {
       const res = await request<any>(API_ROUTES.PURCHASE(id), {
         method: 'DELETE',
       });
-      if(res.success){
+      if (res.success) {
         toast.success(res.message || 'Purchase deleted successfully');
       }
-      if(res.success === false){
+      if (res.success === false) {
         throw new Error(res.message || 'Failed to delete purchase');
       }
       return res;
@@ -566,10 +585,10 @@ restorePurchase: async (id: string) => {
       const res = await request<any>(API_ROUTES.PURCHASE_FINAL_DELETE(id), {
         method: 'DELETE',
       });
-      if(res.success){
+      if (res.success) {
         toast.success(res.message || 'Purchase deleted successfully');
       }
-      if(res.success === false){
+      if (res.success === false) {
         throw new Error(res.message || 'Failed to delete purchase');
       }
       return res;
@@ -578,6 +597,134 @@ restorePurchase: async (id: string) => {
       throw error;
     }
   },
+
+
+  // Purchase Returns
+
+  // Purchases
+  getPurchaseReturns: async (params: { page?: number; limit?: number; search?: string, all?: boolean, isDeleted?: boolean } = {}) => {
+    try {
+      const query = new URLSearchParams({
+        page: params.page?.toString() || '1',
+        limit: params.limit?.toString() || '10',
+        search: params.search || '',
+        isDeleted: params?.isDeleted?.toString() || 'false',
+      }).toString();
+      const res = await request<any>(`${API_ROUTES.PURCHASE_RETURNS}?${query}`);
+      return res.data;
+    } catch (error) {
+      console.error('Error fetching purchases:', error);
+      throw error;
+    }
+  },
+  getDeletedPurchaseReturn: async (params: { page?: number; limit?: number; search?: string, all?: boolean, isDeleted?: boolean } = {}) => {
+    try {
+      const query = new URLSearchParams({
+        page: params.page?.toString() || '1',
+        limit: params.limit?.toString() || '10',
+        search: params.search || '',
+        isDeleted: params?.isDeleted?.toString() || 'false',
+      }).toString();
+      const res = await request<any>(`${API_ROUTES.DELETED_PURCHASE_RETURNS}?${query}`);
+      return res.data;
+    } catch (error) {
+      console.error('Error fetching purchases:', error);
+      throw error;
+    }
+  },
+
+  getPurchaseReturnById: async (id: string) => {
+    try {
+      const res = await request<any>(API_ROUTES.PURCHASE_RETURN(id));
+      return res.data?.purchase;
+    } catch (error) {
+      console.error('Error fetching purchase:', error);
+      throw error;
+    }
+  },
+
+  createPurchaseReturn: async (purchase: Omit<any, 'id'> | FormData) => {
+    try {
+      const isFormData = purchase instanceof FormData;
+      const res = await request<any>(API_ROUTES.PURCHASE_RETURNS, {
+        method: 'POST',
+        body: isFormData ? purchase : JSON.stringify(purchase),
+        headers: isFormData ? undefined : { 'Content-Type': 'application/json' },
+      });
+      if (res.success) {
+        toast.success(res.message || 'Purchase created successfully');
+      }
+      if (res.success === false) {
+        throw new Error(res.message || 'Failed to create purchase');
+      }
+
+      return res;
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to create purchase');
+      throw error;
+    }
+  },
+
+  updatePurchaseReturn: async (id: string, purchase: Partial<any>) => {
+    try {
+      const isFormData = purchase instanceof FormData;
+
+      const res = await request<any>(API_ROUTES.PURCHASE_RETURN(id), {
+        method: 'PUT',
+        body: isFormData ? purchase : JSON.stringify(purchase),
+        headers: isFormData ? undefined : { 'Content-Type': 'application/json' },
+      });
+      if (res.success) {
+        toast.success(res.message || 'Purchase updated successfully');
+        return res;
+      }
+      if (res.success === false) {
+        throw new Error(res.message || 'Failed to update purchase');
+        return
+
+      }
+
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to update purchase');
+      throw error;
+    }
+  },
+
+  deletePurchaseReturn: async (id: string) => {
+    try {
+      const res = await request<any>(API_ROUTES.PURCHASE_RETURN(id), {
+        method: 'DELETE',
+      });
+      if (res.success) {
+        toast.success(res.message || 'Purchase deleted successfully');
+      }
+      if (res.success === false) {
+        throw new Error(res.message || 'Failed to delete purchase');
+      }
+      return res;
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to delete purchase');
+      throw error;
+    }
+  },
+  finalDeletePurchaseReturn: async (id: string) => {
+    try {
+      const res = await request<any>(API_ROUTES.PURCHASE_RETURN_FINAL_DELETE(id), {
+        method: 'DELETE',
+      });
+      if (res.success) {
+        toast.success(res.message || 'Purchase Return deleted successfully');
+      }
+      if (res.success === false) {
+        throw new Error(res.message || 'Failed to delete  purchase return');
+      }
+      return res;
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to delete purchase return');
+      throw error;
+    }
+  },
+
 
   // Vendors/Suppliers
   getSuppliers: async (params: { page?: number; limit?: number; search?: string; all?: boolean } = { all: false }) => {
@@ -595,7 +742,7 @@ restorePurchase: async (id: string) => {
       throw error;
     }
   },
-  
+
 
   getSupplierById: async (id: string) => {
     try {
@@ -613,10 +760,10 @@ restorePurchase: async (id: string) => {
         method: 'POST',
         body: JSON.stringify(supplier),
       });
-      if(res.success){
-      toast.success(res.message || 'Supplier created successfully');
+      if (res.success) {
+        toast.success(res.message || 'Supplier created successfully');
       }
-      if(res.success === false){
+      if (res.success === false) {
         throw new Error(res.message || 'Failed to create vendor');
         return
       }
@@ -633,13 +780,13 @@ restorePurchase: async (id: string) => {
         method: 'PUT',
         body: JSON.stringify(supplier),
       });
-     if(res.success){
-      toast.success(res.message || 'Supplier updated successfully');
-     }
-     if(res.success === false){
-      throw new Error(res.message || 'Failed to update vendor');
-      return
-     }
+      if (res.success) {
+        toast.success(res.message || 'Supplier updated successfully');
+      }
+      if (res.success === false) {
+        throw new Error(res.message || 'Failed to update vendor');
+        return
+      }
       return res;
     } catch (error: any) {
       toast.error(error?.response?.data?.message || error.message || 'Failed to update vendor');
@@ -661,7 +808,7 @@ restorePurchase: async (id: string) => {
   },
 
   // Customers
-  getCustomers: async (params: { page?: number; limit?: number; search?: string; sortBy?: string; sortOrder?: string ,all?:boolean} = {all:false}) => {
+  getCustomers: async (params: { page?: number; limit?: number; search?: string; sortBy?: string; sortOrder?: string, all?: boolean } = { all: false }) => {
     try {
       const query = new URLSearchParams({
         page: params.page?.toString() || '1',
@@ -679,7 +826,7 @@ restorePurchase: async (id: string) => {
       throw error;
     }
   },
-  
+
 
   getCustomerById: async (id: string) => {
     try {
@@ -697,10 +844,10 @@ restorePurchase: async (id: string) => {
         method: 'POST',
         body: JSON.stringify(client),
       });
-      if(res.success){
-      toast.success(res.message || 'Customer created successfully');
+      if (res.success) {
+        toast.success(res.message || 'Customer created successfully');
       }
-      if(res.success === false){
+      if (res.success === false) {
         throw new Error(res.message || 'Failed to create customer');
         return
       }
@@ -717,13 +864,13 @@ restorePurchase: async (id: string) => {
         method: 'PUT',
         body: JSON.stringify(client),
       });
-     if(res.success){
-      toast.success(res.message || 'Customer updated successfully');
-     }
-     if(res.success === false){
-      throw new Error(res.message || 'Failed to update customer');
-      return
-     }
+      if (res.success) {
+        toast.success(res.message || 'Customer updated successfully');
+      }
+      if (res.success === false) {
+        throw new Error(res.message || 'Failed to update customer');
+        return
+      }
       return res;
     } catch (error: any) {
       toast.error(error?.response?.data?.message || error.message || 'Failed to update customer');
@@ -736,10 +883,10 @@ restorePurchase: async (id: string) => {
       const res = await request<any>(API_ROUTES.CUSTOMER(id), {
         method: 'DELETE',
       });
-      if(res.success){
-      toast.success(res.message || 'Customer deleted successfully');
+      if (res.success) {
+        toast.success(res.message || 'Customer deleted successfully');
       }
-      if(res.success === false){
+      if (res.success === false) {
         throw new Error(res.message || 'Failed to delete customer');
         return
       }
@@ -758,12 +905,12 @@ restorePurchase: async (id: string) => {
       });
       // The backend returns { success, data: { overview, recentSales, topProducts } }
       if (res.success && res.data) {
-        const data  =
-          {
-            lowStockProducts:res.data.lowStockProducts,
-            outOfStockProducts:res.data.outOfStockProducts
-          }
-        
+        const data =
+        {
+          lowStockProducts: res.data.lowStockProducts,
+          outOfStockProducts: res.data.outOfStockProducts
+        }
+
         return {
           ...res.data.overview,
           recentSales: res.data.recentSales,
@@ -787,11 +934,11 @@ restorePurchase: async (id: string) => {
         body: JSON.stringify({ currentPassword, newPassword }),
       });
 
-      if(res.success === false){
+      if (res.success === false) {
         throw new Error(res.message || 'Failed to change password');
         return
       }
-      if(res.success){
+      if (res.success) {
         toast.success(res.message || 'Password changed successfully');
       }
       // toast.success(res.message || 'Password changed successfully');
@@ -810,10 +957,10 @@ restorePurchase: async (id: string) => {
         body: JSON.stringify({ email, newPassword }),
       });
       // toast.success(res.message || 'Password changed successfully');
-      if(res.success){
+      if (res.success) {
         toast.success(res.message || 'Password changed successfully');
       }
-      if(res.success === false){
+      if (res.success === false) {
         throw new Error(res.message || 'Failed to change password');
         return
       }
@@ -836,17 +983,17 @@ restorePurchase: async (id: string) => {
   },
 
 
-  toggleSaleActiveStatus: async ({ id, isActive }:{id:string,isActive:boolean}) => {
+  toggleSaleActiveStatus: async ({ id, isActive }: { id: string, isActive: boolean }) => {
     try {
-      console.log("{ isActive }",{ isActive })
+      console.log("{ isActive }", { isActive })
       const res = await request<any>(API_ROUTES.SALE(id + "/active"), {
         method: 'PATCH',
         body: JSON.stringify({ isActive }), // ✅ works with request() function logic
       });
-      if(res.success){
-      toast.success(res.message || 'Sale updated successfully');
+      if (res.success) {
+        toast.success(res.message || 'Sale updated successfully');
       }
-      if(res.success === false){
+      if (res.success === false) {
         throw new Error(res.message || 'Failed to update sale');
         return
       }
@@ -856,7 +1003,7 @@ restorePurchase: async (id: string) => {
       throw error;
     }
   },
-  getAllPurposes: async ({ page = 1, limit = 10, search = '',all=false }) => {
+  getAllPurposes: async ({ page = 1, limit = 10, search = '', all = false }) => {
     try {
       const res = await request<any>(API_ROUTES.PURPOSES, {
         method: 'GET',
@@ -867,7 +1014,7 @@ restorePurchase: async (id: string) => {
           all
         },
       });
-      
+
       // Your backend sends response as: { success, data: { vendors, pagination } }
       return res.data; // ✅ Return vendors + pagination
     } catch (error) {
@@ -982,7 +1129,7 @@ restorePurchase: async (id: string) => {
   },
 
 
-  exportToExcel: async ({ moduleName, startDate, endDate,}:{moduleName:string,startDate:string,endDate:string}) => {
+  exportToExcel: async ({ moduleName, startDate, endDate, }: { moduleName: string, startDate: string, endDate: string }) => {
     try {
       const res = await request<any>(API_ROUTES.REPORTS_EXCEL(moduleName), {
         method: 'GET',
@@ -991,7 +1138,7 @@ restorePurchase: async (id: string) => {
           endDate,
         },
       });
-  
+
       // Backend returns: { success: true, data: [...] }
       return res; // ✅ Return data array for export
     } catch (error) {
@@ -999,5 +1146,5 @@ restorePurchase: async (id: string) => {
       throw error;
     }
   },
-  
+
 };

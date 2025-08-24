@@ -581,7 +581,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
                                     Cancelled
                                   </label>
 
-                                  <label className="flex items-center gap-1 text-sm text-yellow-600">
+                                  {/* <label className="flex items-center gap-1 text-sm text-yellow-600">
                                     <input
                                       type="radio"
                                       value="return"
@@ -592,7 +592,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
                                       }}
                                     />
                                     Return
-                                  </label>
+                                  </label> */}
                                 </div>
                               );
                             }}

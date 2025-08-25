@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Download, Edit, ExternalLink, Eye, FileText, Fullscreen, LockIcon, Paperclip, Plus, Search, Trash2, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Download, Edit, ExternalLink, Eye, FileText, Fullscreen, LockIcon, Paperclip, Plus, Search, Trash2, X, CheckSquare, Square } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
@@ -787,6 +787,10 @@ export const PurchaseOrders: React.FC = () => {
     value: ""
   });
 
+  // Bulk selection states
+  const [selectedPOs, setSelectedPOs] = useState<Set<string>>(new Set());
+  const [selectAll, setSelectAll] = useState(false);
+
   const limit = 10;
   const queryClient = useQueryClient();
   const [serverError, setServerError] = useState<string | null>(null);
@@ -971,6 +975,64 @@ export const PurchaseOrders: React.FC = () => {
     </th>
   );
 
+  // Bulk selection handlers
+  const handleSelectAll = () => {
+    if (selectAll) {
+      setSelectedPOs(new Set());
+      setSelectAll(false);
+    } else {
+      const allIds = new Set<string>(purchaseOrders.map((po: PurchaseOrder) => po.id ?? po._id));
+      setSelectedPOs(allIds);
+      setSelectAll(true);
+    }
+  };
+
+  const handleSelectPO = (poId: string | undefined) => {
+    if (!poId) return;
+
+    const newSelected = new Set(selectedPOs);
+    if (newSelected.has(poId)) {
+      newSelected.delete(poId);
+    } else {
+      newSelected.add(poId);
+    }
+    setSelectedPOs(newSelected);
+
+    // Update select all state
+    if (newSelected.size === purchaseOrders.length) {
+      setSelectAll(true);
+    } else {
+      setSelectAll(false);
+    }
+  };
+
+  const handleBulkDownload = async () => {
+    if (selectedPOs.size === 0) return;
+
+    const selectedPOObjects = purchaseOrders.filter((po: PurchaseOrder) => selectedPOs.has(po.id ?? po._id));
+
+    if (selectedPOObjects.length === 1) {
+      // Single PO - download directly
+      generatePDF(selectedPOObjects[0]);
+    } else {
+      // Multiple POs - download as separate PDFs
+      for (const po of selectedPOObjects) {
+        await generatePDF(po);
+        // Small delay to prevent browser from blocking multiple downloads
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+
+    // Clear selection after download
+    setSelectedPOs(new Set());
+    setSelectAll(false);
+  };
+
+  const handleClearSelection = () => {
+    setSelectedPOs(new Set());
+    setSelectAll(false);
+  };
+
   // Clear all filters
   const handleClearFilters = () => {
     setStartDate('');
@@ -979,6 +1041,9 @@ export const PurchaseOrders: React.FC = () => {
     setDBNum({ label: "", value: "" });
     setSearchTerm('');
     resetPage();
+    // Also clear bulk selection when filters change
+    setSelectedPOs(new Set());
+    setSelectAll(false);
   };
 
   if (isLoading) {
@@ -1279,6 +1344,42 @@ export const PurchaseOrders: React.FC = () => {
           </div>
         </Card>
 
+        {/* Bulk Actions Bar */}
+        {selectedPOs.size > 0 && (
+          <Card className="mb-6">
+            <div className="px-6 py-3 bg-blue-50 border-b border-blue-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-medium text-blue-900">
+                    {selectedPOs.size} purchase order{selectedPOs.size !== 1 ? 's' : ''} selected
+                  </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleClearSelection}
+                    className="text-blue-600 border-blue-300 hover:bg-blue-100"
+                  >
+                    Clear Selection
+                  </Button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleBulkDownload}
+                    className="text-green-600 border-green-300 hover:bg-green-100"
+                    icon={Download}
+                  >
+                    Download {selectedPOs.size > 1 ? 'All' : 'PDF'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
+
         {/* Content */}
         <Card>
           {viewMode === 'table' ? (
@@ -1288,6 +1389,20 @@ export const PurchaseOrders: React.FC = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
+                      {/* Bulk selection header */}
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-12">
+                        <button
+                          onClick={handleSelectAll}
+                          className="p-1 hover:bg-gray-200 rounded transition-colors duration-200"
+                          title={selectAll ? 'Deselect all' : 'Select all'}
+                        >
+                          {selectAll ? (
+                            <CheckSquare size={16} className="text-blue-600" />
+                          ) : (
+                            <Square size={16} className="text-gray-400" />
+                          )}
+                        </button>
+                      </th>
                       <th className={`px-6 py-4 text-left flex-1 text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors duration-150 group `}>
                         <div className="flex items-center gap-2">
                           DB Num
@@ -1328,8 +1443,21 @@ export const PurchaseOrders: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {purchaseOrders.map((po) => (
+                    {purchaseOrders.map((po: PurchaseOrder) => (
                       <tr key={po.id ?? po._id} className="hover:bg-gray-50 transition-colors duration-150">
+                        {/* Bulk selection checkbox */}
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <button
+                            onClick={() => handleSelectPO(po.id ?? po._id)}
+                            className="p-1 hover:bg-gray-200 rounded transition-colors duration-200"
+                          >
+                            {(po.id ?? po._id) && selectedPOs.has(po.id ?? po._id) ? (
+                              <CheckSquare size={16} className="text-blue-600" />
+                            ) : (
+                              <Square size={16} className="text-gray-400" />
+                            )}
+                          </button>
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className="px-3 py-1 text-sm font-medium rounded-full bg-gray-100 text-gray-800">
                             {po.ref_num || '--'}
@@ -1425,7 +1553,7 @@ export const PurchaseOrders: React.FC = () => {
             // Grid View
             <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {purchaseOrders.map((po) => (
+                {purchaseOrders.map((po: PurchaseOrder) => (
                   <PurchaseOrderCard key={po.id ?? po._id} po={po} />
                 ))}
               </div>
@@ -1446,7 +1574,7 @@ export const PurchaseOrders: React.FC = () => {
               </p>
               <Button
                 icon={Plus}
-                className="gradient-btn hover:from-blue-700 hover:to-purple-700 text-white px-6 py-2.5 rounded-lg"
+                className="gradient-btn hover:from-blue-700 hover:to-purple-700 text-white px-6 py-2.5 rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
                 onClick={() => { setIsModalOpen(true); setServerError(null); }}
               >
                 Create Your First PO
@@ -1514,7 +1642,7 @@ export const PurchaseOrders: React.FC = () => {
       <PODetailModal
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
-        item={selectedDetailItem}
+        item={selectedDetailItem || undefined}
         title="Purchase Order Details"
       />
 

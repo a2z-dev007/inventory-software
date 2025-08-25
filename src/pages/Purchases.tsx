@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Edit, Eye, Plus, ReceiptIndianRupee, RefreshCcw, Search, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, Edit, Eye, Plus, ReceiptIndianRupee, RefreshCcw, Search, Trash2, X, FileText, Download, Fullscreen, LockIcon, Paperclip, ExternalLink } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -19,6 +19,7 @@ import { apiService } from '../services/api';
 import { extractCancelledItemsFromPurchases, formatCurrency, getStatusColor } from '../utils/constants';
 import ReloadButton from '../components/common/ReloadButton';
 import { ReusableDeleteModal } from '../components/modals/ReusableDeleteModal';
+import Select from 'react-select';
 
 const purchaseItemSchema = z.object({
   productId: z.string().min(1, 'Product is required'),
@@ -409,14 +410,14 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
                       },
                       // other available DB numbers for create mode
                       ...(purchaseOrderData?.purchaseOrders
-                        .filter(item => !item.isPurchasedCreated)
+                        .filter((item: any) => !item.isPurchasedCreated)
                         .map((po: any) => ({
                           value: po.ref_num,
                           label: po.ref_num,
                         })) || []),
                     ]
                     : purchaseOrderData?.purchaseOrders
-                      .filter(item => !item.isPurchasedCreated)
+                      .filter((item: any) => !item.isPurchasedCreated)
                       .map((po: any) => ({
                         value: po.ref_num,
                         label: po.ref_num,
@@ -473,7 +474,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
                             setValue('invoiceFile', 'file-selected', { shouldValidate: true });
                           } else {
                             setAttachment(null);
-                            setValue('invoiceFile', null, { shouldValidate: true });
+                            setValue('invoiceFile', '', { shouldValidate: true });
                           }
                         }}
                       />
@@ -545,7 +546,7 @@ const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, purchase
 
                           <Controller
                             control={control}
-                            name={`items.${index}.status`}
+                            name={`items.${index}.isCancelled`}
                             render={({ field }) => {
                               const currentValue = watchedItems[index]?.isCancelled
                                 ? 'cancelled'
@@ -705,27 +706,140 @@ export const Purchases: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEditPurchase, setSelectedEditPurchase] = useState<Purchase | null>(null);
   const debouncedSearch = useDebounce(searchTerm, 800);
-  const { page, handleNext, handlePrev } = usePagination(1);
+  const { page, handleNext, handlePrev, resetPage } = usePagination(1);
   const { isAdmin } = useAuth();
+
+  // New state variables for enhanced functionality
+  const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+  const [sortBy, setSortBy] = useState<string>('purchaseDate');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  // Filter states
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [selectedVendor, setSelectedVendor] = useState<{ label: string; value: string } | null>(null);
+  const [DBNum, setDBNum] = useState({
+    label: "",
+    value: ""
+  });
 
   // Delete modal state
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [purchaseToDelete, setPurchaseToDelete] = useState<Purchase | null>(null);
 
+  // Fetch all purchase orders for DB Number filter
+  const { data: allPOData } = useQuery<{ purchaseOrders: any[] }>({
+    queryKey: ['purchase-orders-all'],
+    queryFn: () => apiService.getPurchaseOrders({
+      page: 1,
+      limit: 10,
+      search: debouncedSearch,
+      all: true
+    }),
+    refetchOnMount: true,
+  });
+
+  // Suppliers data query for vendor filter
+  const { data: suppliersData } = useQuery({
+    queryKey: ['suppliers'],
+    queryFn: () => apiService.getSuppliers({ all: true }),
+    refetchOnMount: true,
+  });
+
+  // Build params for backend filtering
+  const params = {
+    page,
+    limit: 10,
+    search: debouncedSearch,
+    vendor: selectedVendor?.value || undefined,
+    startDate: startDate || undefined,
+    endDate: endDate || undefined,
+    sortBy,
+    sortOrder,
+    ref_num: DBNum.value || undefined,
+  };
+
   const { data: purchasesData, isLoading, refetch } = useQuery<PurchasesApiResponse>({
-    queryKey: ['purchases', page, debouncedSearch],
-    queryFn: () => apiService.getPurchases({ page, limit: 10, search: debouncedSearch }),
+    queryKey: [
+      'purchases',
+      page,
+      debouncedSearch,
+      selectedVendor?.value,
+      startDate,
+      endDate,
+      sortBy,
+      sortOrder,
+      DBNum.value
+    ],
+    queryFn: () => apiService.getPurchases(params),
     refetchOnMount: true,
     refetchOnWindowFocus: true,
     staleTime: 0,
-    refetchInterval: 30000, // Refetch every 30 seconds (optional)
+    refetchInterval: 30000,
   });
 
   const purchases = purchasesData?.purchases || [];
   const pagination = purchasesData?.pagination || { page: 1, pages: 1, total: 0, limit: 10 };
 
+  // Options for DB Number (ref_num) select
+  const optionPO = allPOData?.purchaseOrders?.map((item: any) => ({
+    label: item.ref_num,
+    value: item.ref_num,
+  })) || [];
+
+  // Options for Vendor (supplier) select
+  const vendorOptions = suppliersData?.vendors?.map((supplier: any) => ({
+    label: supplier.name,
+    value: supplier.name,
+  })) || [];
+
   const filteredPurchases = extractCancelledItemsFromPurchases(purchases, false);
-  console.log("filteredPurchases", filteredPurchases)
+
+  // Sorting functionality
+  const handleSort = (field: string) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('desc');
+    }
+    resetPage();
+  };
+
+  const getSortIcon = (field: string) => {
+    if (sortBy !== field) {
+      return <ArrowUpDown size={14} className="text-gray-400 group-hover:text-gray-600" />;
+    }
+    return sortOrder === 'asc'
+      ? <ArrowUp size={14} className="text-blue-600" />
+      : <ArrowDown size={14} className="text-blue-600" />;
+  };
+
+  const SortableHeader = ({ field, children, className = "" }: {
+    field: string;
+    children: React.ReactNode;
+    className?: string;
+  }) => (
+    <th
+      className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors duration-150 group ${className}`}
+      onClick={() => handleSort(field)}
+    >
+      <div className="flex items-center gap-2">
+        {children}
+        {getSortIcon(field)}
+      </div>
+    </th>
+  );
+
+  // Clear all filters
+  const handleClearFilters = () => {
+    setStartDate('');
+    setEndDate('');
+    setSelectedVendor(null);
+    setDBNum({ label: "", value: "" });
+    setSearchTerm('');
+    resetPage();
+  };
 
   const generateReceiptPDF = (purchase: any) => {
     const doc = new jsPDF();
@@ -791,8 +905,140 @@ export const Purchases: React.FC = () => {
   };
 
   if (isLoading) {
-    return <LoadingSpinner size="lg" />;
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <div className="text-center space-y-4">
+          <LoadingSpinner size="lg" />
+          <p className="text-gray-500 text-sm">Loading purchases...</p>
+        </div>
+      </div>
+    );
   }
+
+  // Action Button component for consistent styling
+  const ActionButton = ({ onClick, icon: Icon, label, variant = "default", disabled = false }: {
+    onClick: () => void;
+    icon: any;
+    label: string;
+    variant?: "default" | "danger" | "success" | "info";
+    disabled?: boolean;
+  }) => {
+    const variants = {
+      default: "text-gray-600 hover:text-gray-900 hover:bg-gray-100",
+      danger: "text-red-600 hover:text-red-900 hover:bg-red-50",
+      success: "text-green-600 hover:text-green-900 hover:bg-green-50",
+      info: "text-blue-600 hover:text-blue-900 hover:bg-blue-50"
+    };
+
+    return (
+      <div className="relative group">
+        <button
+          onClick={onClick}
+          disabled={disabled}
+          className={`p-2 rounded-lg transition-all duration-200 ${variants[variant]} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+          aria-label={label}
+        >
+          <Icon size={18} />
+        </button>
+        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs bg-gray-900 text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-20">
+          {label}
+        </div>
+      </div>
+    );
+  };
+
+  // Purchase Card component for grid view
+  const PurchaseCard = ({ purchase }: { purchase: Purchase }) => (
+    <div className="bg-white rounded-xl border border-gray-200 hover:border-gray-300 transition-all duration-200 group">
+      <div className="p-6">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-green-50 rounded-lg">
+              <ReceiptIndianRupee className="h-5 w-5 text-green-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900">{purchase?.ref_num || '--'}</h3>
+            </div>
+          </div>
+          <span className={`px-3 py-1 text-xs font-medium rounded-full ${getStatusColor('delivered')}`}>
+            {purchase?.receiptNumber}
+          </span>
+        </div>
+
+        {/* Details */}
+        <div className="space-y-3 mb-4">
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-500">Supplier</span>
+            <span className="text-sm font-medium text-gray-900">{purchase.vendor}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-500">Purchase Date</span>
+            <span className="text-sm font-medium text-gray-900">
+              {new Date(purchase.purchaseDate).toLocaleDateString()}
+            </span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-500">Total</span>
+            <span className="text-lg font-bold text-gray-900">{formatCurrency(purchase.total)}</span>
+          </div>
+        </div>
+
+        {/* Invoice File */}
+        {purchase.invoiceFile && (
+          <div className="mb-4">
+            <a
+              href={purchase.invoiceFile}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg transition-colors duration-200"
+            >
+              <Paperclip size={16} />
+              View Invoice
+            </a>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+          <div className="flex space-x-1">
+            <ActionButton
+              onClick={() => generateReceiptPDF(purchase)}
+              icon={Download}
+              label="Download PDF"
+              variant="success"
+            />
+            <ActionButton
+              onClick={() => navigate(`/purchases/${purchase._id}`)}
+              icon={Eye}
+              label="View Details"
+              variant="info"
+            />
+          </div>
+
+          {isAdmin() && (
+            <div className="flex space-x-1">
+              <ActionButton
+                onClick={() => {
+                  setSelectedEditPurchase(purchase);
+                  setIsModalOpen(true);
+                }}
+                icon={Edit}
+                label="Edit"
+                variant="info"
+              />
+              <ActionButton
+                onClick={() => handleDeleteClick(purchase)}
+                icon={Trash2}
+                label="Delete"
+                variant="danger"
+              />
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <>
@@ -803,165 +1049,321 @@ export const Purchases: React.FC = () => {
             title={`Purchases`}
             subtitle="Create and manage your purchases"
             action={
-              <Button
-                icon={Plus}
-                className='gradient-btn'
-                onClick={() => setIsModalOpen(true)}
-              >
-                Create Purchase
-              </Button>
+              <div className="flex items-center gap-3">
+                {/* <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setViewMode('table')}
+                    className={`p-2 rounded-lg transition-colors duration-200 ${viewMode === 'table'
+                      ? 'bg-blue-100 text-blue-600'
+                      : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+                      }`}
+                  >
+                    <FileText size={20} />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={`p-2 rounded-lg transition-colors duration-200 ${viewMode === 'grid'
+                      ? 'bg-blue-100 text-blue-600'
+                      : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+                      }`}
+                  >
+                    <ReceiptIndianRupee size={20} />
+                  </button>
+                </div> */}
+                <Button
+                  icon={Plus}
+                  className='gradient-btn'
+                  onClick={() => setIsModalOpen(true)}
+                >
+                  Create Purchase
+                </Button>
+              </div>
             }
           />
 
-          {/* Search */}
-          <div className="mb-6">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <input
-                type="search"
-                placeholder="Search purchases..."
-                className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                }}
-              />
+          {/* Enhanced Search and Filters */}
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex flex-col gap-4">
+              {/* First row - Search and DB Number */}
+              <div className="flex flex-col lg:flex-row gap-4">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                  <input
+                    type="search"
+                    placeholder="Search by receipt number, supplier, or product..."
+                    className="pl-11 pr-4 py-3 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white"
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      resetPage();
+                    }}
+                  />
+                </div>
+                <div className='flex flex-col lg:flex-row gap-4'>
+                  <div className="w-full lg:w-64">
+                    <Select
+                      value={DBNum.value ? DBNum : null}
+                      onChange={(selected) => {
+                        setDBNum(selected || { label: "", value: "" });
+                        resetPage();
+                      }}
+                      options={optionPO}
+                      placeholder="Select DB Number..."
+                      isClearable
+                      isSearchable
+                      className="text-sm w-full lg:w-64"
+                      classNamePrefix="react-select"
+                      styles={{
+                        control: (base) => ({
+                          ...base,
+                          minHeight: '48px',
+                          borderRadius: '0.5rem',
+                        }),
+                      }}
+                    />
+                  </div>
+                  <div className="w-full lg:w-64 h-12">
+                    <Select
+                      value={selectedVendor}
+                      onChange={(selected) => {
+                        setSelectedVendor(selected);
+                        resetPage();
+                      }}
+                      options={vendorOptions}
+                      placeholder="Filter by Supplier..."
+                      isClearable
+                      isSearchable
+                      className="text-sm w-full lg:w-64"
+                      classNamePrefix="react-select"
+                      styles={{
+                        control: (base) => ({
+                          ...base,
+                          minHeight: '48px',
+                          borderRadius: '0.5rem',
+                        }),
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Second row - Date filters */}
+              <div className="flex flex-col lg:flex-row gap-4">
+                <div className="flex flex-col sm:flex-row gap-4 flex-1">
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Start Date
+                    </label>
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => {
+                        setStartDate(e.target.value);
+                        resetPage();
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      End Date
+                    </label>
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => {
+                        setEndDate(e.target.value);
+                        resetPage();
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Clear filters button */}
+              {(startDate || endDate || selectedVendor || DBNum.value || searchTerm) && (
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleClearFilters}
+                    className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-200"
+                  >
+                    <X size={16} className="mr-2" />
+                    Clear Filters
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Purchases Table */}
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    DB Number
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Receipt
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Supplier
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Purchase Date
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Invoice File
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Total
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredPurchases.map((purchase, index) => (
-                  <tr key={purchase._id} className={`hover:bg-gray-50`}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <span className={`px-2 py-1 text-sm font-medium rounded-full ${getStatusColor('delivered')}`}>
-                          {purchase?.ref_num}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <span className={`px-2 py-1 text-sm font-medium rounded-full ${getStatusColor('delivered')}`}>
-                          {purchase?.receiptNumber}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {purchase.vendor}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {new Date(purchase.purchaseDate).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {purchase.invoiceFile ? (
-                        <a
-                          target='_blank'
-                          className="text-white rounded-full p-1 px-2 text-xs bg-blue-500 hover:text-green-900"
-                          href={purchase.invoiceFile}
-                        >
-                          View File
-                        </a>
-                      ) : (
-                        <span className="text-sm text-gray-400">No file</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {formatCurrency(purchase.total)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                      {isAdmin() && (
-                        <button
-                          onClick={() => {
-                            setSelectedEditPurchase(purchase);
-                            setIsModalOpen(true);
-                          }}
-                          className="text-blue-600 hover:text-blue-900"
-                          title="Edit"
-                        >
-                          <Edit size={20} />
-                        </button>
-                      )}
-                      <button
-                        onClick={() => navigate(`/purchases/${purchase._id}`)}
-                        className="text-gray-600 hover:text-gray-900"
-                        title="View Details"
-                      >
-                        <Eye size={20} />
-                      </button>
-                      {isAdmin() && (
-                        <button
-                          onClick={() => handleDeleteClick(purchase)}
-                          className="text-red-600 hover:text-red-900"
-                          title="Delete"
-                        >
-                          <Trash2 size={20} />
-                        </button>
-                      )}
-                    </td>
+          {/* Content */}
+          {viewMode === 'table' ? (
+            // Table View
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      DB Number
+                    </th>
+                    <SortableHeader field="receiptNumber">
+                      Receipt
+                    </SortableHeader>
+                    <SortableHeader field="vendor">
+                      Supplier
+                    </SortableHeader>
+                    <SortableHeader field="purchaseDate">
+                      Purchase Date
+                    </SortableHeader>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Invoice File
+                    </th>
+                    <SortableHeader field="total">
+                      Total
+                    </SortableHeader>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
                   </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredPurchases.map((purchase: Purchase) => (
+                    <tr key={purchase._id} className="hover:bg-gray-50 transition-colors duration-150">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <span className={`px-2 py-1 text-sm font-medium rounded-full ${getStatusColor('delivered')}`}>
+                            {purchase?.ref_num}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <span className={`px-2 py-1 text-sm font-medium rounded-full ${getStatusColor('delivered')}`}>
+                            {purchase?.receiptNumber}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {purchase.vendor}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {new Date(purchase.purchaseDate).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {purchase.invoiceFile ? (
+                          <a
+                            target='_blank'
+                            className="text-white rounded-full p-1 px-2 text-xs bg-blue-500 hover:text-green-900"
+                            href={purchase.invoiceFile}
+                          >
+                            View File
+                          </a>
+                        ) : (
+                          <span className="text-sm text-gray-400">No file</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {formatCurrency(purchase.total)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                        <div className="flex items-center space-x-1">
+                          {/* <ActionButton
+                            onClick={() => generateReceiptPDF(purchase)}
+                            icon={Download}
+                            label="Download PDF"
+                            variant="success"
+                          /> */}
+                          <ActionButton
+                            onClick={() => navigate(`/purchases/${purchase._id}`)}
+                            icon={Eye}
+                            label="View Details"
+                            variant="info"
+                          />
+                          {isAdmin() && (
+                            <>
+                              <ActionButton
+                                onClick={() => {
+                                  setSelectedEditPurchase(purchase);
+                                  setIsModalOpen(true);
+                                }}
+                                icon={Edit}
+                                label="Edit"
+                                variant="info"
+                              />
+                              <ActionButton
+                                onClick={() => handleDeleteClick(purchase)}
+                                icon={Trash2}
+                                label="Delete"
+                                variant="danger"
+                              />
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            // Grid View
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {filteredPurchases.map((purchase: Purchase) => (
+                  <PurchaseCard key={purchase._id} purchase={purchase} />
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </div>
+            </div>
+          )}
 
-          {/* Pagination Controls */}
-          {pagination.pages > 1 && (
-            <div className="flex justify-center items-center space-x-4 mt-6">
+          {/* Empty State */}
+          {filteredPurchases.length === 0 && (
+            <div className="text-center py-16">
+              <ReceiptIndianRupee className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No purchases found</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                {searchTerm
+                  ? "Try adjusting your search terms or create a new purchase."
+                  : "Get started by creating your first purchase."}
+              </p>
               <Button
-                variant="outline"
-                onClick={() => handlePrev()}
-                disabled={page === 1}
+                icon={Plus}
+                className="gradient-btn mt-4"
+                onClick={() => setIsModalOpen(true)}
               >
-                Previous
-              </Button>
-              <span className="text-sm text-gray-700">
-                Page {pagination.page} of {pagination.pages}
-              </span>
-              <Button
-                variant="outline"
-                onClick={() => handleNext(pagination)}
-                disabled={page === pagination.pages}
-              >
-                Next
+                Create Your First Purchase
               </Button>
             </div>
           )}
 
-          {filteredPurchases.length === 0 && (
-            <div className="text-center py-8">
-              <ReceiptIndianRupee className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No purchases found</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                Get started by creating your first purchase.
-              </p>
+          {/* Pagination Controls */}
+          {pagination.pages > 1 && (
+            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+              <div className="flex flex-col sm:flex-row items-center justify-end gap-4">
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => handlePrev()}
+                    disabled={page === 1}
+                    className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-sm text-gray-700">
+                    Page {pagination.page} of {pagination.pages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleNext(pagination)}
+                    disabled={page === pagination.pages}
+                    className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
         </Card>
@@ -971,9 +1373,8 @@ export const Purchases: React.FC = () => {
           onClose={() => { setIsModalOpen(false); setSelectedEditPurchase(null); }}
           purchase={selectedEditPurchase}
         />
-
-
       </div>
+
       {/* Reusable Delete Modal */}
       <ReusableDeleteModal
         isOpen={isDeleteModalOpen}

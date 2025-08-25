@@ -1,22 +1,20 @@
 import React, { useState } from 'react';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
-import axios from 'axios';
 import { Download } from 'lucide-react';
-// import { Button } from '@/components/ui/button'; // Use your UI button
 import Select from 'react-select';
 import { Card, CardHeader } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { apiService } from '../services/api';
-// import { Card, CardHeader } from '@/components/ui/card';
 
 const reportTypeOptions = [
-  { value: 'sales', label: 'Sales Report' },
+  // { value: 'sales', label: 'Sales Report' },
   { value: 'purchases', label: 'Purchases Report' },
   { value: 'purchase-orders', label: 'Purchase Orders Report' },
-  { value: 'products', label: 'Inventory Report' },
-  { value: 'customers', label: 'Clients Report' },
-  { value: 'vendors', label: 'Suppliers Report' },
+  { value: 'purchase-returns', label: 'Purchase Returns Report' },
+  // { value: 'products', label: 'Inventory Report' },
+  // { value: 'customers', label: 'Clients Report' },
+  // { value: 'vendors', label: 'Suppliers Report' },
 ];
 
 const dateRangeOptions = [
@@ -27,12 +25,11 @@ const dateRangeOptions = [
 ];
 
 export const Reports = () => {
-  const [reportType, setReportType] = useState('sales');
+  const [reportType, setReportType] = useState('purchases');
   const [dateRange, setDateRange] = useState('30days');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [loading, setLoading] = useState(false);
-  const [reportData, setReportData] = useState([]);
 
   const calculateDateRange = () => {
     const end = new Date();
@@ -44,48 +41,6 @@ export const Reports = () => {
       startDate: start.toISOString(),
       endDate: end.toISOString(),
     };
-  };
-  const handleShowReport = async () => {
-    if (!reportType) return alert('Please select a report type');
-    if (dateRange === 'custom' && (!startDate || !endDate))
-      return alert('Please select a valid date range');
-
-    setLoading(true);
-
-    try {
-      const { startDate: sDate, endDate: eDate } =
-        dateRange === 'custom' ? { startDate, endDate } : calculateDateRange();
-
-      const res = await apiService.exportToExcel({
-        moduleName: reportType,
-        startDate: sDate,
-        endDate: eDate,
-      });
-
-      const dataKeyMap = {
-        'purchase-orders': 'purchaseOrders',
-        purchases: 'purchases',
-        sales: 'sales',
-        products: 'topProducts',
-        vendors: 'topVendors',
-        customers: 'topCustomers',
-      };
-
-      const extractedData = res.data?.[dataKeyMap[reportType]] || [];
-
-      if (!extractedData.length) {
-        alert('No data found for the selected criteria.');
-        setReportData([]);
-        return;
-      }
-
-      setReportData(extractedData);
-    } catch (err) {
-      console.error(err);
-      alert('Failed to fetch report. Please try again.');
-    } finally {
-      setLoading(false);
-    }
   };
 
   const downloadExcel = async () => {
@@ -114,8 +69,9 @@ export const Reports = () => {
       const reportData = res.data || {};
 
       // Map report type to data key
-      const dataKeyMap = {
+      const dataKeyMap: Record<string, string> = {
         'purchase-orders': 'purchaseOrders',
+        'purchase-returns': 'purchaseReturns',
         purchases: 'purchases',
         sales: 'sales',
         products: 'topProducts',
@@ -183,7 +139,7 @@ export const Reports = () => {
             <Select
               options={reportTypeOptions}
               value={reportTypeOptions.find((opt) => opt.value === reportType)}
-              onChange={(option) => setReportType(option?.value || 'sales')}
+              onChange={(option) => setReportType(option?.value || 'purchases')}
               classNamePrefix="react-select"
             />
           </div>

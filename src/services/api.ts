@@ -514,14 +514,38 @@ export const apiService = {
   },
 
   // Purchases
-  getPurchases: async (params: { page?: number; limit?: number; search?: string, all?: boolean, isDeleted?: boolean } = {}) => {
+  getPurchases: async (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    all?: boolean;
+    isDeleted?: boolean;
+    vendor?: string;
+    startDate?: string;
+    endDate?: string;
+    sortBy?: string;
+    sortOrder?: string;
+    ref_num?: string;
+  } = {}) => {
     try {
-      const query = new URLSearchParams({
+      // Build query params for all supported filters
+      const queryObj: Record<string, string> = {
         page: params.page?.toString() || '1',
         limit: params.limit?.toString() || '10',
         search: params.search || '',
+        all: params.all?.toString() || 'false',
         isDeleted: params?.isDeleted?.toString() || 'false',
-      }).toString();
+      };
+
+      // Add extra filters if present
+      if (params.vendor) queryObj.vendor = params.vendor;
+      if (params.startDate) queryObj.startDate = params.startDate;
+      if (params.endDate) queryObj.endDate = params.endDate;
+      if (params.sortBy) queryObj.sortBy = params.sortBy;
+      if (params.sortOrder) queryObj.sortOrder = params.sortOrder;
+      if (params.ref_num) queryObj.ref_num = params.ref_num;
+
+      const query = new URLSearchParams(queryObj).toString();
       const res = await request<any>(`${API_ROUTES.PURCHASES}?${query}`);
       return res.data;
     } catch (error) {

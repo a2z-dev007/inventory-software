@@ -2,7 +2,8 @@ import React from 'react';
 import { FileText, Calendar, User, Truck, Clipboard, DollarSign, Box, X, Download } from 'lucide-react';
 import { formatCurrency } from '../../utils/constants';
 import { generatePDF } from '../../utils/pdf';
-import { PurchaseOrder } from '../../types';
+import { PurchaseOrder } from '../../pages/PurchaseOrders';
+// import { PurchaseOrder } from '../../types';
 
 interface DetailModalProps {
   isOpen: boolean;
@@ -113,6 +114,15 @@ export const PODetailModal: React.FC<DetailModalProps> = ({ isOpen, onClose, ite
                 <h3 className="text-sm font-medium text-gray-500">Site Incharge</h3>
               </div>
               <p className="text-lg font-semibold text-gray-900">{item.site_incharge || '--'}</p>
+            </div>
+            <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+              <div className="flex items-center space-x-3 mb-2">
+                <div className="p-2 bg-emerald-100 rounded-full">
+                  <User className="h-5 w-5 text-emerald-500" />
+                </div>
+                <h3 className="text-sm font-medium text-gray-500">Client </h3>
+              </div>
+              <p className="text-lg font-semibold text-gray-900">{item.customerName || '--'}</p>
             </div>
 
             <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">

@@ -20,7 +20,7 @@ import { apiService } from '../services/api';
 import { Product, Purposes, Supplier } from '../types';
 import { formatCurrency, getStatusColor } from '../utils/constants';
 import { generatePDF } from '../utils/pdf';
-
+import Select from 'react-select';
 // Define error types
 interface ApiError {
   response?: {
@@ -92,7 +92,6 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
     queryKey: ['products'],
     queryFn: () => apiService.getProducts({ all: true }),
     refetchOnMount: true, // Add this line
-
   });
   const products: Product[] = Array.isArray(productsData?.products) ? productsData.products : Array.isArray(productsData) ? productsData : [];
   // console.log(products);
@@ -100,7 +99,6 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
     queryKey: ['suppliers'],
     queryFn: () => apiService.getSuppliers({ all: true }),
     refetchOnMount: true, // Add this line
-
   });
   const { data: customerResponse } = useQuery<{ customers: any[] }>({
     queryKey: ['customers'],
@@ -779,10 +777,16 @@ export const PurchaseOrders: React.FC = () => {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const debouncedSearch = useDebounce(searchTerm, 800);
   const { page, handleNext, handlePrev, resetPage } = usePagination(1);
+
+  // Filter states
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [selectedVendor, setSelectedVendor] = useState<{ label: string; value: string } | null>(null);
   const [DBNum, setDBNum] = useState({
-    lable: "",
+    label: "",
     value: ""
-  })
+  });
+
   const limit = 10;
   const queryClient = useQueryClient();
   const [serverError, setServerError] = useState<string | null>(null);
@@ -792,90 +796,101 @@ export const PurchaseOrders: React.FC = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [purchaseOrderToDelete, setPurchaseOrderToDelete] = useState<PurchaseOrder | null>(null);
 
-  const {
-    data: poResponse = { purchaseOrders: [], pagination: { page: 1, pages: 1, total: 0, limit } },
-    isLoading,
-    refetch,
-  } = useQuery<{ purchaseOrders: PurchaseOrder[]; pagination: { page: number; pages: number; total: number; limit: number } }>({
-    queryKey: ['purchase-orders', debouncedSearch],
-    queryFn: () => apiService.getPurchaseOrders({
-      page: 1,
-      limit: 10, // Get all data for client-side sorting
-      search: debouncedSearch,
-      all: false // Use the all flag to get all records
-    }),
-    refetchOnMount: true,
-  });
+  // const {
+  //   data: poResponse = { purchaseOrders: [], pagination: { page: 1, pages: 1, total: 0, limit } },
+  //   isLoading,
+  //   refetch,
+  // } = useQuery<{ purchaseOrders: PurchaseOrder[]; pagination: { page: number; pages: number; total: number; limit: number } }>({
+  //   queryKey: ['purchase-orders', debouncedSearch],
+  //   queryFn: () => apiService.getPurchaseOrders({
+  //     page: 1,
+  //     limit: 10,
+  //     search: debouncedSearch,
+  //     all: false
+  //   }),
+  //   refetchOnMount: true,
+  // });
 
   const {
     data: allPOData,
   } = useQuery<{ purchaseOrders: PurchaseOrder[] }>({
-    queryKey: ['purchase-orders-all',],
+    queryKey: ['purchase-orders-all'],
     queryFn: () => apiService.getPurchaseOrders({
       page: 1,
-      limit: 10, // Get all data for client-side sorting
+      limit: 10,
       search: debouncedSearch,
-      all: true // Use the all flag to get all records
+      all: true
     }),
     refetchOnMount: true,
   });
 
-  console.log("allPOData", allPOData)
+  // Suppliers data query
+  const { data: suppliersData } = useQuery({
+    queryKey: ['suppliers'],
+    queryFn: () => apiService.getSuppliers({ all: true }),
+    refetchOnMount: true,
+  });
 
+  console.log("allPOData", allPOData);
+
+  // Options for DB Number (ref_num) select
   const optionPO = allPOData?.purchaseOrders?.map((item, index) => {
     return {
       label: item.ref_num,
       value: item.ref_num,
     }
-  })
-  const filteredPurchaseOrders = poResponse?.purchaseOrders.filter((po: PurchaseOrder) => po.isDeleted === false || po.isDeleted !== undefined);
-  const allPurchaseOrders = Array.isArray(filteredPurchaseOrders) ? filteredPurchaseOrders : [];
-
-  // Client-side sorting
-  const sortedPurchaseOrders = [...allPurchaseOrders].sort((a, b) => {
-    let aValue: any = a[sortBy as keyof PurchaseOrder];
-    let bValue: any = b[sortBy as keyof PurchaseOrder];
-
-    // Handle different data types
-    if (sortBy === 'orderDate') {
-      aValue = new Date(aValue);
-      bValue = new Date(bValue);
-    } else if (sortBy === 'total') {
-      aValue = Number(aValue) || 0;
-      bValue = Number(bValue) || 0;
-    } else if (sortBy === 'ref_num') {
-      // Handle numeric sorting for ref_num
-      aValue = Number(aValue) || 0;
-      bValue = Number(bValue) || 0;
-    } else {
-      // String sorting (case insensitive)
-      aValue = String(aValue || '').toLowerCase();
-      bValue = String(bValue || '').toLowerCase();
-    }
-
-    if (aValue < bValue) {
-      return sortOrder === 'asc' ? -1 : 1;
-    }
-    if (aValue > bValue) {
-      return sortOrder === 'asc' ? 1 : -1;
-    }
-    return 0;
   });
 
-  // Client-side pagination
-  const startIndex = (page - 1) * limit;
-  const endIndex = startIndex + limit;
-  const purchaseOrders = sortedPurchaseOrders.slice(startIndex, endIndex);
+  // Options for Vendor (supplier) select
+  const vendorOptions = suppliersData?.vendors?.map((supplier: any) => ({
+    label: supplier.name,
+    value: supplier.name,
+  })) || [];
 
-  // Update pagination object for client-side pagination
-  const totalItems = sortedPurchaseOrders.length;
-  const totalPages = Math.ceil(totalItems / limit);
-  const pagination = {
+  // Build params for backend filtering
+  const params = {
     page,
-    pages: totalPages,
-    total: totalItems,
-    limit
+    limit,
+    search: DBNum.value || debouncedSearch, // 👈 if DBNum selected, use that, else fallback to normal search
+    vendor: selectedVendor?.value || undefined,
+    startDate: startDate || undefined,
+    endDate: endDate || undefined,
+    sortBy,
+    sortOrder,
+    // dbNum: DBNum.value || undefined, // 👈 add this
+    // status, // add if you have a status filter
+    // isDeleted, // add if you have a deleted filter
+    // all: false // set true if you want all
   };
+
+  // Fetch purchase orders from backend with filters
+  const {
+    data: poResponse = { purchaseOrders: [], pagination: { page: 1, pages: 1, total: 0, limit } },
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: [
+      'purchase-orders',
+      page,
+      limit,
+      debouncedSearch,
+      selectedVendor?.value,
+      startDate,
+      endDate,
+      sortBy,
+      sortOrder,
+      DBNum.value // 👈 use DBNum if selected
+      // status,
+      // isDeleted,
+      // all
+    ],
+    queryFn: () => apiService.getPurchaseOrders(params),
+    refetchOnMount: true,
+  });
+
+  // Use backend response directly
+  const purchaseOrders = poResponse?.purchaseOrders || [];
+  const pagination = poResponse?.pagination || { page: 1, pages: 1, total: 0, limit };
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiService.deletePurchaseOrder(id),
@@ -886,7 +901,6 @@ export const PurchaseOrders: React.FC = () => {
     },
     onError: (error: unknown) => {
       console.error('Delete error:', error);
-      // You can add toast notification here instead of alert
     }
   });
 
@@ -924,14 +938,12 @@ export const PurchaseOrders: React.FC = () => {
 
   const handleSort = (field: string) => {
     if (sortBy === field) {
-      // Toggle sort order if same field
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
-      // Set new field with default desc order
       setSortBy(field);
       setSortOrder('desc');
     }
-    resetPage(); // Reset to first page when sorting
+    resetPage();
   };
 
   const getSortIcon = (field: string) => {
@@ -958,6 +970,16 @@ export const PurchaseOrders: React.FC = () => {
       </div>
     </th>
   );
+
+  // Clear all filters
+  const handleClearFilters = () => {
+    setStartDate('');
+    setEndDate('');
+    setSelectedVendor(null);
+    setDBNum({ label: "", value: "" });
+    setSearchTerm('');
+    resetPage();
+  };
 
   if (isLoading) {
     return (
@@ -1012,7 +1034,6 @@ export const PurchaseOrders: React.FC = () => {
             </div>
             <div>
               <h3 className="font-semibold text-gray-900">{po.ref_num || '--'}</h3>
-              {/* <p className="text-sm text-gray-500">#{po.ref_num || '--'}</p> */}
             </div>
           </div>
           <span className={`px-3 py-1 text-xs font-medium rounded-full ${getStatusColor(po.status)}`}>
@@ -1134,20 +1155,126 @@ export const PurchaseOrders: React.FC = () => {
         {/* Search and Filters */}
         <Card className="mb-6">
           <div className="p-6">
-            <div className="flex flex-col lg:flex-row gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                <input
-                  type="search"
-                  placeholder="Search by PO number, supplier, or status..."
-                  className="pl-11 pr-4 py-3 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white"
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    resetPage();
-                  }}
-                />
+            <div className="flex flex-col gap-4">
+              {/* First row - Search and DB Number */}
+              <div className="flex flex-col lg:flex-row gap-4">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                  <input
+                    type="search"
+                    placeholder="Search by PO number, supplier, or status..."
+                    className="pl-11 pr-4 py-3 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white"
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      resetPage();
+                    }}
+                  />
+                </div>
+                <div className='flex flex-col lg:flex-row gap-4'>
+                  <div className="w-full lg:w-64">
+                    <Select
+                      value={DBNum.value ? DBNum : null}
+                      onChange={(selected) => {
+                        setDBNum(selected || { label: "", value: "" });
+                        resetPage();
+                      }}
+                      options={optionPO}
+                      placeholder="Select DB Number..."
+                      isClearable
+                      isSearchable
+                      className="text-sm w-full lg:w-64"
+                      classNamePrefix="react-select"
+                      styles={{
+                        control: (base) => ({
+                          ...base,
+                          minHeight: '48px',   // 👈 matches py-3
+                          borderRadius: '0.5rem',
+                        }),
+                      }}
+                    />
+
+                  </div>
+                  <div className="w-full lg:w-64 h-12">
+                    <Select
+                      value={selectedVendor}
+                      onChange={(selected) => {
+                        setSelectedVendor(selected);
+                        resetPage();
+                      }}
+                      options={vendorOptions}
+                      placeholder="Filter by Supplier..."
+                      isClearable
+                      isSearchable
+
+                      className="text-sm w-full lg:w-64"
+                      classNamePrefix="react-select"
+                      styles={{
+                        control: (base) => ({
+                          ...base,
+                          minHeight: '48px',   // 👈 matches py-3
+                          borderRadius: '0.5rem',
+                        }),
+                      }}
+                    />
+                  </div>
+                </div>
+
+
               </div>
+
+
+              {/* Second row - Date filters and Vendor */}
+              <div className="flex flex-col lg:flex-row gap-4">
+                <div className="flex flex-col sm:flex-row gap-4 flex-1">
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Start Date
+                    </label>
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => {
+                        setStartDate(e.target.value);
+                        resetPage();
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      End Date
+                    </label>
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => {
+                        setEndDate(e.target.value);
+                        resetPage();
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                    />
+                  </div>
+                </div>
+
+
+
+              </div>
+
+              {/* Clear filters button */}
+              {(startDate || endDate || selectedVendor || DBNum.value || searchTerm) && (
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleClearFilters}
+                    className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-200"
+                  >
+                    <X size={16} className="mr-2" />
+                    Clear Filters
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </Card>

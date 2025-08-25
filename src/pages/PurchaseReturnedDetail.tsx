@@ -72,8 +72,9 @@ export const PurchaseReturnedDetail: React.FC = () => {
   } = useQuery<PurchaseType>({
     queryKey: ['purchase', id],
     queryFn: async () => {
-      const res = await apiService.getPurchaseReturnById(id!);
-      return res.data.purchaseReturn; // 👈 unwrap here
+      const res = await apiService.getPurchaseReturnById(id);
+      console.log("response from api", res);
+      return res; // 👈 unwrap here
     },
     enabled: !!id,
   });
@@ -83,7 +84,7 @@ export const PurchaseReturnedDetail: React.FC = () => {
   };
 
   const po = purchase;
-  console.log('Purchase Return Details:', po);
+  console.log('Purchase Return Details:', purchase);
   const getStatusColor = () => {
     return 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/25';
   };

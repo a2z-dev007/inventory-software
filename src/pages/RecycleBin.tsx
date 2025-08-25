@@ -413,7 +413,7 @@ const RecycleBin: React.FC = () => {
                   navigate(`/purchases/${item._id}`)
                 }
                 if (item.type === "purchaseReturn") {
-                  navigate(`/purchase-returns/${item._id}`)
+                  navigate(`/purchase-return/${item._id}`)
                 }
 
               }}

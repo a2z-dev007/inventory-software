@@ -160,15 +160,54 @@ export const apiService = {
   },
 
   // Purchase Orders
-  getPurchaseOrders: async (params: { page?: number; limit?: number; search?: string; all?: boolean, isDeleted?: boolean } = { all: false }) => {
+  getPurchaseOrders: async (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    all?: boolean;
+    isDeleted?: boolean;
+    status?: string;
+    vendor?: string;
+    startDate?: string;
+    endDate?: string;
+    sortBy?: string;
+    sortOrder?: string;
+    DBNum?: string;
+    poNumber?: string;
+    customer?: string;
+    siteType?: string;
+    deliveryDate?: string;
+    contractor?: string;
+    orderedBy?: string;
+    purpose?: string;
+  } = { all: false }) => {
     try {
-      const query = new URLSearchParams({
+      // Build query params for all supported filters
+      const queryObj: Record<string, string> = {
         page: params.page?.toString() || '1',
         limit: params.limit?.toString() || '10',
         search: params?.search || '',
         all: params.all?.toString() || 'false',
         isDeleted: params?.isDeleted?.toString() || 'false',
-      }).toString();
+      };
+
+      // Add extra filters if present
+      if (params.status) queryObj.status = params.status;
+      if (params.vendor) queryObj.vendor = params.vendor;
+      if (params.startDate) queryObj.startDate = params.startDate;
+      if (params.endDate) queryObj.endDate = params.endDate;
+      if (params.sortBy) queryObj.sortBy = params.sortBy;
+      if (params.sortOrder) queryObj.sortOrder = params.sortOrder;
+      if (params.DBNum) queryObj.ref_num = params.DBNum;
+      if (params.poNumber) queryObj.poNumber = params.poNumber;
+      if (params.customer) queryObj.customer = params.customer;
+      if (params.siteType) queryObj.siteType = params.siteType;
+      if (params.deliveryDate) queryObj.deliveryDate = params.deliveryDate;
+      if (params.contractor) queryObj.contractor = params.contractor;
+      if (params.orderedBy) queryObj.orderedBy = params.orderedBy;
+      if (params.purpose) queryObj.purpose = params.purpose;
+
+      const query = new URLSearchParams(queryObj).toString();
       const res = await request<any>(`${API_ROUTES.PURCHASE_ORDERS}?${query}`);
       return res.data; // { purchaseOrders, pagination }
     } catch (error) {
@@ -636,7 +675,7 @@ export const apiService = {
   getPurchaseReturnById: async (id: string) => {
     try {
       const res = await request<any>(API_ROUTES.PURCHASE_RETURN(id));
-      return res.data?.purchase;
+      return res.data?.purchaseReturn;
     } catch (error) {
       console.error('Error fetching purchase:', error);
       throw error;

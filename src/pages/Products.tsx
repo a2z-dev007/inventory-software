@@ -17,6 +17,7 @@ import { apiService } from '../services/api';
 import { Product } from '../types';
 import { formatCurrency } from '../utils/constants';
 import DeleteModal from '../components/modals/DeleteModal';
+import Creatable from 'react-select/creatable';
 
 const UNIT_TYPE_OPTIONS = [
   { value: 'Nos', label: 'Nos' },
@@ -56,6 +57,7 @@ interface ProductModalProps {
 const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product }) => {
   const queryClient = useQueryClient();
   const isEditing = !!product;
+  const [unitOptions, setUnitOptions] = useState(UNIT_TYPE_OPTIONS);
 
   const {
     register,
@@ -185,13 +187,19 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Unit Type<span className="text-red-500">*</span>
                     </label>
-                    <Select
+                    <Creatable
                       {...field}
-                      options={UNIT_TYPE_OPTIONS}
-                      value={UNIT_TYPE_OPTIONS.find(opt => opt.value === field.value) || null}
+                      options={unitOptions}
+                      value={field.value ? { value: field.value, label: field.value } : null}
                       onChange={option => field.onChange(option ? option.value : '')}
+                      onCreateOption={(inputValue) => {
+                        const newOption = { value: inputValue, label: inputValue };
+                        setUnitOptions(prev => [...prev, newOption]);
+                        field.onChange(inputValue);
+                      }}
                       placeholder="Select unit type"
                       isClearable
+                      classNamePrefix="react-select"
                     />
                     {errors.unitType && (
                       <span className="text-xs text-red-500">{errors.unitType.message}</span>

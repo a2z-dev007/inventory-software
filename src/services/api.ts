@@ -1210,4 +1210,42 @@ export const apiService = {
     }
   },
 
+  // Unit Types
+  getUnitTypes: async () => {
+    try {
+      const res = await request<any>(API_ROUTES.UNIT_TYPES + "?all=true");
+      // If response is { success, data: { unitTypes: [...] } }
+      if (res.success && res.data && Array.isArray(res.data.unitTypes)) {
+        return res.data.unitTypes;
+      }
+      // If response is { success, data: [...] }
+      if (res.success && Array.isArray(res.data)) {
+        return res.data;
+      }
+      // Fallback: return empty array
+      return [];
+    } catch (error) {
+      console.error('Error fetching unit types:', error);
+      return [];
+    }
+  },
+
+  createUnitType: async (unitType: { value: string; label: string }) => {
+    try {
+      const res = await request<any>(API_ROUTES.UNIT_TYPES, {
+        method: 'POST',
+        body: JSON.stringify({ title: unitType.value }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (res.success === false) {
+        throw new Error(res.message || 'Failed to create unit type');
+      }
+      if (res.success) {
+        return res;
+      }
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to create unit type');
+      throw error;
+    }
+  },
 };

@@ -2,6 +2,8 @@ import { API_BASE_URL } from "../utils/constants";
 
 
 export const API_ROUTES = {
+  UNIT_TYPES: '/unit-types',
+  UNIT_TYPE: (id: string) => `/unit-types/${id}`,
   LOGIN: '/auth/login',
   LOGOUT: '/auth/logout',
   ME: '/auth/me',

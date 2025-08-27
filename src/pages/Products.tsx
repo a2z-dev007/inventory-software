@@ -19,25 +19,25 @@ import { formatCurrency } from '../utils/constants';
 import DeleteModal from '../components/modals/DeleteModal';
 import Creatable from 'react-select/creatable';
 
-const UNIT_TYPE_OPTIONS = [
-  { value: 'Nos', label: 'Nos' },
-  { value: 'kg', label: 'kg' },
-  { value: 'MT', label: 'MT' },
-  { value: 'm²', label: 'm²' },
-  { value: 'm³', label: 'm³' },
-  { value: 'Bag', label: 'Bag' },
-  { value: 'Sheet', label: 'Sheet' },
-  { value: 'Roll', label: 'Roll' },
-  { value: 'Set', label: 'Set' },
-  { value: 'Unit', label: 'Unit' },
-  { value: 'Box', label: 'Box' },
-  { value: 'Packet', label: 'Packet' },
-  { value: 'Can', label: 'Can' },
-  { value: 'Litre', label: 'Litre' },
-  { value: 'Piece', label: 'Piece' },
-  { value: 'Pair', label: 'Pair' },
-  { value: 'Machine Hour', label: 'Machine Hour' },
-];
+// const UNIT_TYPE_OPTIONS = [
+//   { value: 'Nos', label: 'Nos' },
+//   { value: 'kg', label: 'kg' },
+//   { value: 'MT', label: 'MT' },
+//   { value: 'm²', label: 'm²' },
+//   { value: 'm³', label: 'm³' },
+//   { value: 'Bag', label: 'Bag' },
+//   { value: 'Sheet', label: 'Sheet' },
+//   { value: 'Roll', label: 'Roll' },
+//   { value: 'Set', label: 'Set' },
+//   { value: 'Unit', label: 'Unit' },
+//   { value: 'Box', label: 'Box' },
+//   { value: 'Packet', label: 'Packet' },
+//   { value: 'Can', label: 'Can' },
+//   { value: 'Litre', label: 'Litre' },
+//   { value: 'Piece', label: 'Piece' },
+//   { value: 'Pair', label: 'Pair' },
+//   { value: 'Machine Hour', label: 'Machine Hour' },
+// ];
 
 const productSchema = z.object({
   name: z.string().min(1, 'Product name is required'),
@@ -57,7 +57,24 @@ interface ProductModalProps {
 const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product }) => {
   const queryClient = useQueryClient();
   const isEditing = !!product;
-  const [unitOptions, setUnitOptions] = useState(UNIT_TYPE_OPTIONS);
+  const [unitOptions, setUnitOptions] = useState<{ value: string; label: string }[]>([]);
+  // Fetch unit types from backend using TanStack Query
+  const {
+    data: unitTypeData = [],
+    isLoading: isUnitTypeLoading,
+    refetch: refetchUnitTypes,
+  } = useQuery({
+    queryKey: ['unit-types'],
+    queryFn: () => apiService.getUnitTypes(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+  useEffect(() => {
+    const format = unitTypeData?.map(ut => ({ value: ut.title, label: ut.title })) || [];
+    // Only update state if changed
+    if (JSON.stringify(format) !== JSON.stringify(unitOptions)) {
+      setUnitOptions(format);
+    }
+  }, [unitTypeData]);
 
   const {
     register,
@@ -192,9 +209,16 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, product })
                       options={unitOptions}
                       value={field.value ? { value: field.value, label: field.value } : null}
                       onChange={option => field.onChange(option ? option.value : '')}
-                      onCreateOption={(inputValue) => {
+                      onCreateOption={async (inputValue) => {
                         const newOption = { value: inputValue, label: inputValue };
-                        setUnitOptions(prev => [...prev, newOption]);
+                        try {
+                          await apiService.createUnitType(newOption);
+                          refetchUnitTypes();
+                        } catch (err) {
+                          // Optionally show error toast
+                          console.log('Failed to create unit type:', err);
+                        }
+
                         field.onChange(inputValue);
                       }}
                       placeholder="Select unit type"

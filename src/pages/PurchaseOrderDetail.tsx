@@ -223,7 +223,7 @@ export const PurchaseOrderDetail: React.FC = () => {
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-600 mb-1">Client</p>
-                        <p className="font-bold text-lg text-gray-900">{po?.customer}</p>
+                        <p className="font-bold text-lg text-gray-900">{po?.customerName}</p>
                       </div>
                     </div>
                   </div>

@@ -1141,7 +1141,8 @@ export const apiService = {
         headers: { 'Content-Type': 'application/json' },
       });
       if (res.success) {
-        toast.success(res.message || 'Purpose created successfully');
+        // toast.success(res.message || 'Purpose created successfully');
+        console.log("Purpose created successfully")
       }
       if (res.success === false) {
         throw new Error(res.message || 'Failed to create purpose');

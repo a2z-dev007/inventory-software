@@ -668,9 +668,10 @@ const POModal: React.FC<POModalProps> = ({ isOpen, onClose, purchaseOrder }) => 
                 />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-1 gap-4 mt-6">
-                <SelectField<PurchaseOrderFormData>
+              <SelectField<PurchaseOrderFormData>
                   label="Purpose"
                   name="purpose"
+                  isCreatable={true}
                   options={purposesData.purposes?.map((purpose: Purposes) => ({
                     value: purpose.title,
                     label: purpose.title,

@@ -145,14 +145,14 @@ export const Login: React.FC = () => {
   </Link>
 </p>
               </div>
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+          {/* <div className="mt-6 p-4 bg-gray-50 rounded-lg">
             <h4 className="text-sm font-medium text-gray-700 mb-2">Demo Accounts:</h4>
             <div className="text-xs text-gray-600 space-y-1">
               <div><strong>Admin:</strong> admin / admin123</div>
               <div><strong>Manager:</strong> manager / manager123</div>
               <div><strong>Staff:</strong> staff / staff123</div>
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

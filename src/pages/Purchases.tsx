@@ -76,6 +76,10 @@ export interface Purchase {
   createdAt: string;
   updatedAt: string;
   receivedBy: string;
+  // New client data fields
+  customer?: string;
+  customerName?: string;
+  customerAddress?: string;
   __v: number;
 }
 
@@ -973,6 +977,12 @@ export const Purchases: React.FC = () => {
             <span className="text-sm font-medium text-gray-900">{purchase.vendor}</span>
           </div>
           <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-500">Client</span>
+            <span className="text-sm font-medium text-gray-900">
+              {purchase.customerName || purchase.customer || 'N/A'}
+            </span>
+          </div>
+          <div className="flex justify-between items-center">
             <span className="text-sm text-gray-500">Purchase Date</span>
             <span className="text-sm font-medium text-gray-900">
               {new Date(purchase.purchaseDate).toLocaleDateString()}
@@ -1214,6 +1224,9 @@ export const Purchases: React.FC = () => {
                     <SortableHeader field="vendor">
                       Supplier
                     </SortableHeader>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Client
+                    </th>
                     <SortableHeader field="purchaseDate">
                       Purchase Date
                     </SortableHeader>
@@ -1247,6 +1260,18 @@ export const Purchases: React.FC = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {purchase.vendor}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <div className="flex flex-col">
+                          <span className="font-medium text-gray-900">
+                            {purchase.customerName || purchase.customer || 'N/A'}
+                          </span>
+                          {purchase.customerAddress && (
+                            <span className="text-xs text-gray-500 truncate max-w-32" title={purchase.customerAddress}>
+                              {purchase.customerAddress}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {new Date(purchase.purchaseDate).toLocaleDateString()}

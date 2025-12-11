@@ -1248,4 +1248,145 @@ export const apiService = {
       throw error;
     }
   },
+
+  // New dedicated reports APIs
+  getSalesReport: async (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    customer?: string;
+    startDate?: string;
+    endDate?: string;
+    sortBy?: string;
+    sortOrder?: string;
+    all?: boolean;
+  } = {}) => {
+    try {
+      const queryObj: Record<string, string> = {
+        page: params.page?.toString() || '1',
+        limit: params.limit?.toString() || '10',
+        search: params.search || '',
+        all: params.all?.toString() || 'false',
+      };
+
+      if (params.customer) queryObj.customer = params.customer;
+      if (params.startDate) queryObj.startDate = params.startDate;
+      if (params.endDate) queryObj.endDate = params.endDate;
+      if (params.sortBy) queryObj.sortBy = params.sortBy;
+      if (params.sortOrder) queryObj.sortOrder = params.sortOrder;
+
+      const query = new URLSearchParams(queryObj).toString();
+      const res = await request<any>(`${API_ROUTES.REPORTS_API_SALES}?${query}`);
+      return res.data;
+    } catch (error) {
+      console.error('Error fetching sales report:', error);
+      throw error;
+    }
+  },
+
+  getPurchasesReport: async (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    vendor?: string;
+    startDate?: string;
+    endDate?: string;
+    sortBy?: string;
+    sortOrder?: string;
+    all?: boolean;
+  } = {}) => {
+    try {
+      const queryObj: Record<string, string> = {
+        page: params.page?.toString() || '1',
+        limit: params.limit?.toString() || '10',
+        search: params.search || '',
+        all: params.all?.toString() || 'false',
+      };
+
+      if (params.vendor) queryObj.vendor = params.vendor;
+      if (params.startDate) queryObj.startDate = params.startDate;
+      if (params.endDate) queryObj.endDate = params.endDate;
+      if (params.sortBy) queryObj.sortBy = params.sortBy;
+      if (params.sortOrder) queryObj.sortOrder = params.sortOrder;
+
+      const query = new URLSearchParams(queryObj).toString();
+      const res = await request<any>(`${API_ROUTES.REPORTS_API_PURCHASES}?${query}`);
+      return res.data;
+    } catch (error) {
+      console.error('Error fetching purchases report:', error);
+      throw error;
+    }
+  },
+
+  getSuppliersForReports: async () => {
+    try {
+      const res = await request<any>(API_ROUTES.REPORTS_API_SUPPLIERS);
+      return res.data;
+    } catch (error) {
+      console.error('Error fetching suppliers for reports:', error);
+      throw error;
+    }
+  },
+
+  getCustomersForReports: async () => {
+    try {
+      const res = await request<any>(API_ROUTES.REPORTS_API_CUSTOMERS);
+      return res.data;
+    } catch (error) {
+      console.error('Error fetching customers for reports:', error);
+      throw error;
+    }
+  },
+
+  getClientReport: async (customerName: string, params: {
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+    all?: boolean;
+  } = {}) => {
+    try {
+      const queryObj: Record<string, string> = {
+        page: params.page?.toString() || '1',
+        limit: params.limit?.toString() || '10',
+        all: params.all?.toString() || 'false',
+      };
+
+      if (params.startDate) queryObj.startDate = params.startDate;
+      if (params.endDate) queryObj.endDate = params.endDate;
+
+      const query = new URLSearchParams(queryObj).toString();
+      const res = await request<any>(`${API_ROUTES.REPORTS_API_CLIENT(customerName)}?${query}`);
+      return res.data;
+    } catch (error) {
+      console.error('Error fetching client report:', error);
+      throw error;
+    }
+  },
+
+  getSupplierReport: async (vendorName: string, params: {
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+    all?: boolean;
+  } = {}) => {
+    try {
+      const queryObj: Record<string, string> = {
+        page: params.page?.toString() || '1',
+        limit: params.limit?.toString() || '10',
+        all: params.all?.toString() || 'false',
+      };
+
+      if (params.startDate) queryObj.startDate = params.startDate;
+      if (params.endDate) queryObj.endDate = params.endDate;
+
+      const query = new URLSearchParams(queryObj).toString();
+      const res = await request<any>(`${API_ROUTES.REPORTS_API_SUPPLIER(vendorName)}?${query}`);
+      return res.data;
+    } catch (error) {
+      console.error('Error fetching supplier report:', error);
+      throw error;
+    }
+  },
 };

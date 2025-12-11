@@ -62,4 +62,12 @@ export const API_ROUTES = {
   REPORTS_PROFIT_LOSS: '/reports/profit-loss',
   REPORTS_TOP_PRODUCTS: '/reports/top-products',
   REPORTS_VENDOR_PERFORMANCE: '/reports/vendor-performance',
+
+  // New dedicated reports APIs
+  REPORTS_API_SALES: '/reports-api/sales',
+  REPORTS_API_PURCHASES: '/reports-api/purchases',
+  REPORTS_API_SUPPLIERS: '/reports-api/suppliers',
+  REPORTS_API_CUSTOMERS: '/reports-api/customers',
+  REPORTS_API_CLIENT: (customerName: string) => `/reports-api/client/${encodeURIComponent(customerName)}`,
+  REPORTS_API_SUPPLIER: (vendorName: string) => `/reports-api/supplier/${encodeURIComponent(vendorName)}`,
 };

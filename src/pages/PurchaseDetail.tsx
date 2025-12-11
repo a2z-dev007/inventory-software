@@ -35,6 +35,10 @@ export interface PurchaseType {
   receivedBy: string;
   createdAt: string;
   updatedAt: string;
+  // New client data fields
+  customer?: string;
+  customerName?: string;
+  customerAddress?: string;
   __v: number;
 }
 
@@ -112,12 +116,12 @@ export const PurchaseDetail: React.FC = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Value</p>
-                <p className="text-2xl font-bold text-gray-900">{formatCurrency(po?.total)}</p>
+                <p className="text-2xl font-bold text-gray-900">{formatCurrency(po?.total || 0)}</p>
               </div>
               <div className="bg-gradient-to-r from-emerald-500 to-green-600 p-3 rounded-xl shadow-lg shadow-emerald-500/25">
                 <IndianRupeeIcon className="h-6 w-6 text-white" />
@@ -146,7 +150,7 @@ export const PurchaseDetail: React.FC = () => {
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div>
                 <p className="text-sm font-medium text-gray-600">Purchase Date</p>
-                <p className="text-lg font-bold text-gray-900">{formatRelativeDate(po?.purchaseDate)}</p>
+                <p className="text-lg font-bold text-gray-900">{formatRelativeDate(po?.purchaseDate || '')}</p>
               </div>
               <div className="bg-gradient-to-r from-purple-500 to-pink-600 p-3 rounded-xl shadow-lg shadow-purple-500/25">
                 <Calendar className="h-6 w-6 text-white" />
@@ -163,6 +167,22 @@ export const PurchaseDetail: React.FC = () => {
               </div>
               <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-3 rounded-xl shadow-lg shadow-blue-500/25">
                 <Package className="h-6 w-6 text-white" />
+              </div>
+            </div>
+
+          </div>
+
+          <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Client</p>
+                <p className="text-lg font-bold text-gray-900 truncate" title={po?.customerName || po?.customer || 'N/A'}>
+                  {po?.customerName || po?.customer || 'N/A'}
+                </p>
+               
+              </div>
+              <div className="bg-gradient-to-r from-cyan-500 to-blue-600 p-3 rounded-xl shadow-lg shadow-cyan-500/25">
+                <User className="h-6 w-6 text-white" />
               </div>
             </div>
 
@@ -224,6 +244,21 @@ export const PurchaseDetail: React.FC = () => {
                   </div>
                 </div>
 
+                <div className="group hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 p-4 rounded-xl transition-all duration-200">
+                  <div className="flex items-start space-x-4">
+                    <div className="bg-blue-100 group-hover:bg-blue-200 p-2 rounded-lg transition-colors duration-200">
+                      <User className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600 mb-1">Client</p>
+                      <p className="font-bold text-lg text-gray-900">{po?.customerName || po?.customer || 'N/A'}</p>
+                      {po?.customerAddress && (
+                        <p className="text-sm text-gray-500 mt-1">{po.customerAddress}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
                 <div className="group hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 p-4 rounded-xl transition-all duration-200">
                   <div className="flex items-start space-x-4">
                     <div className="bg-purple-100 group-hover:bg-purple-200 p-2 rounded-lg transition-colors duration-200">
@@ -231,7 +266,7 @@ export const PurchaseDetail: React.FC = () => {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-600 mb-1">Purchase Date</p>
-                      <p className="font-bold text-lg text-gray-900">{formatRelativeDate(po?.purchaseDate)}</p>
+                      <p className="font-bold text-lg text-gray-900">{formatRelativeDate(po?.purchaseDate || '')}</p>
                     </div>
                   </div>
                 </div>
@@ -294,7 +329,7 @@ export const PurchaseDetail: React.FC = () => {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-600 mb-1">Created At</p>
-                      <p className="font-bold text-lg text-gray-900">{formatRelativeDate(po?.createdAt)}</p>
+                      <p className="font-bold text-lg text-gray-900">{formatRelativeDate(po?.createdAt || '')}</p>
                     </div>
                   </div>
                 </div>
@@ -330,7 +365,7 @@ export const PurchaseDetail: React.FC = () => {
                 <div className="bg-white/50 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600 font-medium">Subtotal</span>
-                    <span className="font-bold text-gray-900 text-lg">{formatCurrency(po?.subtotal)}</span>
+                    <span className="font-bold text-gray-900 text-lg">{formatCurrency(po?.subtotal || 0)}</span>
                   </div>
                 </div>
 
@@ -339,7 +374,7 @@ export const PurchaseDetail: React.FC = () => {
                 <div className="bg-gradient-to-r from-emerald-500 to-green-600 rounded-2xl p-6 shadow-lg shadow-emerald-500/25">
                   <div className="flex justify-between items-center">
                     <span className="text-white font-bold text-lg">Grand Total</span>
-                    <span className="text-white font-bold text-2xl">{formatCurrency(po?.total)}</span>
+                    <span className="text-white font-bold text-2xl">{formatCurrency(po?.total || 0)}</span>
                   </div>
                 </div>
               </div>
@@ -418,11 +453,11 @@ export const PurchaseDetail: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-8 py-6 text-right">
-                      <span className="font-bold text-gray-900 text-lg">{formatCurrency(item.unitPrice)}</span>
+                      <span className="font-bold text-gray-900 text-lg">{formatCurrency(item.unitPrice || 0)}</span>
                     </td>
                     <td className="px-8 py-6 text-right">
                       <span className={`font-bold text-2xl ${item?.isCancelled ? 'text-red-500 line-through' : item?.isReturn ? 'text-yellow-500 line-through' : 'text-emerald-500'}`}>
-                        {formatINRCurrency(Number(item.quantity) * item.unitPrice)}
+                        {formatINRCurrency(Number(item.quantity || 0) * (item.unitPrice || 0))}
                       </span>
                     </td>
                   </tr>

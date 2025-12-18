@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 // @ts-ignore
 import { saveAs } from 'file-saver';
-import { Download, AlertCircle, CheckCircle } from 'lucide-react';
+import { Download, AlertCircle } from 'lucide-react';
 import Select from 'react-select';
 import { Card, CardHeader } from '../components/common/Card';
 import { Button } from '../components/common/Button';
@@ -37,11 +37,15 @@ export const Reports = () => {
   const [loading, setLoading] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
   const [selectedClient, setSelectedClient] = useState<any>(null);
+  const [selectedFilterClients, setSelectedFilterClients] = useState<any[]>([]);
+  const [selectedFilterSuppliers, setSelectedFilterSuppliers] = useState<any[]>([]);
+  const [availableClients, setAvailableClients] = useState<any[]>([]);
+  const [availableSuppliers, setAvailableSuppliers] = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
   const [loadingSuppliers, setLoadingSuppliers] = useState(false);
   const [loadingClients, setLoadingClients] = useState(false);
-  
+
   // Modal states
   const [validationModal, setValidationModal] = useState<{
     isOpen: boolean;
@@ -59,22 +63,39 @@ export const Reports = () => {
   useEffect(() => {
     if (reportType === 'supplier-report') {
       loadSuppliers();
+      loadClientsForSupplierReport();
     } else if (reportType === 'client-report') {
       loadClients();
+      loadSuppliersForClientReport();
     }
   }, [reportType]);
+
+  // Load filtered clients based on selected supplier
+  useEffect(() => {
+    if (reportType === 'supplier-report' && selectedSupplier) {
+      loadClientsForSupplierReport();
+    }
+  }, [selectedSupplier, reportType]);
+
+  // Load filtered suppliers based on selected client
+  useEffect(() => {
+    if (reportType === 'client-report' && selectedClient) {
+      loadSuppliersForClientReport();
+    }
+  }, [selectedClient, reportType]);
 
   const loadSuppliers = async () => {
     setLoadingSuppliers(true);
     try {
       const response = await apiService.getSuppliersForReports();
       const supplierOptions = response.vendors?.map((supplier: any) => ({
-        value: supplier.name, // Use name for filtering
+        value: supplier._id, // Use ID for filtering
         label: supplier.name,
         id: supplier._id,
+        name: supplier.name,
       })) || [];
       setSuppliers(supplierOptions);
-      
+
       if (supplierOptions.length === 0) {
         showValidationModal('info', 'No Suppliers Found', 'No suppliers are available. Please add suppliers first to generate supplier reports.');
       }
@@ -91,12 +112,13 @@ export const Reports = () => {
     try {
       const response = await apiService.getCustomersForReports();
       const clientOptions = response.customers?.map((client: any) => ({
-        value: client.name, // Use name for filtering
+        value: client._id, // Use ID for filtering
         label: client.name,
         id: client._id,
+        name: client.name,
       })) || [];
       setClients(clientOptions);
-      
+
       if (clientOptions.length === 0) {
         showValidationModal('info', 'No Clients Found', 'No clients are available. Please add clients first to generate client reports.');
       }
@@ -105,6 +127,48 @@ export const Reports = () => {
       showValidationModal('error', 'Failed to Load Clients', 'Unable to load clients. Please check your connection and try again.');
     } finally {
       setLoadingClients(false);
+    }
+  };
+
+  const loadClientsForSupplierReport = async () => {
+    try {
+      if (!selectedSupplier) {
+        setAvailableClients([]);
+        return;
+      }
+      const supplierIds = [selectedSupplier.value];
+      const response = await apiService.getClientsForSuppliers(supplierIds);
+      const clientOptions = response.clients?.map((client: any) => ({
+        value: client._id,
+        label: client.name,
+        id: client._id,
+        name: client.name,
+      })) || [];
+      setAvailableClients(clientOptions);
+    } catch (error) {
+      console.error('Error loading clients for supplier report:', error);
+      setAvailableClients([]);
+    }
+  };
+
+  const loadSuppliersForClientReport = async () => {
+    try {
+      if (!selectedClient) {
+        setAvailableSuppliers([]);
+        return;
+      }
+      const clientIds = [selectedClient.value];
+      const response = await apiService.getSuppliersForClients(clientIds);
+      const supplierOptions = response.suppliers?.map((supplier: any) => ({
+        value: supplier._id,
+        label: supplier.name,
+        id: supplier._id,
+        name: supplier.name,
+      })) || [];
+      setAvailableSuppliers(supplierOptions);
+    } catch (error) {
+      console.error('Error loading suppliers for client report:', error);
+      setAvailableSuppliers([]);
     }
   };
 
@@ -147,7 +211,7 @@ export const Reports = () => {
 
       const start = new Date(startDate);
       const end = new Date(endDate);
-      
+
       if (start > end) {
         showValidationModal('error', 'Invalid Date Range', 'Start date cannot be later than end date.');
         return false;
@@ -206,7 +270,7 @@ export const Reports = () => {
           purchase.items?.forEach((item: any) => {
             const itemTotal = (item.quantity || 0) * (item.unitPrice || 0);
             const isActive = !item.isCancelled && !item.isReturn;
-            
+
             if (isActive) {
               totalAmount += itemTotal;
               totalActiveItems++;
@@ -221,26 +285,25 @@ export const Reports = () => {
               'Date': new Date(purchase.purchaseDate || purchase.createdAt).toLocaleDateString(),
               'DB Number': purchase.ref_num || '',
               'Receipt No': purchase.receiptNumber || '',
-              
+
               // Supplier & Client Information
               'Supplier': purchase.vendor?.name || purchase.vendor || '',
               'Client': purchase.customerName || purchase.customer?.name || purchase.customer || 'N/A',
               'Client Address': purchase.customerAddress || 'N/A',
-              
+
               // Item Details
               'Product': item.productName || item.product?.name || item.name || '',
               'Qty': item.quantity || 0,
               'Unit': item.unitType || '',
               'Rate (₹)': item.unitPrice || 0,
               'Amount (₹)': itemTotal,
-              
+
               // Status
               'Status': item.isCancelled ? 'CANCELLED' : item.isReturn ? 'RETURNED' : 'DELIVERED',
-              
+
               // Additional Info
               'Received By': purchase.receivedBy || '',
               'Remarks': purchase.remarks || item.remarks || '',
-              'Created By': purchase.createdBy?.name || ''
             });
           });
         });
@@ -263,491 +326,159 @@ export const Reports = () => {
             'Status': '',
             'Received By': '',
             'Remarks': `Report Period: ${new Date(sDate).toLocaleDateString()} to ${new Date(eDate).toLocaleDateString()}`,
-            'Created By': ''
+
           });
         }
 
         fileName = `All_Purchases_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
       } else if (reportType === 'supplier-report') {
-        // Get data filtered by supplier - exact format as screenshot
-        const supplierName = selectedSupplier.label;
-        const supplierId = selectedSupplier.value;
-        
-        // Fetch purchases data filtered by supplier
-        const purchasesRes = await apiService.getPurchases({
-          vendor: supplierId,
+        // Get data filtered by supplier and optionally clients - exact format as screenshot
+        const supplierIds = [selectedSupplier.value];
+        const clientIds = selectedFilterClients.map(c => c.value);
+
+        // Fetch purchases data filtered by supplier and clients
+        const purchasesRes = await apiService.getSupplierReport({
+          supplierIds,
+          clientIds: clientIds.length > 0 ? clientIds : undefined,
           startDate: sDate,
           endDate: eDate,
           all: true
         });
 
-        // Create supplier report matching exact screenshot format
+        // Create supplier report matching exact screenshot format - TABLE FORMAT
         exportData = [];
-        
-        // Group purchases by purchase order to match screenshot format
+        let serialNumber = 1;
+        let grandTotal = 0;
+
+        // Process each purchase and create table rows
         purchasesRes.purchases?.forEach((purchase: any) => {
-          let deliveredCount = 0;
-          let cancelledCount = 0;
-          let returnedCount = 0;
-          let subtotal = 0;
-          let remarks: string[] = [];
-
-          // First, add header information for this purchase
-          exportData.push({
-            'A': 'Date',
-            'B': new Date(purchase.purchaseDate || purchase.createdAt).toLocaleDateString('en-GB'),
-            'C': '',
-            'D': '',
-            'E': '',
-            'F': '',
-            'G': '',
-            'H': ''
-          });
-          
-          exportData.push({
-            'A': 'DB Number',
-            'B': purchase.ref_num || '',
-            'C': '',
-            'D': '',
-            'E': '',
-            'F': '',
-            'G': '',
-            'H': ''
-          });
-          
-          exportData.push({
-            'A': 'Receipt No',
-            'B': purchase.receiptNumber || '',
-            'C': '',
-            'D': '',
-            'E': '',
-            'F': '',
-            'G': '',
-            'H': ''
-          });
-          
-          exportData.push({
-            'A': 'Client',
-            'B': purchase.customerName || purchase.customer?.name || purchase.customer || 'N/A',
-            'C': '',
-            'D': '',
-            'E': '',
-            'F': '',
-            'G': '',
-            'H': ''
-          });
-          
-          exportData.push({
-            'A': 'Client Address',
-            'B': purchase.customerAddress || 'N/A',
-            'C': '',
-            'D': '',
-            'E': '',
-            'F': '',
-            'G': '',
-            'H': ''
-          });
-          
-          exportData.push({
-            'A': 'Supplier',
-            'B': supplierName,
-            'C': '',
-            'D': '',
-            'E': '',
-            'F': '',
-            'G': '',
-            'H': ''
-          });
-
-          // Empty row
-          exportData.push({
-            'A': '',
-            'B': '',
-            'C': '',
-            'D': '',
-            'E': '',
-            'F': '',
-            'G': '',
-            'H': ''
-          });
-
-          // Items header
-          exportData.push({
-            'A': 'S.No',
-            'B': 'Product',
-            'C': 'Qty',
-            'D': 'Unit',
-            'E': 'Rate (₹)',
-            'F': 'Amount (₹)',
-            'G': 'Status',
-            'H': ''
-          });
-
-          // Items data
-          purchase.items?.forEach((item: any, index: number) => {
+          purchase.items?.forEach((item: any) => {
             const itemTotal = (item.quantity || 0) * (item.unitPrice || 0);
             const status = item.isCancelled ? 'CANCELLED' : item.isReturn ? 'RETURNED' : 'DELIVERED';
-            
-            if (status === 'DELIVERED') deliveredCount++;
-            else if (status === 'CANCELLED') cancelledCount++;
-            else if (status === 'RETURNED') returnedCount++;
-            
-            if (status === 'DELIVERED') subtotal += itemTotal;
-            
-            if (item.isCancelled && item.productName) {
-              remarks.push(`${item.productName} cancelled`);
+
+            if (status === 'DELIVERED') {
+              grandTotal += itemTotal;
             }
 
             exportData.push({
-              'A': index + 1,
-              'B': item.productName || item.product?.name || item.name || '',
-              'C': item.quantity || 0,
-              'D': item.unitType || '',
-              'E': item.unitPrice || 0,
-              'F': itemTotal,
-              'G': status,
-              'H': ''
+              'S.No': serialNumber++,
+              'Date': new Date(purchase.purchaseDate || purchase.createdAt).toLocaleDateString('en-GB'),
+              'DB Number': purchase.ref_num || '',
+              'Receipt No': purchase.receiptNumber || '',
+              'Supplier': purchase.vendor?.name || purchase.vendor || '',
+              'Product': item.productName || item.product?.name || item.name || '',
+              'Qty': item.quantity || 0,
+              'Unit': item.unitType || '',
+              'Rate (₹)': item.unitPrice || 0,
+              'Amount (₹)': itemTotal,
+              'Status': status,
+              'Received By': purchase.receivedBy || '',
+              'Remarks': item.remarks || purchase.remarks || '',
+
+              'Client': purchase.customerName || purchase.customer?.name || purchase.customer || 'N/A',
+              'Client Address': purchase.customerAddress || 'N/A'
             });
-          });
-
-          // Empty row
-          exportData.push({
-            'A': '',
-            'B': '',
-            'C': '',
-            'D': '',
-            'E': '',
-            'F': '',
-            'G': '',
-            'H': ''
-          });
-
-          // Summary section
-          exportData.push({
-            'A': 'Delivered',
-            'B': deliveredCount,
-            'C': '',
-            'D': '',
-            'E': '',
-            'F': '',
-            'G': '',
-            'H': ''
-          });
-          
-          exportData.push({
-            'A': 'Cancelled',
-            'B': cancelledCount,
-            'C': '',
-            'D': '',
-            'E': '',
-            'F': '',
-            'G': '',
-            'H': ''
-          });
-          
-          exportData.push({
-            'A': 'Returned',
-            'B': returnedCount,
-            'C': '',
-            'D': '',
-            'E': '',
-            'F': '',
-            'G': '',
-            'H': ''
-          });
-          
-          exportData.push({
-            'A': 'Subtotal',
-            'B': subtotal,
-            'C': '',
-            'D': '',
-            'E': '',
-            'F': '',
-            'G': '',
-            'H': ''
-          });
-          
-          if (remarks.length > 0) {
-            exportData.push({
-              'A': 'Remarks',
-              'B': remarks.join(', '),
-              'C': '',
-              'D': '',
-              'E': '',
-              'F': '',
-              'G': '',
-              'H': ''
-            });
-          }
-
-          // Double empty row between purchases
-          exportData.push({
-            'A': '',
-            'B': '',
-            'C': '',
-            'D': '',
-            'E': '',
-            'F': '',
-            'G': '',
-            'H': ''
-          });
-          
-          exportData.push({
-            'A': '',
-            'B': '',
-            'C': '',
-            'D': '',
-            'E': '',
-            'F': '',
-            'G': '',
-            'H': ''
           });
         });
 
-        fileName = `Supplier_Report_${supplierName.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
+        // Add total row
+        if (exportData.length > 0) {
+          exportData.push({
+            'S.No': '',
+            'Date': '',
+            'DB Number': '',
+            'Receipt No': '',
+            'Supplier': '',
+            'Product': '',
+            'Qty': '',
+            'Unit': '',
+            'Rate (₹)': 'Total',
+            'Amount (₹)': grandTotal,
+            'Status': '',
+            'Received By': '',
+            'Remarks': '',
+            'Client': '',
+            'Client Address': ''
+          });
+        }
+
+        const supplierName = selectedSupplier.label;
+        fileName = `Supplier_Report_${supplierName.replace(/[^a-zA-Z0-9_]/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
       } else if (reportType === 'client-report') {
-        // Get data filtered by client - exact format as screenshot
-        const clientName = selectedClient.label;
-        const clientId = selectedClient.value;
-        
-        // Fetch all purchases data and filter by client
-        const purchasesRes = await apiService.getPurchases({
-          all: true,
+        // Get data filtered by client and optionally suppliers - exact format as screenshot
+        const clientIds = [selectedClient.value];
+        const supplierIds = selectedFilterSuppliers.map(s => s.value);
+
+        // Fetch purchases data filtered by client and suppliers
+        const purchasesRes = await apiService.getClientReport({
+          clientIds,
+          supplierIds: supplierIds.length > 0 ? supplierIds : undefined,
           startDate: sDate,
-          endDate: eDate
+          endDate: eDate,
+          all: true
         });
 
-        // Create client report matching exact screenshot format
+        // Create client report matching exact screenshot format - TABLE FORMAT
         exportData = [];
-        
-        // Filter and group purchases by client
-        const clientPurchases = purchasesRes.purchases?.filter((purchase: any) => {
-          return purchase.customer?._id === clientId || 
-                 purchase.customer?.id === clientId ||
-                 purchase.customer === clientId ||
-                 purchase.customerName === clientName;
-        });
+        let serialNumber = 1;
+        let grandTotal = 0;
 
+        // Use the filtered purchases from the API
+        const clientPurchases = purchasesRes.purchases || [];
+
+        // Process each purchase and create table rows
         clientPurchases?.forEach((purchase: any) => {
-          let deliveredCount = 0;
-          let cancelledCount = 0;
-          let returnedCount = 0;
-          let subtotal = 0;
-          let remarks: string[] = [];
-
-          // First, add header information for this purchase
-          exportData.push({
-            'A': 'Date',
-            'B': new Date(purchase.purchaseDate || purchase.createdAt).toLocaleDateString('en-GB'),
-            'C': '',
-            'D': '',
-            'E': '',
-            'F': '',
-            'G': '',
-            'H': ''
-          });
-          
-          exportData.push({
-            'A': 'DB Number',
-            'B': purchase.ref_num || '',
-            'C': '',
-            'D': '',
-            'E': '',
-            'F': '',
-            'G': '',
-            'H': ''
-          });
-          
-          exportData.push({
-            'A': 'Receipt No',
-            'B': purchase.receiptNumber || '',
-            'C': '',
-            'D': '',
-            'E': '',
-            'F': '',
-            'G': '',
-            'H': ''
-          });
-          
-          exportData.push({
-            'A': 'Client',
-            'B': clientName,
-            'C': '',
-            'D': '',
-            'E': '',
-            'F': '',
-            'G': '',
-            'H': ''
-          });
-          
-          exportData.push({
-            'A': 'Client Address',
-            'B': purchase.customerAddress || 'N/A',
-            'C': '',
-            'D': '',
-            'E': '',
-            'F': '',
-            'G': '',
-            'H': ''
-          });
-          
-          exportData.push({
-            'A': 'Supplier',
-            'B': purchase.vendor?.name || purchase.vendor || 'N/A',
-            'C': '',
-            'D': '',
-            'E': '',
-            'F': '',
-            'G': '',
-            'H': ''
-          });
-
-          // Empty row
-          exportData.push({
-            'A': '',
-            'B': '',
-            'C': '',
-            'D': '',
-            'E': '',
-            'F': '',
-            'G': '',
-            'H': ''
-          });
-
-          // Items header
-          exportData.push({
-            'A': 'S.No',
-            'B': 'Product',
-            'C': 'Qty',
-            'D': 'Unit',
-            'E': 'Rate (₹)',
-            'F': 'Amount (₹)',
-            'G': 'Status',
-            'H': ''
-          });
-
-          // Items data
-          purchase.items?.forEach((item: any, index: number) => {
+          purchase.items?.forEach((item: any) => {
             const itemTotal = (item.quantity || 0) * (item.unitPrice || 0);
             const status = item.isCancelled ? 'CANCELLED' : item.isReturn ? 'RETURNED' : 'DELIVERED';
-            
-            if (status === 'DELIVERED') deliveredCount++;
-            else if (status === 'CANCELLED') cancelledCount++;
-            else if (status === 'RETURNED') returnedCount++;
-            
-            if (status === 'DELIVERED') subtotal += itemTotal;
-            
-            if (item.isCancelled && item.productName) {
-              remarks.push(`${item.productName} cancelled`);
+
+            if (status === 'DELIVERED') {
+              grandTotal += itemTotal;
             }
 
             exportData.push({
-              'A': index + 1,
-              'B': item.productName || item.product?.name || item.name || '',
-              'C': item.quantity || 0,
-              'D': item.unitType || '',
-              'E': item.unitPrice || 0,
-              'F': itemTotal,
-              'G': status,
-              'H': ''
+              'S.No': serialNumber++,
+              'Date': new Date(purchase.purchaseDate || purchase.createdAt).toLocaleDateString('en-GB'),
+              'DB Number': purchase.ref_num || '',
+              'Receipt No': purchase.receiptNumber || '',
+              'Supplier': purchase.vendor?.name || purchase.vendor || '',
+              'Product': item.productName || item.product?.name || item.name || '',
+              'Qty': item.quantity || 0,
+              'Unit': item.unitType || '',
+              'Rate (₹)': item.unitPrice || 0,
+              'Amount (₹)': itemTotal,
+              'Status': status,
+              'Received By': purchase.receivedBy || '',
+              'Remarks': item.remarks || purchase.remarks || '',
+              'Client': purchase.customerName || purchase.customer?.name || purchase.customer || 'N/A',
+              'Client Address': purchase.customerAddress || 'N/A'
             });
-          });
-
-          // Empty row
-          exportData.push({
-            'A': '',
-            'B': '',
-            'C': '',
-            'D': '',
-            'E': '',
-            'F': '',
-            'G': '',
-            'H': ''
-          });
-
-          // Summary section
-          exportData.push({
-            'A': 'Delivered',
-            'B': deliveredCount,
-            'C': '',
-            'D': '',
-            'E': '',
-            'F': '',
-            'G': '',
-            'H': ''
-          });
-          
-          exportData.push({
-            'A': 'Cancelled',
-            'B': cancelledCount,
-            'C': '',
-            'D': '',
-            'E': '',
-            'F': '',
-            'G': '',
-            'H': ''
-          });
-          
-          exportData.push({
-            'A': 'Returned',
-            'B': returnedCount,
-            'C': '',
-            'D': '',
-            'E': '',
-            'F': '',
-            'G': '',
-            'H': ''
-          });
-          
-          exportData.push({
-            'A': 'Subtotal',
-            'B': subtotal,
-            'C': '',
-            'D': '',
-            'E': '',
-            'F': '',
-            'G': '',
-            'H': ''
-          });
-          
-          if (remarks.length > 0) {
-            exportData.push({
-              'A': 'Remarks',
-              'B': remarks.join(', '),
-              'C': '',
-              'D': '',
-              'E': '',
-              'F': '',
-              'G': '',
-              'H': ''
-            });
-          }
-
-          // Double empty row between purchases
-          exportData.push({
-            'A': '',
-            'B': '',
-            'C': '',
-            'D': '',
-            'E': '',
-            'F': '',
-            'G': '',
-            'H': ''
-          });
-          
-          exportData.push({
-            'A': '',
-            'B': '',
-            'C': '',
-            'D': '',
-            'E': '',
-            'F': '',
-            'G': '',
-            'H': ''
           });
         });
 
-        fileName = `Client_Report_${clientName.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
+        // Add total row
+        if (exportData.length > 0) {
+          exportData.push({
+            'S.No': '',
+            'Date': '',
+            'DB Number': '',
+            'Receipt No': '',
+            'Supplier': '',
+            'Product': '',
+            'Qty': '',
+            'Unit': '',
+            'Rate (₹)': 'Total',
+            'Amount (₹)': grandTotal,
+            'Status': '',
+            'Received By': '',
+            'Remarks': '',
+            'Client': '',
+            'Client Address': ''
+          });
+        }
+
+        const clientName = selectedClient.label;
+        fileName = `Client_Report_${clientName.replace(/[^a-zA-Z0-9_]/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
       } else {
         // Original report logic
         const res = await apiService.exportToExcel({
@@ -795,7 +526,7 @@ export const Reports = () => {
       });
 
       saveAs(blob, fileName);
-      
+
       // Show success message with data count
       const recordCount = exportData.length;
       const reportTypeLabel = reportTypeOptions.find(opt => opt.value === reportType)?.label || 'Report';
@@ -850,6 +581,10 @@ export const Reports = () => {
                   // Reset selections when changing report type
                   setSelectedSupplier(null);
                   setSelectedClient(null);
+                  setSelectedFilterClients([]);
+                  setSelectedFilterSuppliers([]);
+                  setAvailableClients([]);
+                  setAvailableSuppliers([]);
                 }}
                 classNamePrefix="react-select"
                 className="text-sm"
@@ -879,48 +614,98 @@ export const Reports = () => {
                   {reportType === 'supplier-report' ? 'Supplier Selection Required' : 'Client Selection Required'}
                 </h3>
               </div>
-              
+
               {reportType === 'supplier-report' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Supplier
-                  </label>
-                  <Select
-                    options={suppliers}
-                    value={selectedSupplier}
-                    onChange={setSelectedSupplier}
-                    placeholder="Choose a supplier..."
-                    isLoading={loadingSuppliers}
-                    classNamePrefix="react-select"
-                    className="text-sm"
-                    isClearable
-                    noOptionsMessage={() => loadingSuppliers ? "Loading suppliers..." : "No suppliers found"}
-                  />
-                  {!loadingSuppliers && suppliers.length === 0 && (
-                    <p className="text-xs text-gray-500 mt-1">No suppliers available. Please add suppliers first.</p>
-                  )}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Select Supplier (Required)
+                    </label>
+                    <Select
+                      options={suppliers}
+                      value={selectedSupplier}
+                      onChange={setSelectedSupplier}
+                      placeholder="Choose a supplier..."
+                      isLoading={loadingSuppliers}
+                      classNamePrefix="react-select"
+                      className="text-sm"
+                      isClearable
+                      noOptionsMessage={() => loadingSuppliers ? "Loading suppliers..." : "No suppliers found"}
+                    />
+                    {!loadingSuppliers && suppliers.length === 0 && (
+                      <p className="text-xs text-gray-500 mt-1">No suppliers available. Please add suppliers first.</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Filter by Clients (Optional)
+                    </label>
+                    <Select
+                      options={availableClients}
+                      value={selectedFilterClients}
+                      onChange={(newValue) => setSelectedFilterClients(Array.from(newValue || []))}
+                      placeholder="Choose clients to filter (optional)..."
+                      classNamePrefix="react-select"
+                      className="text-sm"
+                      isMulti
+                      isClearable
+                      isDisabled={!selectedSupplier}
+                      noOptionsMessage={() => !selectedSupplier ? "Select a supplier first" : "No clients found for selected supplier"}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      {!selectedSupplier
+                        ? "Select a supplier first to see available clients"
+                        : "Filter by specific clients (leave empty for all clients)"}
+                    </p>
+                  </div>
                 </div>
               )}
 
               {reportType === 'client-report' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Client
-                  </label>
-                  <Select
-                    options={clients}
-                    value={selectedClient}
-                    onChange={setSelectedClient}
-                    placeholder="Choose a client..."
-                    isLoading={loadingClients}
-                    classNamePrefix="react-select"
-                    className="text-sm"
-                    isClearable
-                    noOptionsMessage={() => loadingClients ? "Loading clients..." : "No clients found"}
-                  />
-                  {!loadingClients && clients.length === 0 && (
-                    <p className="text-xs text-gray-500 mt-1">No clients available. Please add clients first.</p>
-                  )}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Select Client (Required)
+                    </label>
+                    <Select
+                      options={clients}
+                      value={selectedClient}
+                      onChange={setSelectedClient}
+                      placeholder="Choose a client..."
+                      isLoading={loadingClients}
+                      classNamePrefix="react-select"
+                      className="text-sm"
+                      isClearable
+                      noOptionsMessage={() => loadingClients ? "Loading clients..." : "No clients found"}
+                    />
+                    {!loadingClients && clients.length === 0 && (
+                      <p className="text-xs text-gray-500 mt-1">No clients available. Please add clients first.</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Filter by Suppliers (Optional)
+                    </label>
+                    <Select
+                      options={availableSuppliers}
+                      value={selectedFilterSuppliers}
+                      onChange={(newValue) => setSelectedFilterSuppliers(Array.from(newValue || []))}
+                      placeholder="Choose suppliers to filter (optional)..."
+                      classNamePrefix="react-select"
+                      className="text-sm"
+                      isMulti
+                      isClearable
+                      isDisabled={!selectedClient}
+                      noOptionsMessage={() => !selectedClient ? "Select a client first" : "No suppliers found for selected client"}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      {!selectedClient
+                        ? "Select a client first to see available suppliers"
+                        : "Filter by specific suppliers (leave empty for all suppliers)"}
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
@@ -957,12 +742,12 @@ export const Reports = () => {
             </div>
           )}
 
-        
+
         </div>
       </Card>
 
       {/* Modals */}
-      <LoadingModal 
+      <LoadingModal
         isOpen={loading}
         title="Generating Report"
         message="Please wait while we prepare your Excel report. This may take a few moments..."

@@ -22,6 +22,8 @@ export const formatCurrency = (amount: number): string => {
   })}`;
 };
 
+export const app_version = '1.0.0';
+
 
 export const unitTypes = [
   { value: 'piece', label: 'Piece' },

@@ -1,18 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Provider } from 'react-redux';
-import { store } from './store';
+import { useDispatch } from 'react-redux';
+import { initializeAuth } from './store/slices/authSlice';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Layout } from './components/common/Layout';
 import { Login } from './pages/Login';
-import { Dashboard } from './pages/Dashboard';
 import { Products } from './pages/Products';
 import { ProductDetail } from './pages/ProductDetail';
 import { PurchaseOrders } from './pages/PurchaseOrders';
 import { PurchaseOrderDetail } from './pages/PurchaseOrderDetail';
-import { Sales } from './pages/Sales';
-import { SaleDetail } from './pages/SaleDetail';
 import { Purchases } from './pages/Purchases';
 import { PurchaseDetail } from './pages/PurchaseDetail';
 import { Suppliers } from './pages/Suppliers';
@@ -43,10 +40,34 @@ export const queryClient = new QueryClient({
 });
 
 const AppRoutes: React.FC = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isInitialized } = useAuth();
+
+  // Show loading while auth is initializing
+  if (!isInitialized) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Routes>
+      {/* Redirect root to dashboard if authenticated, otherwise to login */}
+      <Route
+        path="/"
+        element={
+          isAuthenticated ? (
+            <Navigate to="/purchase-orders" replace />
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        }
+      />
+
       <Route
         path="/login"
         element={isAuthenticated ? <Navigate to="/purchase-orders" replace /> : <Login />}
@@ -56,15 +77,15 @@ const AppRoutes: React.FC = () => {
         element={<ForgotPassword />}
       />
 
-      <Route path="/" element={
+      {/* Protected routes with Layout */}
+      <Route element={
         <ProtectedRoute>
           <Layout />
         </ProtectedRoute>
       }>
-        {/* <Route element={<Dashboard />} /> */}
         <Route path="products" element={<Products />} />
         <Route path="products/:id" element={<ProductDetail />} />
-        <Route index path="purchase-orders" element={
+        <Route path="purchase-orders" element={
           <ProtectedRoute requiredRoles={['admin', 'manager']}>
             <PurchaseOrders />
           </ProtectedRoute>
@@ -140,12 +161,19 @@ const AppRoutes: React.FC = () => {
         } />
       </Route>
 
+      {/* Catch all - redirect to root which will handle auth logic */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 };
 
 function App() {
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    dispatch(initializeAuth());
+  }, [dispatch]);
+
   // Initialize state based on localStorage immediately
   const [showLoader, setShowLoader] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -163,27 +191,20 @@ function App() {
     }
   };
 
-  const resetLoader = () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('wingsAppLoaded');
-      setShowLoader(true);
-    }
-  };
+
   return (
-    <Provider store={store}>
-      <QueryClientProvider client={queryClient}>
-        <Router>
-          <div className="min-h-screen bg-gray-50">
-            <AppRoutes />
-            <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop closeOnClick pauseOnFocusLoss draggable pauseOnHover />
-          </div>
-          <WelcomeLoader
-            showLoader={showLoader}
-            onLoadingComplete={handleLoadingComplete}
-          />
-        </Router>
-      </QueryClientProvider>
-    </Provider>
+    <QueryClientProvider client={queryClient}>
+      <Router>
+        <div className="min-h-screen bg-gray-50">
+          <AppRoutes />
+          <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop closeOnClick pauseOnFocusLoss draggable pauseOnHover />
+        </div>
+        <WelcomeLoader
+          showLoader={showLoader}
+          onLoadingComplete={handleLoadingComplete}
+        />
+      </Router>
+    </QueryClientProvider>
   );
 }
 

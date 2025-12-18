@@ -70,4 +70,10 @@ export const API_ROUTES = {
   REPORTS_API_CUSTOMERS: '/reports-api/customers',
   REPORTS_API_CLIENT: (customerName: string) => `/reports-api/client/${encodeURIComponent(customerName)}`,
   REPORTS_API_SUPPLIER: (vendorName: string) => `/reports-api/supplier/${encodeURIComponent(vendorName)}`,
+  
+  // New multi-selection endpoints
+  REPORTS_API_SUPPLIER_MULTI: '/reports-api/suppliers-multi',
+  REPORTS_API_CLIENT_MULTI: '/reports-api/clients-multi',
+  REPORTS_API_CLIENTS_FOR_SUPPLIERS: '/reports-api/clients-for-suppliers',
+  REPORTS_API_SUPPLIERS_FOR_CLIENTS: '/reports-api/suppliers-for-clients',
 };

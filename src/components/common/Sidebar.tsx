@@ -15,6 +15,8 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import logo from "../../assets/images/logo.png";
 import { useAuth } from '../../hooks/useAuth';
+import { app_version } from '../../utils/constants';
+
 interface NavItem {
   name: string;
   href: string;
@@ -66,6 +68,7 @@ export const Sidebar: React.FC = () => {
               }
             >
               {({ isActive }) => (
+
                 <>
                   <item.icon
                     className={`mr-3 flex-shrink-0 h-5 w-5 ${isActive ? 'text-blue-600' : 'text-white group-hover:text-gray-500'
@@ -77,6 +80,11 @@ export const Sidebar: React.FC = () => {
             </NavLink>
           ))}
         </nav>
+        <div className="p-4 border-t border-gray-200">
+          <p className="text-md text-center text-white">
+            version:{app_version}
+          </p>
+        </div>
       </div>
     </div>
   );

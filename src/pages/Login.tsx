@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { loginSuccess } from '../store/slices/authSlice';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -17,6 +19,8 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export const Login: React.FC = () => {
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -38,13 +42,38 @@ export const Login: React.FC = () => {
     setError('');
 
     const result = await login(data.username, data.password, data.remember);
-    
+
     // if (!result.success) {
     //   setError(result.error || 'Login failed');
     // }
-    
+
     setIsLoading(false);
   };
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/purchase-orders', { replace: true });
+    } else {
+      // Fallback: Check if token exists in storage but state is not updated
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
+
+      if (token && userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          const remember = !!localStorage.getItem('token');
+          dispatch(loginSuccess({ user, token, remember }));
+          // The next render will trigger the isAuthenticated check above
+        } catch (e) {
+          console.error("Failed to parse user from storage", e);
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          sessionStorage.removeItem('token');
+          sessionStorage.removeItem('user');
+        }
+      }
+    }
+  }, [isAuthenticated, navigate, dispatch]);
 
   if (isAuthenticated) {
     return <Navigate to="/purchase-orders" replace />;
@@ -58,10 +87,10 @@ export const Login: React.FC = () => {
             <Package className="h-12 w-12 text-blue-600" />
           </div> */}
           <div>
-          <img src={logo} className='' />
+            <img src={logo} className='' />
           </div>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">
-          Wings Procurement Management
+            Wings Procurement Management
           </h2>
           <p className="mt-2 text-sm text-gray-600">
             Sign in to access your dashboard
@@ -94,9 +123,8 @@ export const Login: React.FC = () => {
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Enter your password"
-                  className={`w-full px-3 py-2 pr-10 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    errors.password ? 'border-red-300' : 'border-gray-300'
-                  }`}
+                  className={`w-full px-3 py-2 pr-10 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.password ? 'border-red-300' : 'border-gray-300'
+                    }`}
                   {...register('password')}
                 />
                 <button
@@ -138,13 +166,13 @@ export const Login: React.FC = () => {
               Sign In
             </Button>
           </form>
-              <div>
-              <p className="mt-4 text-center text-sm">
-  <Link to="/forgot-password" className="text-blue-600 hover:underline">
-    Forgot your password?
-  </Link>
-</p>
-              </div>
+          <div>
+            <p className="mt-4 text-center text-sm">
+              <Link to="/forgot-password" className="text-blue-600 hover:underline">
+                Forgot your password?
+              </Link>
+            </p>
+          </div>
           {/* <div className="mt-6 p-4 bg-gray-50 rounded-lg">
             <h4 className="text-sm font-medium text-gray-700 mb-2">Demo Accounts:</h4>
             <div className="text-xs text-gray-600 space-y-1">

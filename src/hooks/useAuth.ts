@@ -8,21 +8,21 @@ import { toast } from 'react-toastify';
 
 export const useAuth = () => {
   const dispatch = useDispatch();
-  const { user, isAuthenticated, rememberSession } = useSelector((state: RootState) => state.auth);
+  const { user, isAuthenticated, rememberSession, isInitialized } = useSelector((state: RootState) => state.auth);
 
-  useEffect(() => {
-    dispatch(initializeAuth());
-  }, [dispatch]);
+  // useEffect(() => {
+  //   dispatch(initializeAuth());
+  // }, [dispatch]);
 
   const login = async (username: string, password: string, remember: boolean = false) => {
     try {
       const response = await apiService.login(username, password, remember);
-      
+
       if (!response.success || !response.data) {
         toast.error(response.message || 'Login failed');
         throw new Error(response.message || 'Login failed');
       }
-      
+
       const { user, token } = response.data;
       // if(response.success){
       //   toast.success(response.message || 'Login successful');
@@ -33,7 +33,7 @@ export const useAuth = () => {
       } else {
         sessionStorage.setItem('token', token);
       }
-      
+
       dispatch(loginSuccess({ user, remember, token }));
       return { success: true };
     } catch (error) {
@@ -62,6 +62,7 @@ export const useAuth = () => {
     user,
     isAuthenticated,
     rememberSession,
+    isInitialized,
     login,
     logout: signOut,
     hasRole,
